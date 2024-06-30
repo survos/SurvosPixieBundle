@@ -22,15 +22,16 @@ class PixieController extends AbstractController
 
     public function __construct(
         private ParameterBagInterface $bag,
-        private PixieService $PixieService
+        private PixieService $pixieService
     ) {
 
     }
 
     private function getPixieConf(string $pixieName, bool $throwIfMissing=true): ?string
     {
+        dd($pixieName);
         $dirs = [
-            $this->bag->get('data_dir'),
+            $this->bag->get('config_dir'),
             $this->bag->get('kernel.project_dir') . "/config/packages/pixie/",
         ];
         $pixieName = str_replace('.pixie', '', $pixieName); // hack!
@@ -54,7 +55,7 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int $limit = 5
     ): Response
     {
-        $kv = $this->PixieService->getStorageBox($pixieName);
+        $kv = $this->pixieService->getStorageBox($pixieName);
         $kv->select($tableName);
         $row = $kv->get($key, $tableName);
         if (!$row) {
@@ -78,7 +79,7 @@ class PixieController extends AbstractController
     ): Response
     {
         // need to handle extension
-        $kv = $this->PixieService->getStorageBox($pixieName);
+        $kv = $this->pixieService->getStorageBox($pixieName);
         $where = [];
         if ($index) {
             $where[$index] = $value?:null;
@@ -119,7 +120,7 @@ class PixieController extends AbstractController
         $charts = [];
         $tables = [];
 
-        $kv = $this->PixieService->getStorageBox($pixieName);
+        $kv = $this->pixieService->getStorageBox($pixieName);
         foreach ($kv->getTables() as $tableName) {
             $count = $kv->count($tableName);
 //            dd($tableName, $count);
@@ -180,7 +181,7 @@ class PixieController extends AbstractController
 
     }
     #[Route('/import/{pixieName}', name: 'pixie_import')]
-    public function import(PixieService $PixieService,
+    public function import(PixieService $pixieService,
                            PixieImportService $pixieImportService,
                            string $pixieName,
                            #[MapQueryParameter] int $limit = 0,
@@ -210,7 +211,7 @@ class PixieController extends AbstractController
         foreach ($tables as $tableName => $tableData) {
             $tablesToCreate[$tableName] = $tableData['indexes'];
         }
-        $kv = $PixieService->getStorageBox($pixieDbName, $tablesToCreate);
+        $kv = $pixieService->getStorageBox($pixieDbName, $tablesToCreate);
 //        dd($pixieDbName, $configFilename, $tablesToCreate);
 
         foreach ($tables as $tableName => $tableData) {

@@ -26,7 +26,8 @@ class SurvosPixieBundle extends AbstractBundle
 
         $x = $builder->register(PixieImportService::class)
             ->setAutowired(true)
-            ->setArgument('$dataDir', $config['directory'])
+            ->setArgument('$dataDir', $config['data_dir'])
+            ->setArgument('$dataDir', $config['data_dir'])
         ;
 
         $builder->autowire(SqliteService::class)
@@ -43,7 +44,7 @@ class SurvosPixieBundle extends AbstractBundle
         ;
 
         $builder->autowire(PixieDataCollector::class)
-            ->setArgument('$PixieService', new Reference(PixieService::class))
+            ->setArgument('$pixieService', new Reference(PixieService::class))
 //            ->setArgument('$logger', new Reference('logger'))
             ->addTag('data_collector', [
                 'template' => '@SurvosPixie/DataCollector/pixie_debug_profile.html.twig'
@@ -62,7 +63,9 @@ class SurvosPixieBundle extends AbstractBundle
         $x = $builder->register(PixieService::class)
             ->setAutowired(true)
             ->setArgument('$isDebug', $builder->getParameter('kernel.debug'))
-            ->setArgument('$dataDir', $config['directory'])
+            ->setArgument('$dataDir', $config['data_dir'])
+            ->setArgument('$configDir', $config['config_dir'])
+            ->setArgument('$dbDir', $config['db_dir'])
             ->setArgument('$stopwatch', new Reference('debug.stopwatch'))
             ->setArgument('$logger', new Reference('logger'))
         ;
@@ -81,9 +84,10 @@ class SurvosPixieBundle extends AbstractBundle
     {
         $definition->rootNode()
             ->children()
-            ->scalarNode('directory')->info("where to store the pixie db files")->defaultValue('./data')->end()
             ->scalarNode('extension')->info("the pixie db extension")->defaultValue('.pixie.db')->end()
-            ->scalarNode('config_directory')->info("location of .pixie.yaml config files")->defaultValue('./pixie')->end()
+            ->scalarNode('db_dir')->info("where to store the pixie db files")->defaultValue('./pixie]')->end()
+            ->scalarNode('data_dir')->info("where to look for csv/json data")->defaultValue('./data')->end()
+            ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('./pixie')->end()
             ->end();
     }
 }

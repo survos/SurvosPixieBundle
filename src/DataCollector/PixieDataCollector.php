@@ -18,13 +18,13 @@ final class PixieDataCollector extends AbstractDataCollector
 {
 
     public function __construct(
-        private PixieService $PixieService,
+        private PixieService $pixieService,
     )
     {
     }
     public function collect(Request $request, Response $response, \Throwable $exception = null): void
     {
-        $data = $this->PixieService->getData();
+        $data = $this->pixieService->getData();
 
         $this->data[$this->getName()] = !empty($data) ? $this->cloneVar($data) : null;
 //        dd($this->data);

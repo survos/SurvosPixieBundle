@@ -19,7 +19,7 @@ class PixieImportService
 {
     public function __construct(
         private string                            $dataDir,
-        private PixieService                   $PixieService,
+        private PixieService                   $pixieService,
         private LoggerInterface                   $logger,
         private readonly EventDispatcherInterface $eventDispatcher)
     {
@@ -165,7 +165,7 @@ class PixieImportService
             }
         }
         if (file_exists($pixieDbName)) unlink($pixieDbName);
-        $kv = $this->PixieService->getStorageBox($pixieDbName, $tablesToCreate);
+        $kv = $this->pixieService->getStorageBox($pixieDbName, $tablesToCreate);
 //        if (str_contains($kv->getFilename(), 'edu')) dd($kv->getFilename());
         return $kv;
         return array($splFile, $tableName, $mm, $fileMap, $fn, $tables, $tableData, $kv);

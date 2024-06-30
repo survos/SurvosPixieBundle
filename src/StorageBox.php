@@ -296,7 +296,6 @@ class StorageBox
         $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (%s); %s", $tableName,
             join(",\n", $columns),
             join(";\n", $indexSql));
-        dump($sql);
         try {
             $result = $this->db->exec($sql);
         } catch (\Exception $exception) {
