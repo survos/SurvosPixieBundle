@@ -7,6 +7,7 @@ namespace Survos\PixieBundle\Service;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
 use Survos\PixieBundle\StorageBox;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 
@@ -20,6 +21,8 @@ class PixieService
         private bool $isDebug,
         private array $data=[],
         private string $dataDir='./',
+        private string $configDir='/config/packages/pixie',
+        #[Autowire('%kernel.project_dir%')] private ?string $projectDir=null,
         private ?LoggerInterface $logger=null,
         private ?Stopwatch $stopwatch=null,
         private ?PropertyAccessorInterface $accessor=null
@@ -72,6 +75,27 @@ class PixieService
             $this->data[$filename] = $storageBox->getData();
         }
         return $this->data;
+    }
+
+    public function getConfigFiles(): array
+    {
+        // we could parse these, though then we should cache them.  Since they're in config, we could cache them at compile-time
+        return glob($this->configDir . '/*.yaml');
+
+    }
+
+    public function getConfigDir(bool $autoCreate=false): string
+    {
+        $dir = $this->configDir;
+        if (!file_exists($dir)) {
+            $dir = $this->projectDir . $dir;
+        }
+
+        if ($autoCreate && !is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        return $dir;
+
     }
 
 
