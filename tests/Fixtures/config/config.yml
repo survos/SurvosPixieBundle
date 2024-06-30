@@ -1,0 +1,7 @@
+framework:
+    test: true
+    annotations: false
+
+survos_pixie:
+    directory: ./
+

@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello MomaController!{% endblock %}
+
+{% block body %}
+    <div class="example-wrapper">
+
+        <h1>{{ filename }}</h1>
+
+        {% for tableName, tableData in tables %}
+
+
+            <h2>{{ tableName }}</h2>
+            {% for indexName, chart in tableData.charts %}
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <h3>{{ indexName }}</h3>
+
+                        <div class="my-chart">
+                            {{ render_chart(chart.chart) }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+
+                        {% set columns = [
+                            {name: 'count', title: '#'},
+                            {name: 'value', title: indexName}
+                        ] %}
+                        <twig:simple_datatables
+                                :caller="_self"
+                                :columns="columns"
+                                :data="chart.counts"
+                        >
+                            <twig:block name="count">
+                                <a href="{{ path('pixie_browse', {index: indexName, value: row.value, 'pixieName': pixieName, tableName: tableName}) }}">
+                                    {{ row.count }}
+                                </a>
+                            </twig:block>
+
+                        </twig:simple_datatables>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+
+        {#    {% endfor %} #}
+
+    </div>
+{% endblock %}
+
+{% block debug %}
+Using KV, no doctrine!
+{% for table in kv.tables %}
+    {#        {{ dump(table) }} #}
+    <h3>
+        {{ table }}
+    </h3>
+    {% for index in kv.indexes(table) %}
+        <b>{{ index }}</b>
+        {{ kv.getCounts(index, table)|map(c => "#{c.value} #{c.count}")|join("<br />")|raw }}
+    {% endfor %}
+
+    {% for row in kv.iterate(table) %}
+        {% if loop.index < 3 %}
+            {#                    {{ dump(row) }} #}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{% endblock %}

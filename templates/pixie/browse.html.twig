@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello !{% endblock %}
+
+{% block body %}
+        <h1>{{ filename }}</h1>
+
+        <twig:simple_datatables
+                :caller="_self"
+                :columns="columns"
+                :data="iterator"
+        >
+                <twig:block name="key">
+                    <a href="{{ path('pixie_show_record', {
+                        pixieName: pixieName,
+                        tableName: tableName,
+                        key: row[keyName]
+                    }) }}"> {{ row[keyName] }}</a>
+                </twig:block>
+            <twig:block name="value">
+                <a href="">{{ row.value|default('~~') }}</a>
+            </twig:block>
+
+        </twig:simple_datatables>
+
+
+
+{% endblock %}

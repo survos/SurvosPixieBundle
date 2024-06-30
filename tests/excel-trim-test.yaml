@@ -1,0 +1,57 @@
+trim:
+  - file: no-changes.csv
+    raw:
+      - [cityId,label]
+      - [nj,"New Jersey"]
+    expected:
+      - [cityId,label]
+      - [nj,"New Jersey"]
+
+  - file: empty-rows-at-end.csv
+    raw:
+      - [cityId,label]
+      - [nj,"New Jersey"]
+      - [null, null]
+      - ['','']
+      - ['','','',null]
+    expected:
+      - [cityId,label]
+      - [nj,"New Jersey"]
+
+  - file: some-fields-in-row-empty.csv
+    raw:
+      - [ cityId,label,population ]
+      - [ nj,"New Jersey",'' ]
+      - [ null, null ]
+      - [ '','' ]
+      - [ '','','',null ]
+    expected:
+      - [ cityId,label,population ]
+      - [ nj,"New Jersey",'' ]
+
+  - file: empty-columns-at-end.csv
+    raw:
+      - [cityId,label,'']
+      - [nj,"New Jersey",'']
+    expected:
+      - [cityId,label]
+      - [nj,"New Jersey"]
+
+  - file: headers-not-on-first-row.csv
+    headerRegex: "/cityId/i"
+    raw:
+      - ["City List"]
+      - ["(copyright) ABC Core"]
+      - [cityId,label]
+      - [nj,"New Jersey",]
+    expected:
+      - [cityId,label]
+      - [nj,"New Jersey"]
+
+  - file: empty-header-with-column-values.csv
+    raw:
+      - [cityId,'',population]
+      - [nj,"New Jersey",10]
+    expected:
+      - [cityId,population]
+      - [nj,10]

@@ -1,0 +1,128 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block toolbar %}
+    {% set _data = collector.collectedData %}
+    {% set hoverText %}
+        {% for table, functions in _data %}
+            {{ table }}
+            <br />
+            {% for function, calls in functions %}
+                &nbsp;&nbsp;{{ function }} {{ calls|length }}<br />
+            {% endfor %}
+        {% endfor %}
+{#        {% for key, value in _data %}#}
+{#            {{ key }}#}
+{#            {{ value|json_encode }}#}
+{#        {% endfor %}#}
+{#        {{ _data|length  }}#}
+{#        {{ _data.count }}#}
+{#        #of tbles?#}
+    {% endset %}
+        {% set icon %}
+            {{ include('@SurvosPixie/DataCollector/pixie.svg') }}
+            <span class="sf-toolbar-value">Pixie</span>
+        {% endset %}
+        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', {
+            text: hoverText,
+            icon: icon,
+            link: 'pixie' }) }}
+    {% if _data is not null %}
+    {% endif %}
+{% endblock %}
+
+{% block menu %}
+    {% set _data = collector.collectedData %}
+    <span class="label{{ _data is null ? ' disabled' }}">
+        <span class="icon">
+            {{ include('@SurvosPixie/DataCollector/pixie.svg') }}
+        </span>
+        <strong>Pixie</strong>
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Pixie</h2>
+    {% set _data = collector.collectedData %}
+    {% if _data is not null %}
+        <div class="sf-tabs">
+            {% for _name, functions in _data %}
+                <div class="tab">
+                    <h3 class="tab-title">{{ _name }}</h3>
+                    <div class="tab-content">
+                        {% for function, calls in functions %}
+{#                            <h3>{{ function }}</h3>#}
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>call</th>
+                                    <th>results</th>
+                                    <th>duration</th>
+                                    <th>Params</th>
+                                </tr>
+
+                                </thead>
+                                <tbody>
+
+                                {% for call in calls %}
+                                    <tr>
+                                        <td>{{ function }}</td>
+                                        <td>{{ call._results }}</td>
+                                        <td>{{ call._duration }}</td>
+                                        <td>{{ call._params|join(',') }}</td>
+{#                                        <td>{{ _pk }}</td>#}
+{#                                        <td>{{ profiler_dump(call) }}</td>#}
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        {% endfor %}
+                        <div class="metrics">
+                            <div class="metric">
+                                <span class="value">{{ '%.0f'|format(_d._duration|default(-1)) }} <span class="unit">ms</span></span>
+                                <span class="label">Total execution time</span>
+                            </div>
+                            <div class="metric">
+                                {% if _d._memory|default(false) %}
+                                <span class="value">{{ '%.2f'|format(_d._memory / 1024 / 1024) }} <span class="unit">MB</span></span>
+                                <span class="label">Peak memory usage</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <h3>Params</h3>
+                        <table>
+                            {% for _pk, _pv in _d._params|default([]) %}
+                                <tr>
+                                    <td>{{ _pk }}</td>
+                                    <td>{{ profiler_dump(_pv) }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                        <h3>Result</h3>
+                        <table>
+                            {% for _rk, _rv in _d._results|default([]) %}
+                                <tr>
+                                    <td>{{ _rk }}</td>
+                                    <td>{{ profiler_dump(_rv) }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <p class="help">
+            Sqlite version?
+        </p>
+    {% else %}
+        <div class="empty">
+            <p>No Pixie data collected.</p>
+        </div>
+    {% endif %}
+    <p>
+{#        <a href="https://www.meilisearch.com/docs">Read Meilisearch documentation</a>#}
+{#        <br />#}
+{#        <a href="https://github.com/meilisearch/meilisearch-php">Read Meilisearch PHP SDK documentation</a>#}
+{#        <br />#}
+{#        <a href="https://github.com/meilisearch/meilisearch-symfony">Read Meilisearch Symfony bundle documentation</a>#}
+    </p>
+{% endblock %}

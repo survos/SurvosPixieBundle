@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello !{% endblock %}
+
+{% block body %}
+
+    {{ dump(row.value|fn_json_decode) }}
+    {{ dump(row) }}
+{#        <twig:simple_datatables#}
+{#                :caller="_self"#}
+{#                :columns="columns"#}
+{#                :data="row"#}
+{#        >#}
+{#                <twig:block name="key">#}
+{#                    <a href="{{ path('pixie_show_record', {#}
+{#                        pixieName: pixieName,#}
+{#                        tableName: tableName,#}
+{#                        key: row[keyName]#}
+{#                    }) }}"> {{ row[keyName] }}</a>#}
+{#                </twig:block>#}
+{#            <twig:block name="value">#}
+{#                <a href="">{{ row.value|default('~~') }}</a>#}
+{#            </twig:block>#}
+
+{#        </twig:simple_datatables>#}
+
+
+
+{% endblock %}

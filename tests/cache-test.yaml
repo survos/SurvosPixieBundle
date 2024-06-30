@@ -1,0 +1,30 @@
+cache:
+  - db: cache.csv
+    key: code
+    headers: [code,label]
+
+    steps:
+      - operation: contains
+        key: va
+        expects: false
+
+      - operation: set
+        key: va
+        data: {code: 'va', label: 'Virginia'}
+        csv: |
+          code,label
+          va,Virginia
+
+      - operation: get
+        key: va
+        expects: {code: 'va', label: 'Virginia'}
+
+      - operation: set
+        key: va
+        data: {code: 'va', label: 'New Virginia'}
+        csv: |
+          code,label
+          va,"New Virginia"
+
+
+      

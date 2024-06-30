@@ -1,0 +1,92 @@
+tests:
+#  - source: |
+#      pages:int,title:db.label
+#      40,Forty Pages
+#    name: integer attributes
+#    expects: |
+#      {"pages":40,"title":"Forty Pages"}
+
+  - source: |
+      kids|,name
+      "mike|kath",bob
+    expects: |
+      {"name":"bob","kids":["mike","kath"]}
+
+  - source: |
+      name,hobbies:array|
+      bob,"golf|poker"
+    expects: |
+      {"name":"bob","hobbies":["golf","poker"]}
+
+  - source: |
+      objekt_id,objekt_name
+      123,One Two Three
+    name: basic # the test name
+    map:
+        /^objekt_id/i: db.code
+        /^obje(k|c)t_name/i: db.label
+    expects: |
+      {"objekt_id":"123","objekt_name":"One Two Three"}
+    schema:
+      objekt_id: objekt_name:db.code
+      objekt_name: objekt_name:db.label
+
+  - source: |
+      objekt_id,objekt_name
+      123,One Two Three
+    map:
+      /^objekt_id/i: id:db.code
+      /^obje(k|c)t_name/i: name:db.label
+      /^obje(k|c)t_description$/: description:db.description
+    expects: |
+      {"id":"123","name":"One Two Three"}
+
+
+  - source: |
+      wiki:db.code,name:db.label
+      Q392,Bob Dylan
+    expects: |
+      {"wiki":"Q392","name":"Bob Dylan"}
+    
+
+#  - source: |
+#      name,age:int,hobbies:array(|)
+#      bob,22,chess|frisbee
+#    expects: |
+#      {"name":"bob","age":22, "hobbies": ["chess","frisbee"]}
+
+  - source: |
+      name,age
+      bob,22
+    expects: |
+      {"name":"bob","age":"22"}
+
+  - source: | 
+      name,age,spouse
+      bob,22,\N
+    map:
+      /age/: int
+    valueRules:
+      '\N': null
+    expects: |
+      {"name":"bob","age":22, "spouse": ""}
+
+  - source: |
+      name,age:int,married:bool,employed:bool
+      bob,22,1,false
+    expects: |
+      {"name":"bob","age":22, "married": true, "employed": false}
+
+  - source: |
+      place,temp:float
+      nj,22.1
+    expects: |
+      {"place":"nj","temp": 22.1}
+
+
+
+#  - source: |
+#      room,colors:array?delim=,
+#      kitchen,"golden rod,blue"
+#    expects: |
+#      {"room":"kitchen","colors":["golden rod","blue"]}

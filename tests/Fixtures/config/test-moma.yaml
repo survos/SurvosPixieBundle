@@ -1,0 +1,47 @@
+version: 1.1
+source:
+  dir: /moma/ # relative to data_dir
+  locale: en
+files:
+  /Artists/: artist
+  /Artworks/: artwork
+tables:
+  artwork:
+    #        indexes: 'id|int,department,classification,year|int'
+    indexes:
+      - id|INTEGER
+      - department
+      - classification
+      - art_year|INTEGER
+      - date_acquired|DATETIME # hint only, but can get during in the sql https://stackoverflow.com/questions/17227110/how-do-datetime-values-work-in-sqlite
+    #            - description|SEARCHTEXT,translatable
+    # column header rules.  Use rulesets?
+    rules:
+      /ObjectID/: id
+      /BeginDate/: artistBirthYear
+      /EndDate/: artistDeathYear
+      /^Date$/: art_year
+      #            /^Date_Acquired/: art_year
+      /ConstituentID/: artist_id
+    # could come from SQL or created during the import
+    virtualColumns:
+      - isAlive:
+          type: bool
+          value: row.artistDeathYear == 0
+      - decade:
+          type: int
+          value: row.year % 10 == 0
+
+  artist:
+    indexes:
+      - id|INTEGER
+      - nationality
+      - birth_year|INTEGER
+      - gender
+    properties: # extracted from json as virtual columns
+      - wiki_qid
+    #             - '&qid'
+    rules:
+      /ConstituentID/: id
+      /BeginDate/: birthYear
+      /EndDate/: deathYear

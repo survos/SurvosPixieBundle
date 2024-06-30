@@ -1,0 +1,49 @@
+{
+    "name": "survos/pixie-bundle",
+    "type": "symfony-bundle",
+    "description": "Symfony Bundle to easily allow a SQLite Key Value lookup",
+    "keywords": [
+        "symfony-ux",
+        "symfony6"
+    ],
+    "license": "MIT",
+    "require": {
+        "ext-pdo": "*",
+        "php": "^8.2",
+        "symfony/config": "^6.4 || ^7.0",
+        "symfony/dependency-injection": "^6.4 || ^7.0",
+        "symfony/http-kernel": "^6.4 || ^7.0",
+        "twig/twig": "^3.4",
+        "endroid/installer": "^1.4",
+        "symfony/yaml": "^6.4|7.1",
+        "doctrine/dbal": "^3.0|^4.0",
+        "symfony/property-access": "^7.1",
+        "halaxa/json-machine": "^1.1",
+        "league/csv": "^9.16"
+    },
+    "autoload": {
+        "psr-4": {
+            "Survos\\PixieBundle\\": "src/",
+            "Survos\\PixieBundle\\Tests\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.10",
+        "symfony/browser-kit": "^6.4 || ^7.0",
+        "symfony/framework-bundle": "^6.4 || ^7.0",
+        "symfony/twig-bundle": "^6.4 || ^7.0",
+        "symfony/var-dumper": "^6.4 || ^7.0",
+        "phpunit/phpunit": "^10.5",
+        "symfony/phpunit-bridge": "^7.1",
+        "symfony/stopwatch": "^7.1",
+        "spaze/phpstan-disallowed-calls": "^3.4"
+    },
+    "scripts": {
+        "coverage": "php -d xpcov.enabled=1 vendor/bin/phpunit --coverage-html coverage"
+    },
+    "config": {
+        "allow-plugins": {
+            "endroid/installer": true
+        }
+    }
+}

@@ -1,0 +1,63 @@
+# https://github.com/OfficeDev/O365-EDU-Tools/tree/master/CSV%20Samples
+version: 1.1
+# so we can import with just a conf file.
+source:
+  installation: git clone git@github.com:OfficeDev/O365-EDU-Tools.git
+  dir: /home/tac/g/trash/O365-EDU-Tools/CSV Samples/SDS Format/100 Users
+files:
+  # snake-case by default, e.g.
+  /School/i: school
+tables:
+  # SIS ID,School SIS ID,Section Name,Section Number,Term SIS ID,Term Name,Term StartDate,Term EndDate,Course SIS ID,Course Name,Course Number,Course Description,Course Subject,Periods,Status
+  section:
+    indexes: 'id|int,course_subject'
+    # column header rules.  Use rulesets?
+    rules:
+      /^SIS ID$/: id # or teacher_id?
+      /^Section Name$/: name # or teacher_id?
+      /^School SIS ID$/: school_id #@school_id? @{school}?
+    cast:
+      /_id$/: int
+      /^is_/: bool
+      /^(notes)$/: text
+      /^(description)$/: description
+      /^(name)$/: label
+  #        translatable:
+
+
+  # SIS ID,School SIS ID,First Name,Last Name,Username,Password,State ID,Teacher Number,Status,Middle Name,Secondary Email,Title,Qualification
+  teacher:
+    rules:
+      /^SIS ID$/: id # or teacher_id?
+      /^School SIS ID$/: school_id #@school_id? @{school}?
+      /State ID/: state_abbr
+    indexes: 'id|int,status,title'
+
+
+  # SIS ID,Name,School Number,School NCES_ID,State ID,Grade Low,Grade High,Principal SIS ID,Principal Name,Principal Secondary Email,Address,City,State,Country,Zip,Phone,Zone
+  school:
+    indexes: 'id|int'
+    # column header rules.  Use rulesets?
+    rules:
+      /^SIS ID$/: id # or school_id?  This rule is repeated in other tables.
+      /State Id/i: state_abbr
+
+  # SIS ID,School SIS ID,First Name,Last Name,Username,Password,State ID,Secondary Email,Student Number,Middle Name,Grade,Status,Birthdate,Graduation Year
+  student:
+    indexes: 'id|int,year|int,grade|int,status'
+    rules:
+      /^SIS ID$/: id
+      /^School SIS ID$/: school_id
+      /Graduation Year/: year
+
+#    artist:
+#        indexes:
+#            - id|INTEGER
+#            - nationality
+#            - birth_year|INTEGER
+#            - gender
+##             - '&qid'
+#        rules:
+#            /ConstituentID/: id
+#            /BeginDate/: birthYear
+#            /EndDate/: deathYear
