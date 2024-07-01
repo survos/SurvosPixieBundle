@@ -15,7 +15,7 @@
         "symfony/http-kernel": "^6.4 || ^7.0",
         "twig/twig": "^3.4",
         "endroid/installer": "^1.4",
-        "symfony/yaml": "^6.4|7.1",
+        "symfony/yaml": "^6.4|^7.1",
         "doctrine/dbal": "^3.0|^4.0",
         "symfony/property-access": "^7.1",
         "halaxa/json-machine": "^1.1",
