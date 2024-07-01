@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello AppController!{% endblock %}
+
+{% block body %}
+
+    <h1>{{ dir }}</h1>
+    <div class="example-wrapper">
+        <ul>
+            <li>
+{#                <a href="{{ path('headlines_homepage') }}">Headlines</a>#}
+            </li>
+
+            {# deal with headlines separately, license, JSON, etc. #}
+            {% for p, config in configs %}
+                <li>
+                    <b>{{ p }}</b>
+                    {% if config.pixieFilename|file_exists %}
+                        <a href="{{ path('pixie_homepage', {pixieCode: p}) }}">Show</a>
+                    {% else %}
+                        Please import first!
+                    {% endif %}
+
+                    <details>
+                        <summary>Config</summary>
+                        {{ config.pixieFilename }}
+                        {{ config.sourceFilesDir }}
+                    </details>
+                    IMPORT:
+                    {% for limit in [50, 500, 5000, 50000, 0] %}
+                        <a href="{{ path('pixie_import', {limit: limit, pixieCode: p}) }}">{{ limit }}</a>
+                    {% endfor %}
+                </li>
+
+            {% endfor %}
+
+        </ul>
+    </div>
+{% endblock %}

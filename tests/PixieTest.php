@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\Attributes\TestWithJson;
+use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\Service\PixieService;
@@ -24,8 +25,9 @@ use function PHPUnit\Framework\assertDirectoryExists;
 
 class PixieTest extends KernelTestCase
 {
-    const FILENAME='test.pixie.db';
+//    const FILENAME='test.pixie.db';
     const MOVIE_TABLE_NAME='movie';
+    const TEST_CODE='imdb';
 
     #[Test]
     #[TestWith([0, 0, 0])]
@@ -54,19 +56,6 @@ class PixieTest extends KernelTestCase
         $filename = $pixieService->getPixieFilename($code);
         self::assertSame($db, $this->removeProjectDir($filename));
 //        self::assertFileExists($filename);
-    }
-
-    #[Test]
-    #[TestWith(['education', 4])]
-    public function import(string $code, int $tableCount): void
-    {
-        /** @var PixieService $pixieService */
-        $pixieService = static::getContainer()->get(PixieService::class);
-        /** @var PixieImportService $importService */
-        $importService = static::getContainer()->get(PixieImportService::class);
-        $kv = $importService->import($code);
-        assertCount($tableCount, $kv->getTables());
-
     }
 
 
@@ -127,17 +116,17 @@ class PixieTest extends KernelTestCase
         $movieTableName = self::MOVIE_TABLE_NAME;
 
         // $routerService = static::getContainer()->get('router');
-        /** @var PixieService $kvService */
-         $kvService = static::getContainer()->get(PixieService::class);
+        /** @var PixieService $pixieService */
+         $pixieService = static::getContainer()->get(PixieService::class);
+         $filename = $pixieService->getPixieFilename(self::TEST_CODE);
+        $pixieService->destroy($filename);
+        dump($filename);
 
-         $filename = $kvService->getPixieFilename('imdb');
-        $kvService->destroy($filename);
-
-
-         $kv = $kvService->getStorageBox($filename, [
+         $kv = $pixieService->getStorageBox($filename, [
              self::MOVIE_TABLE_NAME => 'imdb_id|int,name'
          ]);
-        $this->assertCount(1, $kv->getTables(), "bad table count in $filename " . join("\n", $kv->getTables()))  ;
+         $fn = $kv->getFilename();
+         $this->assertCount(1, $kv->getTables(), "bad table count in $fn " . join("\n", $kv->getTables()))  ;
          $kv->select(self::MOVIE_TABLE_NAME);
 
          $this->assertEquals(0, $kv->count($movieTableName), self::MOVIE_TABLE_NAME . " should be empty");
@@ -149,8 +138,10 @@ class PixieTest extends KernelTestCase
         $this->assertEquals(Table::class, get_class($movieTable));
         $this->assertSame('imdb_id', $kv->getPrimaryKey());
         $this->assertSame($kv->getPrimaryKey(), $movieTable->getPkName());
-
+        self::assertTrue($kv->hasTable(self::MOVIE_TABLE_NAME));
+//        dd($kv->getFilename());
         $kv->close();
+        dump($kv->getFilename() . ' should now have Tables()');
         return;
         assert(false, "stopped");
 
@@ -166,8 +157,9 @@ class PixieTest extends KernelTestCase
             'environment' => 'test',
         ]);
 
-        $kvService = static::getContainer()->get(PixieService::class);
-        $kv = $kvService->getStorageBox(self::FILENAME, [
+        /** @var PixieService $pixieService */
+        $pixieService = static::getContainer()->get(PixieService::class);
+        $kv = $pixieService->getStorageBox(self::FILENAME, [
 //            self::MOVIE_TABLE_NAME => 'imdb_id|int,name'
         ]);
         assert(false);
@@ -175,9 +167,23 @@ class PixieTest extends KernelTestCase
     }
 
     #[Test]
+    public function validateConfigFiles(): void
+    {
+        /** @var PixieService $pixieService */
+        $pixieService = static::getContainer()->get(PixieService::class);
+        foreach ($pixieService->getConfigFiles() as $code => $config) {
+            self::assertNotFalse($config->getVersion());
+            $config->getIgnored();
+            self::assertStringContainsString('yaml', $config->getFilename()); // this is the config filename!
+        }
+
+
+    }
+
+    #[Test]
     public function parseIndex(): void
     {
-            $indexArray = StorageBox::getIndexDefinitions('id,name|text');
+        $indexArray = StorageBox::getIndexDefinitions('id,name|text');
         foreach ($indexArray as $index) {
             $indexes[$index->propertyName] = $index;
         }
@@ -193,10 +199,13 @@ class PixieTest extends KernelTestCase
     #[Depends('createTables')]
     public function addData(): void
     {
+        /** @var PixieService $kvService */
         $kvService = static::getContainer()->get(PixieService::class);
-        $kv = $kvService->getStorageBox(self::FILENAME);
+        $kv = $kvService->getStorageBox($kvService->getPixieFilename(self::TEST_CODE));
+        self::assertGreaterThan(0, count($kv->getTables()));
 //        $kv = $this->createMovieDatabase();
         $versionString = $kv->getVersion(); // @todo: check against config
+        assert($kv->hasTable(self::MOVIE_TABLE_NAME));
 
         $kv->select(self::MOVIE_TABLE_NAME);
         self::assertSame(self::MOVIE_TABLE_NAME, $kv->getSelectedTable());
@@ -223,7 +232,7 @@ class PixieTest extends KernelTestCase
         $this->assertEquals(0, $kv->count());
         $kv->close();
 
-        $kvService->destroy(self::FILENAME);
+//        $kvService->destroy($kv->getFilename());
 
     }
 
@@ -259,32 +268,70 @@ class PixieTest extends KernelTestCase
 //        return $kv;
 //    }
 
-    #[Test]
-    public function importCsvData(): void
-    {
-        $kv = $this->import('education');
-        $kv->select('school');
-        self::assertGreaterThan(1, $kv->count());
-//        $kvService = static::getContainer()->get(PixieService::class);
-
-
-        # csv
-
-    }
+//    #[Test]
+//    public function importCsvData(): void
+//    {
+//        $kv = $this->import('education');
+//        $kv->select('school');
+//        self::assertGreaterThan(1, $kv->count());
+////        $kvService = static::getContainer()->get(PixieService::class);
+//
+//
+//        # csv
+//
+//    }
 
     public function testMigration()
     {
         /** @var SqliteService $service */
         $service = static::getContainer()->get(SqliteService::class);
-        [$tables, $diffs] = $service->playWithSqliteSchema(self::FILENAME);
+
+        /** @var PixieService $pixieService */
+        $pixieService = static::getContainer()->get(PixieService::class);
+        $filename = $pixieService->getPixieFilename(self::TEST_CODE);
+        [$tables, $diffs] = $service->playWithSqliteSchema($filename);
         self::assertTrue(count($diffs) > 0);
 
     }
 
+    // this happens after each test!
     public function tearDown(): void
     {
+//        /** @var PixieService $pixieService */
+//        $pixieService = static::getContainer()->get(PixieService::class);
+//        $filename = $pixieService->getPixieFilename(self::TEST_CODE);
+//        $pixieService->destroy($filename);
+
         parent::tearDown();
     }
+
+    #[Test]
+    #[TestWith(['education', 4])]
+    #[TestWith(['test-moma', 2])]
+    public function import(string $code, int $tableCount): void
+    {
+        /** @var PixieService $pixieService */
+        $pixieService = static::getContainer()->get(PixieService::class);
+        /** @var PixieImportService $importService */
+        $importService = static::getContainer()->get(PixieImportService::class);
+        $kv = $importService->import($code);
+        assertCount($tableCount, $kv->getTables(), join(",", $kv->getTables()));
+
+    }
+
+    public function testController()
+    {
+        /** @var PixieController $controller */
+        $controller = static::getContainer()->get(PixieController::class);
+        $response = $controller->browsePixies();
+        self::assertSame(200, $response->getStatusCode());
+        self::assertArrayHasKey('dir', $response);
+
+        $response = $controller->import();
+        self::assertArrayHasKey('dir', $response);
+
+    }
+
 
 
 }

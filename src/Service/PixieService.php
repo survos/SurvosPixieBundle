@@ -48,7 +48,7 @@ class PixieService
     private function resolveFilename($filename, string $type=null): ?string
     {
 
-        if ($type && !file_exists($filename)) {
+        if ($type && ($filename && !file_exists($filename))) {
             $root = match($type) {
                 'db' => $this->dbDir,
                 'config' => $this->configDir,
@@ -59,13 +59,14 @@ class PixieService
                 $filename = $this->projectDir . "/$filename";
             }
         }
-        return file_exists($filename) ? $filename : null;
+        return ($filename && file_exists($filename)) ? $filename : null;
     }
 
     function getStorageBox(string $filename, array $tables=[], bool $destroy=false): StorageBox
     {
         $destroy && $this->destroy($filename);
-        if (!$kv = $this->storageBoxes[$filename]??false) {
+        if (!$kv = $this->storageBoxes[$filename]??false)
+        {
             $class = $this->isDebug ? TraceableStorageBox::class : StorageBox::class;
             $kv =  new $class($filename,
                 $this->data, // for debug
@@ -74,6 +75,7 @@ class PixieService
                 logger: $this->logger, stopwatch: $this->stopwatch);
             $this->storageBoxes[$filename] = $kv;
         }
+//        dump($filename, storageBoxes: array_keys($this->storageBoxes));
         return $kv;
     }
 
@@ -100,6 +102,9 @@ class PixieService
         return $this->data;
     }
 
+    /**
+     * @return array<Config>
+     */
     public function getConfigFiles(): array
     {
         $finder = new Finder();

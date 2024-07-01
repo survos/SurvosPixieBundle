@@ -18,4 +18,8 @@ return function (RoutingConfigurator $routes) {
         ->controller([PixieController::class, 'show_record'])
     ;
 
+    $routes->add('pixie_browse_configs', '/pixies')
+        ->controller([PixieController::class, 'browsePixies'])
+    ;
+
 };

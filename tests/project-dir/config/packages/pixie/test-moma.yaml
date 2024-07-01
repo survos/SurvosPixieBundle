@@ -1,7 +1,10 @@
 version: 1.1
 source:
-  dir: /moma/ # relative to data_dir
+  dir: data/moma-test/ # relative to project_dir
   locale: en
+  include: ['*.json']
+  ignore: ['*.csv']
+
 files:
   /Artists/: artist
   /Artworks/: artwork

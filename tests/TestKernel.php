@@ -2,6 +2,7 @@
 
 namespace Survos\PixieBundle\Tests;
 
+use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpKernel\Kernel;
 
@@ -11,6 +12,7 @@ class TestKernel extends Kernel
     {
         return [
             new \Symfony\Bundle\FrameworkBundle\FrameworkBundle(),
+            new TwigBundle(),
 //            new \Doctrine\Bundle\DoctrineBundle\DoctrineBundle(),
             new \Survos\PixieBundle\SurvosPixieBundle(),
         ];

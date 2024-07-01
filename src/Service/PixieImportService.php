@@ -54,8 +54,10 @@ class PixieImportService
         assert(file_exists($dirOrFilename), $dirOrFilename);
 //        dd($dirOrFilename);
         $finder = new Finder();
-
-        $files = $finder->in($dirOrFilename)->name(['*.json', '*.csv', '*.tsv', '*.txt', '*.tsv']);
+        $files = $finder->in($dirOrFilename);
+        if ($include = $config->getInclude()) {
+            $files->name($include);
+        }
 
         if ($ignore = $config->getIgnored()) {
             $files->notName($ignore);

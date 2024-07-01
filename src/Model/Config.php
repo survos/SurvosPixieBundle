@@ -21,9 +21,15 @@ class Config
         return $this->filename;
     }
 
-    public function getIgnored(): ?string
+    public function getIgnored(): array
     {
-        return $this->data["source"]["ignore"]??null;
+        $ignore =  $this->data["source"]["ignore"]??[];
+        return is_string($ignore) ? [$ignore] : $ignore;
+    }
+    public function getInclude(): array
+    {
+        $include = $this->data["source"]["include"]??[];
+        return is_string($include) ? [$include] : $include;
     }
 
     public function getFileToTableMap(): array
@@ -46,9 +52,9 @@ class Config
         return $this->data['tables'][$tableName]['rules']??[];
     }
 
-    public function getVersion(): string
+    public function getVersion(): ?string
     {
-        return $this->data['version'];
+        return $this->data['version']??null;
 
     }
 

@@ -5,6 +5,7 @@ namespace Survos\PixieBundle\Controller;
 use League\Csv\Reader;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
+use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -22,7 +23,8 @@ class PixieController extends AbstractController
 
     public function __construct(
         private ParameterBagInterface $bag,
-        private PixieService $pixieService
+        private PixieService $pixieService,
+        private ?ChartBuilderInterface $chartBuilder=null,
     ) {
 
     }
@@ -112,12 +114,25 @@ class PixieController extends AbstractController
 
     }
 
+    #[Route('/', name: 'pixie_browse_configs')]
+//    #[Template()]
+    public function browsePixies(): array|Response
+    {
+        $configs = $this->pixieService->getConfigFiles();
+        return $this->render('@SurvosPixie/pixie/index.html.twig', [
+            'dir' => $this->pixieService->getConfigDir(),
+            'configs' => $configs,
+        ]);
+//        return $this->render(, );
+    }
+
     #[Route('/{pixieCode}', name: 'pixie_homepage')]
-    public function home(ChartBuilderInterface $chartBuilder,
+    public function home(
                          string $pixieCode,
     #[MapQueryParameter] int $limit = 5
     ): Response
     {
+        $chartBuilder = $this->chartBuilder;
         $firstRecords = [];
         $charts = [];
         $tables = [];

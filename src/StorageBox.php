@@ -72,6 +72,7 @@ class StorageBox
             }
             try {
                 $this->db = new \PDO("sqlite:" . $path);
+                dump('setting db to NEW ' . $path);
             } catch (\PDOException $e) {
                 dd($path, $e->getMessage());
             }
@@ -80,10 +81,12 @@ class StorageBox
             $this->db->setAttribute(PDO::ATTR_TIMEOUT, 10);
 //            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } else {
+            dump('setting db to existing ' . $path);
             try {
                 $this->db = new \PDO("sqlite:" . $path);
             } catch (\PDOException $e) {
                 dd($path, $e->getMessage());
+                return;
 
             }
         }
@@ -142,9 +145,10 @@ class StorageBox
 
     public function select(string $tableName): self
     {
-        assert(count($this->tables), "no tables in $this->filename");
-        if (!in_array($tableName, $this->tables)) {
-            throw new \LogicException("$tableName is not in tables array " . join("\n", $this->tables));
+        $tables = $this->getTables(); // not cached!
+        assert(count($tables), "no tables in $this->filename");
+        if (!in_array($tableName, $tables)) {
+            throw new \LogicException("$tableName $this->filename is not in tables:\n\n" . join("\n", $tables));
         };
         $this->currentTable = $tableName;
         return $this;
@@ -356,14 +360,14 @@ class StorageBox
     {
         static $preparedStatements = [];
         // cache prepared statements
-        if (empty($preparedStatements[$sql])) {
+        if (empty($preparedStatements[$this->filename][$sql])) {
             try {
-                $preparedStatements[$sql] = $this->db->prepare($sql);;
+                $preparedStatements[$this->filename][$sql] = $this->db->prepare($sql);;
             } catch (\Exception $exception) {
-                dd($exception, $sql);
+                dd($exception, $sql, $this->filename);
             }
         }
-        $statement = $preparedStatements[$sql];
+        $statement = $preparedStatements[$this->filename][$sql];
         $statement->execute($variables);
 
         return $statement; // fetchColumn(), fetchAll(), etc. are defined on the statement, not the return value of execute()
@@ -413,6 +417,11 @@ class StorageBox
     public function getSelectedTable(): ?string
     {
         return $this->currentTable;
+    }
+
+    public function hasTable($tableName): bool
+    {
+        return in_array($tableName, $this->getTables());
 
     }
 
@@ -593,8 +602,10 @@ class StorageBox
 
     public function getTables(): array
     {
+//        assert(false, $this->filename);
         $sth = $this->query("SELECT name FROM sqlite_master WHERE type='table';");
-        return $sth->fetchAll(PDO::FETCH_COLUMN);
+        $tableNames = $sth->fetchAll(PDO::FETCH_COLUMN);
+        return $tableNames;
     }
 
     public function tableExists(string $table): bool

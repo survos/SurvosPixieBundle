@@ -32,7 +32,6 @@ class SqliteService
             'path' => $sourceReferences,
             'driver' => 'pdo_sqlite',
         ];
-        try {
             $conn = DriverManager::getConnection($connectionParams);
             $sm = $conn->createSchemaManager();
             $fromSchema = $sm->introspectSchema();
@@ -45,9 +44,10 @@ class SqliteService
                 }
             }
             // @todo: use our Model tables
-        } catch (\Exception $exception) {
-            dd($exception, $sourceReferences);
-        }
+//        try {
+//        } catch (\Exception $exception) {
+//            dd($exception, $sourceReferences);
+//        }
 
 
 //        $queries = $schemaDiff->toSql($myPlatform); // queries to get from one to another schema.
@@ -56,10 +56,10 @@ class SqliteService
 //            $diffSql = join(';', $queries);
 //            dump(diffSql: $diffSql);
 //            $conn->executeQuery($diffSql);
-        try {
-        } catch (\Exception $exception) {
-            // it already exists.
-        }
+//        try {
+//        } catch (\Exception $exception) {
+//            // it already exists.
+//        }
         $sc = $conn->createSchemaManager();
 //        dd($sc->listTables(), $queries);
 
@@ -99,15 +99,15 @@ class SqliteService
 
         return [$tables, $diffs];
 
-        foreach ($schemaDiff->toSql($myPlatform) as $sql) {
-            dump($sql);
-            $conn->executeQuery($sql);
-        }
-        try {
-        } catch (\Exception $exception) {
-            // it already exists.
-        }
-        dd($fromSchema);
+//        foreach ($schemaDiff->toSql($myPlatform) as $sql) {
+//            dump($sql);
+//            $conn->executeQuery($sql);
+//        }
+//        try {
+//        } catch (\Exception $exception) {
+//            // it already exists.
+//        }
+//        dd($fromSchema);
 
     }
 }

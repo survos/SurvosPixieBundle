@@ -13,11 +13,15 @@ use Survos\PixieBundle\EventListener\CsvHeaderEventListener;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\SqliteService;
+use Survos\PixieBundle\Twig\TwigExtension;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Twig\Environment;
 
 class SurvosPixieBundle extends AbstractBundle
 {
@@ -28,6 +32,15 @@ class SurvosPixieBundle extends AbstractBundle
             ->setAutowired(true)
         ;
 
+        if (class_exists(Environment::class)) {
+            $builder
+                ->setDefinition('survos.pixie_bundle', new Definition(TwigExtension::class))
+                ->setArgument('$config', $config)
+                ->addTag('twig.extension')
+                ->setPublic(false);
+        }
+
+
         $builder->autowire(SqliteService::class)
             ->setAutowired(true)
             ->setPublic(true);
@@ -35,7 +48,7 @@ class SurvosPixieBundle extends AbstractBundle
         $builder->autowire(PixieController::class)
             ->addTag('container.service_subscriber')
             ->addTag('controller.service_arguments')
-//            ->setArgument('$chartBuilder', new Reference('chartjs.builder', ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ->setArgument('$chartBuilder', new Reference('chartjs.builder', ContainerInterface::NULL_ON_INVALID_REFERENCE))
 //            ->setAutoconfigured(true)
 //            ->setAutowired(true)
 //            ->setPublic(true)

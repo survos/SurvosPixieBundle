@@ -2,6 +2,8 @@ framework:
     test: true
     annotations: false
 
+    secret: x
+
 survos_pixie:
     # without a slash, relative to projectDir
     config_dir: config/packages/pixie
