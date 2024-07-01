@@ -31,7 +31,7 @@ class Config
         return $this->data["files"]??[];
     }
 
-    public function getDataDirectory(): ?string
+    public function getSourceFilesDir(): ?string
     {
         return $this->data['source']['dir']??null;
     }

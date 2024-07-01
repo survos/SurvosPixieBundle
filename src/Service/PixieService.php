@@ -23,9 +23,9 @@ class PixieService
         private bool                                        $isDebug,
         private array                                       $data=[],
         private string                                      $extension = "pixie.db",
-        private string                                      $dbDir='./pixie',
-        private string                                      $dataRoot='./data',
-        private string                                      $configDir='/config/packages/pixie',
+        private string                                      $dbDir='pixie',
+        private string                                      $dataRoot='data',
+        private string                                      $configDir='config/packages/pixie',
         #[Autowire('%kernel.project_dir%')] private ?string $projectDir=null,
         private ?LoggerInterface                            $logger=null,
         private ?Stopwatch                                  $stopwatch=null,
@@ -34,9 +34,9 @@ class PixieService
     {
     }
 
-    public function getPixieFilename(string $pixieCode)
+    public function getPixieFilename(string $pixieCode): string
     {
-        $filename = $this->projectDir . "/" . $this->dbDir . "/$pixieCode.{$this->extension}";
+        $filename = $this->getPixieDbDir() . "/$pixieCode.{$this->extension}";
 
         if (file_exists($filename)) {
             $filename = realpath($filename);
@@ -64,10 +64,6 @@ class PixieService
 
     function getStorageBox(string $filename, array $tables=[], bool $destroy=false): StorageBox
     {
-        if (!file_exists($filename)) {
-            $filename = $this->getPixieFilename($filename);
-        }
-//        $filename = $this->resolveFilename($filename);
         $destroy && $this->destroy($filename);
         if (!$kv = $this->storageBoxes[$filename]??false) {
             $class = $this->isDebug ? TraceableStorageBox::class : StorageBox::class;
@@ -89,7 +85,7 @@ class PixieService
     function destroy(string $filename): void
     {
         $filename = $this->resolveFilename($filename);
-        if (file_exists($filename)) {
+        if ($filename && file_exists($filename)) {
             unlink($filename);
         }
     }
@@ -112,7 +108,7 @@ class PixieService
             // we can optimize later...
             $config = new Config($file->getRealPath());
             $code = $file->getFilenameWithoutExtension();
-            $resolvedDataPath = $this->resolveFilename($config->getDataDirectory(), 'data');
+            $resolvedDataPath = $this->resolveFilename($config->getSourceFilesDir(), 'data');
             $config->dataDir = $resolvedDataPath;
             $config->pixieFilename = $this->getPixieFilename($code);
             $configs[$code] = $config;
@@ -123,18 +119,22 @@ class PixieService
 
     }
 
-
+    // @todo: add custom dataDir, etc.
     public function getConfig(string $pixieCode): Config
     {
+        return new Config($this->getConfigFilename($pixieCode));
+    }
+    public function getConfigFilename(string $pixieCode): string
+    {
         // @todo: handle non-standard locations
-        return new Config($this->getConfigDir() . "/$pixieCode.yaml" );
+        return $this->getConfigDir() . "/$pixieCode.yaml";
     }
 
     public function getConfigDir(bool $autoCreate=false): string
     {
         $dir = $this->configDir;
-        if (!file_exists($dir)) {
-            $dir = $this->projectDir . $dir;
+        if (!file_exists($dir) && !str_starts_with($dir, "/")) {
+            $dir = $this->projectDir . "/$dir";
         }
 
         if ($autoCreate && !is_dir($dir)) {
@@ -144,24 +144,40 @@ class PixieService
 
     }
 
-    public function getDataRoot(string $pixieCode, ?Config $config=null): string
+    public function getDataRoot(): string
+    {
+        return $this->addProjectDir($this->dataRoot);
+    }
+
+    public function getPixieDbDir()
+    {
+        return $this->addProjectDir($this->dbDir);
+    }
+
+    public function addProjectDir(string $s): string
+    {
+        if (!file_exists($s) && !str_starts_with($s, "/")) {
+            $s  = $this->projectDir . "/$s";
+        }
+        return $s;
+    }
+    public function removeProjectDir(string $s): string
+    {
+        return str_replace($this->projectDir . '/', '', $s);
+    }
+
+
+    public function getSourceFilesDir(?string $pixieCode=null, ?Config $config=null): string
     {
         if (!$config) {
             $config = $this->getConfig($pixieCode);
         }
 
-        if (!$dir = $config->getDataDirectory()) {
-            $this->dataRoot . "/$pixieCode";
+        if (!$dir = $config->getSourceFilesDir()) {
+            $dir = $this->dataRoot . "/$pixieCode";
         }
 
-        if (!file_exists($dir)) {
-            $dir = $this->projectDir . "/" .  $this->dataRoot . "/$dir";
-        }
-//        dd($dir);
-//        if (!file_exists($dir)) {
-//            $dir = $this->projectDir . "/" . $config->getDataDirectory();
-//        }
-//        dd($dir, $this->dataDir, $config->getDataDirectory());
+        $dir = $this->addProjectDir($dir);
         assert(file_exists($dir), $dir);
         return realpath($dir);
 

@@ -25,13 +25,16 @@ class PixieImportService
     {
     }
 
-    public function import(Config $config, string $pixieCode, ?string $dirOrFilename = null,
+    public function import(string $pixieCode, ?Config $config=null,  ?string $dirOrFilename = null,
                            int    $limit = 0, ?callable $callback=null): StorageBox
     {
 
-        $this->pixieService->getConfigDir();
+        if (!$config) {
+            $configFilename = $this->pixieService->getConfigFilename($pixieCode);
+            $config = new Config($configFilename);
+        }
         // the csv/json files
-        $dirOrFilename = $this->pixieService->getDataRoot($pixieCode);
+        $dirOrFilename = $this->pixieService->getSourceFilesDir($pixieCode);
 //        if (!file_exists($dirOrFilename)) {
 //            $dirOrFilename = $this->pixieService->getDataDir($pixieCode, $config);
 //        }
@@ -88,7 +91,7 @@ class PixieImportService
             $schemaTables = $kv->inspectSchema();
             if (!array_key_exists($tableName, $validTableNames)) {
                 $this->logger && $this->logger->warning("Skipping $fn, table is undefined");
-                dd($tableName, $kv->getFilename(), $validTableNames, array_keys($schemaTables));
+//                dd($tableName, $kv->getFilename(), $validTableNames, array_keys($schemaTables));
                 continue;
             }
 //            if (!str_contains($pixieDbName, 'moma')) dd($tableName, $pixieDbName, $kv->getFilename());
@@ -133,7 +136,20 @@ class PixieImportService
                 if ($ext === 'json') {
                     $origRow = $row; // for debugging
 //                    dd($row, $headers, $mappedHeader);
-                    $row = array_combine($headers, array_values((array)$row));
+                    $values = array_values((array)$row);
+                    if ( ($headerCount = count($headers)) <> ($valueCount = count($values))) {
+                        dd($idx, $headers, $values, $row);
+                        // hack, will burn us if fields are in a different order.  need a better solution
+                        if ($headerCount < $valueCount) {
+                            $values = array_splice($values, 0, $headerCount);
+                        } else {
+                            $values = array_pad($values, $headerCount, null);
+                        }
+                        if ( ($headerCount = count($headers)) <> ($valueCount = count($values))) {
+                            dd($headers, $values);
+                        }
+                    }
+                    $row = array_combine($headers, $values);
 //                    dump(table: $tableName, orig: $origRow, mapped: $mappedHeader, new_row: $row);
 //                    dd($idx, $row, $headers); return $kv;
                 }

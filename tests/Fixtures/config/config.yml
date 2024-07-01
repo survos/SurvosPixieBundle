@@ -1,9 +1,0 @@
-framework:
-    test: true
-    annotations: false
-
-survos_pixie:
-    config_dir: ./
-    data_root: ./
-    db_dir: ./
-

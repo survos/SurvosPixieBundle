@@ -3,7 +3,8 @@ version: 1.1
 # so we can import with just a conf file.
 source:
   installation: git clone git@github.com:OfficeDev/O365-EDU-Tools.git
-  dir: /home/tac/g/trash/O365-EDU-Tools/CSV Samples/SDS Format/100 Users
+#  dir: /home/tac/g/trash/O365-EDU-Tools/CSV Samples/SDS Format/100 Users
+#  dir: education
 files:
   # snake-case by default, e.g.
   /School/i: school
@@ -50,14 +51,3 @@ tables:
       /^School SIS ID$/: school_id
       /Graduation Year/: year
 
-#    artist:
-#        indexes:
-#            - id|INTEGER
-#            - nationality
-#            - birth_year|INTEGER
-#            - gender
-##             - '&qid'
-#        rules:
-#            /ConstituentID/: id
-#            /BeginDate/: birthYear
-#            /EndDate/: deathYear

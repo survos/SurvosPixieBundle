@@ -191,50 +191,11 @@ class PixieController extends AbstractController
     {
         // get the conf file from the configured directories (from the bundle)
 
-        $config = $pixieService->getConfig($pixieCode);
+//        $config = $pixieService->getConfigFilename($pixieCode);
         // cache wget "https://github.com/MuseumofModernArt/collection/raw/main/Artists.csv"   ?
-        $pixieImportService->import($config, $pixieCode, limit: $limit);
+        $pixieImportService->import($pixieCode, limit: $limit);
         return $this->redirectToRoute('pixie_homepage', [
             'pixieCode' => $pixieCode
         ]);
-
-        dd();
-
-
-
-
-        $tables = ['tables'];
-        foreach ($tables as $tableName => $tableData) {
-            $tablesToCreate[$tableName] = $tableData['indexes'];
-        }
-        $kv = $pixieService->getStorageBox($pixieDbName, $tablesToCreate);
-//        dd($pixieDbName, $configFilename, $tablesToCreate);
-
-        foreach ($tables as $tableName => $tableData) {
-        $kv->map($tableData['rules'], [$tableName]);
-        $kv->select($tableName);
-
-            $fn = $this->dataDir . '/moma/' . ucfirst($tableName) . 's.csv';
-            assert(file_exists($fn), $fn);
-            // pixiedb? phixy.db?
-            $csv = Reader::createFromPath($fn, 'r');
-            $csv->setHeaderOffset(0); //set the CSV header offset
-
-            $headers = $kv->mapHeader($csv->getHeader());
-            $kv->beginTransaction();
-            assert(count($headers) == count(array_unique($headers)), json_encode($headers));
-            foreach ($csv->getRecords($headers) as $idx => $row) {
-                $kv->set($row);
-//                if ($idx > 100) break;
-//            dd($kv->get($row['id']));
-//            dump($row); break;
-            }
-            $kv->commit();
-            foreach ($kv->iterate() as $key => $row) {
-                dump($key, $row); break;
-            }
-        }
-
-        return $this->redirectToRoute('pixie_homepage');
     }
 }

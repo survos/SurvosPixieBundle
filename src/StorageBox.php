@@ -339,7 +339,7 @@ class StorageBox
 
     public function getFilename(): string
     {
-        return realpath($this->filename);
+        return $this->filename;
     }
 
 //    public function getItem(string $key): CacheItem

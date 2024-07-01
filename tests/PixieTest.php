@@ -8,6 +8,8 @@ namespace Survos\PixieBundle\Tests;
 use League\Csv\Exception;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
+use PHPUnit\Framework\Attributes\TestWithJson;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\Service\PixieService;
@@ -17,11 +19,104 @@ use Survos\PixieBundle\StorageBox;
 use Survos\PixieBundle\StorageBoxInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Yaml\Yaml;
+use function PHPUnit\Framework\assertCount;
+use function PHPUnit\Framework\assertDirectoryExists;
 
 class PixieTest extends KernelTestCase
 {
     const FILENAME='test.pixie.db';
     const MOVIE_TABLE_NAME='movie';
+
+    #[Test]
+    #[TestWith([0, 0, 0])]
+    #[TestWith([2, 1, 1])]
+    #[TestWith(['expected'=>3, 'a' => 1, 'c' => 2])]
+    public function arrayTest(int $expected, int $a, int $b=0, int $c=0): void
+    {
+        $this->assertSame($expected, $a + $b + $c);
+    }
+
+    #[Test]
+    #[TestWith(['education', 'config/packages/pixie/education.yaml', 'data/education', 'pixie/education.pixie.db'])]
+    public function configPath(string $code, ?string $config=null, string $dataDir=null, ?string $db=null): void
+    {
+        /** @var PixieService $pixieService */
+        $pixieService = static::getContainer()->get(PixieService::class);
+
+        $filename = $pixieService->getConfigFilename($code);
+        self::assertSame($config, $this->removeProjectDir($filename));
+        self::assertFileExists($filename);
+
+        $sourceFilesDir = $pixieService->getSourceFilesDir($code);
+        self::assertSame($dataDir, $this->removeProjectDir($sourceFilesDir));
+        assertDirectoryExists($sourceFilesDir);
+
+        $filename = $pixieService->getPixieFilename($code);
+        self::assertSame($db, $this->removeProjectDir($filename));
+//        self::assertFileExists($filename);
+    }
+
+    #[Test]
+    #[TestWith(['education', 4])]
+    public function import(string $code, int $tableCount): void
+    {
+        /** @var PixieService $pixieService */
+        $pixieService = static::getContainer()->get(PixieService::class);
+        /** @var PixieImportService $importService */
+        $importService = static::getContainer()->get(PixieImportService::class);
+        $kv = $importService->import($code);
+        assertCount($tableCount, $kv->getTables());
+
+    }
+
+
+    #[Test]
+    public function configSettings(): void
+    {
+        $config = Yaml::parseFile(__DIR__.'/config/survos_pixie.yaml')['survos_pixie'];
+
+        /** @var PixieService $pixieService */
+        $pixieService = static::getContainer()->get(PixieService::class);
+
+        self::assertSame($config['config_dir'], $this->removeProjectDir($pixieService->getConfigDir()));
+        self::assertSame($config['data_root'], $this->removeProjectDir($pixieService->getDataRoot()));
+        self::assertSame($config['db_dir'], $this->removeProjectDir($pixieService->getPixieDbDir()));
+
+
+    }
+
+    private function removeProjectDir(string $s): string
+    {
+        /** @var PixieService $pixieService */
+        $pixieService = static::getContainer()->get(PixieService::class);
+        return $pixieService->removeProjectDir($s);
+    }
+
+//    #[Test]
+    #[TestWith(['/film.pixie.db', 'film'])]
+    public function dbPath(string $expected, ?string $code=null): void
+    {
+        /** @var PixieService $kvService */
+        $kvService = static::getContainer()->get(PixieService::class);
+        $projectDir = static::getContainer()->getParameter('kernel.project_dir');
+        $kv = $kvService->getStorageBox(self::FILENAME, [
+//            self::MOVIE_TABLE_NAME => 'imdb_id|int,name'
+        ]);
+
+        $filename = $kvService->getPixieFilename($code);
+        self::assertSame($expected, $filename);
+
+        // remove the projectDir for the test?
+
+
+        dump($projectDir);
+        self::assertSame($expected, $projectDir);
+        return;
+        $kv = $kvService->getStorageBox(self::FILENAME, [
+//            self::MOVIE_TABLE_NAME => 'imdb_id|int,name'
+        ]);
+    }
+
     #[Test]
     public function createTables(): void
     {
@@ -32,13 +127,17 @@ class PixieTest extends KernelTestCase
         $movieTableName = self::MOVIE_TABLE_NAME;
 
         // $routerService = static::getContainer()->get('router');
+        /** @var PixieService $kvService */
          $kvService = static::getContainer()->get(PixieService::class);
-            $kvService->destroy($filename = self::FILENAME);
+
+         $filename = $kvService->getPixieFilename('imdb');
+        $kvService->destroy($filename);
+
 
          $kv = $kvService->getStorageBox($filename, [
              self::MOVIE_TABLE_NAME => 'imdb_id|int,name'
          ]);
-        $this->assertCount(1, $kv->getTables(), "bad table count");
+        $this->assertCount(1, $kv->getTables(), "bad table count in $filename " . join("\n", $kv->getTables()))  ;
          $kv->select(self::MOVIE_TABLE_NAME);
 
          $this->assertEquals(0, $kv->count($movieTableName), self::MOVIE_TABLE_NAME . " should be empty");
@@ -128,37 +227,37 @@ class PixieTest extends KernelTestCase
 
     }
 
-    #[Test]
-    public function importJsonData(): void
-    {
-//        $kvService = static::getContainer()->get(PixieService::class);
+//    #[Test]
+//    public function importJsonData(): void
+//    {
+////        $kvService = static::getContainer()->get(PixieService::class);
+//
+//        /** @var PixieImportService $importService */
+//        $importService = static::getContainer()->get(PixieImportService::class);
+//
+//
+//        $momaTable = 'moma.pixie.db';
+//
+//        $configFilename = __DIR__ . '/Fixtures/config/test-moma.yaml';
+//        $this->assertTrue(file_exists($configFilename), $configFilename);
+//        $configData = Yaml::parseFile($configFilename);
+//        $testDataDir = __DIR__ . '/Fixtures/testdata';
+//        $importService->import(new Config($configFilename), $momaTable, $testDataDir);
+//    }
 
-        /** @var PixieImportService $importService */
-        $importService = static::getContainer()->get(PixieImportService::class);
-
-
-        $momaTable = 'moma.pixie.db';
-
-        $configFilename = __DIR__ . '/Fixtures/config/test-moma.yaml';
-        $this->assertTrue(file_exists($configFilename), $configFilename);
-        $configData = Yaml::parseFile($configFilename);
-        $testDataDir = __DIR__ . '/Fixtures/testdata';
-        $importService->import(new Config($configFilename), $momaTable, $testDataDir);
-    }
-
-    private function import(string $code): StorageBox
-    {
-        /** @var PixieImportService $importService */
-        $importService = static::getContainer()->get(PixieImportService::class);
-        $table = "$code.pixie.db";
-
-        $configFilename = __DIR__ . "/Fixtures/config/$code.yaml";
-        $this->assertTrue(file_exists($configFilename), $configFilename);
-        $configData = Yaml::parseFile($configFilename);
-        $testDataDir = __DIR__ . "/Fixtures/$code";
-        $kv = $importService->import($configData, $table, $testDataDir);
-        return $kv;
-    }
+//    private function import(string $code): StorageBox
+//    {
+//        /** @var PixieImportService $importService */
+//        $importService = static::getContainer()->get(PixieImportService::class);
+//        $table = "$code.pixie.db";
+//
+//        $configFilename = __DIR__ . "/Fixtures/config/$code.yaml";
+//        $this->assertTrue(file_exists($configFilename), $configFilename);
+//        $configData = Yaml::parseFile($configFilename);
+//        $testDataDir = __DIR__ . "/Fixtures/$code";
+//        $kv = $importService->import($configData, $table, $testDataDir);
+//        return $kv;
+//    }
 
     #[Test]
     public function importCsvData(): void

@@ -83,9 +83,9 @@ class SurvosPixieBundle extends AbstractBundle
         $definition->rootNode()
             ->children()
             ->scalarNode('extension')->info("the pixie db extension")->defaultValue('.pixie.db')->end()
-            ->scalarNode('db_dir')->info("where to store the pixie db files")->defaultValue('./pixie]')->end()
-            ->scalarNode('data_root')->info("root for csv/json data")->defaultValue('./data')->end()
-            ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('./pixie')->end()
+            ->scalarNode('db_dir')->info("where to store the pixie db files")->defaultValue('pixie]')->end()
+            ->scalarNode('data_root')->info("root for csv/json data")->defaultValue('data')->end()
+            ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('config/packages/pixie')->end()
             ->end();
     }
 }

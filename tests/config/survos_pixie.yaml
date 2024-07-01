@@ -1,0 +1,10 @@
+framework:
+    test: true
+    annotations: false
+
+survos_pixie:
+    # without a slash, relative to projectDir
+    config_dir: config/packages/pixie
+    data_root: data
+    db_dir: pixie
+
