@@ -24,10 +24,8 @@ class SurvosPixieBundle extends AbstractBundle
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
 
-        $x = $builder->register(PixieImportService::class)
+        $builder->register(PixieImportService::class)
             ->setAutowired(true)
-            ->setArgument('$dataDir', $config['data_dir'])
-            ->setArgument('$dataDir', $config['data_dir'])
         ;
 
         $builder->autowire(SqliteService::class)
@@ -63,7 +61,7 @@ class SurvosPixieBundle extends AbstractBundle
         $x = $builder->register(PixieService::class)
             ->setAutowired(true)
             ->setArgument('$isDebug', $builder->getParameter('kernel.debug'))
-            ->setArgument('$dataDir', $config['data_dir'])
+            ->setArgument('$dataRoot', $config['data_root'])
             ->setArgument('$configDir', $config['config_dir'])
             ->setArgument('$dbDir', $config['db_dir'])
             ->setArgument('$stopwatch', new Reference('debug.stopwatch'))
@@ -86,7 +84,7 @@ class SurvosPixieBundle extends AbstractBundle
             ->children()
             ->scalarNode('extension')->info("the pixie db extension")->defaultValue('.pixie.db')->end()
             ->scalarNode('db_dir')->info("where to store the pixie db files")->defaultValue('./pixie]')->end()
-            ->scalarNode('data_dir')->info("where to look for csv/json data")->defaultValue('./data')->end()
+            ->scalarNode('data_root')->info("root for csv/json data")->defaultValue('./data')->end()
             ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('./pixie')->end()
             ->end();
     }

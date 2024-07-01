@@ -27,16 +27,17 @@ class PixieController extends AbstractController
 
     }
 
-    private function getPixieConf(string $pixieName, bool $throwIfMissing=true): ?string
+    private function getPixieConf(string $pixieCode, bool $throwIfMissing=true): ?string
     {
-        dd($pixieName);
+
+        dd($pixieCode, $this->pixieService->getConfigDir());
         $dirs = [
             $this->bag->get('config_dir'),
             $this->bag->get('kernel.project_dir') . "/config/packages/pixie/",
         ];
-        $pixieName = str_replace('.pixie', '', $pixieName); // hack!
+        $pixieCode = str_replace('.pixie', '', $pixieCode); // hack!
         foreach ($dirs as $dir) {
-            $fn = $dir . "/$pixieName.yaml";
+            $fn = $dir . "/$pixieCode.yaml";
             if (file_exists($fn)) {
                 return $fn;
             }
@@ -45,9 +46,9 @@ class PixieController extends AbstractController
         return null;
     }
 
-    #[Route('/show/{pixieName}/{tableName}/{key}', name: 'pixie_show_record')]
+    #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record')]
     public function show_record(
-        string $pixieName,
+        string $pixieCode,
         string $tableName,
         string $key,
         #[MapQueryParameter] ?string $index=null,
@@ -55,11 +56,11 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int $limit = 5
     ): Response
     {
-        $kv = $this->pixieService->getStorageBox($pixieName);
+        $kv = $this->pixieService->getStorageBox($pixieCode);
         $kv->select($tableName);
         $row = $kv->get($key, $tableName);
         if (!$row) {
-            throw new NotFoundHttpException("No key $key in $tableName / $pixieName");
+            throw new NotFoundHttpException("No key $key in $tableName / $pixieCode");
         }
         $row = (array)$row;
         return $this->render('@SurvosPixie/pixie/show.html.twig', [
@@ -69,9 +70,9 @@ class PixieController extends AbstractController
 
     }
 
-    #[Route('/browse/{pixieName}/{tableName}', name: 'pixie_browse')]
+    #[Route('/browse/{pixieCode}/{tableName}', name: 'pixie_browse')]
     public function browse(
-                         string $pixieName,
+                         string $pixieCode,
                          string $tableName,
                          #[MapQueryParameter] ?string $index=null,
                          #[MapQueryParameter] ?string $value=null,
@@ -79,7 +80,8 @@ class PixieController extends AbstractController
     ): Response
     {
         // need to handle extension
-        $kv = $this->pixieService->getStorageBox($pixieName);
+        $filename = $this->pixieService->getPixieFilename($pixieCode);
+        $kv = $this->pixieService->getStorageBox($filename);
         $where = [];
         if ($index) {
             $where[$index] = $value?:null;
@@ -99,7 +101,7 @@ class PixieController extends AbstractController
 //        }
         // see kaggle for inspiration, https://www.kaggle.com/datasets/shivamb/real-or-fake-fake-jobposting-prediction/data
         return $this->render('@SurvosPixie/pixie/browse.html.twig', [
-            'pixieName' => $pixieName,
+            'pixieCode' => $pixieCode,
 'tableName' => $tableName,
 //            'kv' => $kv, // avoidable?/
             'iterator' => $firstRow ? $iterator : [],
@@ -110,17 +112,17 @@ class PixieController extends AbstractController
 
     }
 
-    #[Route('/{pixieName}', name: 'pixie_homepage')]
+    #[Route('/{pixieCode}', name: 'pixie_homepage')]
     public function home(ChartBuilderInterface $chartBuilder,
-                         string $pixieName,
+                         string $pixieCode,
     #[MapQueryParameter] int $limit = 5
     ): Response
     {
         $firstRecords = [];
         $charts = [];
         $tables = [];
-
-        $kv = $this->pixieService->getStorageBox($pixieName);
+        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
+        $kv = $this->pixieService->getStorageBox($pixieFilename);
         foreach ($kv->getTables() as $tableName) {
             $count = $kv->count($tableName);
 //            dd($tableName, $count);
@@ -172,7 +174,7 @@ class PixieController extends AbstractController
         }
 
         return $this->render('@SurvosPixie/pixie/graphs.html.twig', [
-            'pixieName' => $pixieName,
+            'pixieCode' => $pixieCode,
 //            'kv' => $kv, // avoidable?/
         'tables' => $tables,
             'filename' => $kv->getFilename(),
@@ -180,26 +182,20 @@ class PixieController extends AbstractController
         ]);
 
     }
-    #[Route('/import/{pixieName}', name: 'pixie_import')]
-    public function import(PixieService $pixieService,
-                           PixieImportService $pixieImportService,
-                           string $pixieName,
+    #[Route('/import/{pixieCode}', name: 'pixie_import')]
+    public function import(PixieService             $pixieService,
+                           PixieImportService       $pixieImportService,
+                           string                   $pixieCode,
                            #[MapQueryParameter] int $limit = 0,
     ): Response
     {
         // get the conf file from the configured directories (from the bundle)
 
+        $config = $pixieService->getConfig($pixieCode);
         // cache wget "https://github.com/MuseumofModernArt/collection/raw/main/Artists.csv"   ?
-        if ($configFilename = $this->getPixieConf($pixieName)) {
-            $config = Yaml::parseFile($configFilename);
-        } else {
-            $config = [
-                'dir' => "$pixieName"
-            ];
-        }
-        $pixieImportService->import($config, $pixieName, limit: $limit);
+        $pixieImportService->import($config, $pixieCode, limit: $limit);
         return $this->redirectToRoute('pixie_homepage', [
-            'pixieName' => $pixieName
+            'pixieCode' => $pixieCode
         ]);
 
         dd();

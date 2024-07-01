@@ -20,23 +20,24 @@ class PixieService
     private array $storageBoxes = [];
 
     public function __construct(
-        private bool $isDebug,
-        private array $data=[],
-        private string $extension = "pixie.db",
-        private string $dbDir='./pixie',
-        private string $dataDir='./data',
-        private string $configDir='/config/packages/pixie',
+        private bool                                        $isDebug,
+        private array                                       $data=[],
+        private string                                      $extension = "pixie.db",
+        private string                                      $dbDir='./pixie',
+        private string                                      $dataRoot='./data',
+        private string                                      $configDir='/config/packages/pixie',
         #[Autowire('%kernel.project_dir%')] private ?string $projectDir=null,
-        private ?LoggerInterface $logger=null,
-        private ?Stopwatch $stopwatch=null,
-        private ?PropertyAccessorInterface $accessor=null
+        private ?LoggerInterface                            $logger=null,
+        private ?Stopwatch                                  $stopwatch=null,
+        private ?PropertyAccessorInterface                  $accessor=null
     )
     {
     }
 
     public function getPixieFilename(string $pixieCode)
     {
-        $filename = $this->dbDir . "/$pixieCode.{$this->extension}";
+        $filename = $this->projectDir . "/" . $this->dbDir . "/$pixieCode.{$this->extension}";
+
         if (file_exists($filename)) {
             $filename = realpath($filename);
         }
@@ -44,16 +45,28 @@ class PixieService
 
     }
 
-    private function resolveFilename($filename): string
+    private function resolveFilename($filename, string $type=null): ?string
     {
-        if (!file_exists($filename)) {
-            $filename = $this->dbDir . "/$filename";
+
+        if ($type && !file_exists($filename)) {
+            $root = match($type) {
+                'db' => $this->dbDir,
+                'config' => $this->configDir,
+                'data' => $this->dataRoot,
+            };
+            $filename = $root . "/$filename";
+            if (!file_exists($filename)) {
+                $filename = $this->projectDir . "/$filename";
+            }
         }
-        return $filename;
+        return file_exists($filename) ? $filename : null;
     }
 
     function getStorageBox(string $filename, array $tables=[], bool $destroy=false): StorageBox
     {
+        if (!file_exists($filename)) {
+            $filename = $this->getPixieFilename($filename);
+        }
 //        $filename = $this->resolveFilename($filename);
         $destroy && $this->destroy($filename);
         if (!$kv = $this->storageBoxes[$filename]??false) {
@@ -97,12 +110,24 @@ class PixieService
         $configs  = [];
         foreach ($finder->files()->name('*.yaml')->in($this->getConfigDir()) as $file) {
             // we can optimize later...
-            $configs[$file->getFilenameWithoutExtension()] = new Config($file->getRealPath());
+            $config = new Config($file->getRealPath());
+            $code = $file->getFilenameWithoutExtension();
+            $resolvedDataPath = $this->resolveFilename($config->getDataDirectory(), 'data');
+            $config->dataDir = $resolvedDataPath;
+            $config->pixieFilename = $this->getPixieFilename($code);
+            $configs[$code] = $config;
         }
         return $configs;
 //        // we could parse these, though then we should cache them.  Since they're in config, we could cache them at compile-time
 //        return glob($this->getConfigDir() . '/*.yaml');
 
+    }
+
+
+    public function getConfig(string $pixieCode): Config
+    {
+        // @todo: handle non-standard locations
+        return new Config($this->getConfigDir() . "/$pixieCode.yaml" );
     }
 
     public function getConfigDir(bool $autoCreate=false): string
@@ -116,6 +141,30 @@ class PixieService
             mkdir($dir, 0755, true);
         }
         return $dir;
+
+    }
+
+    public function getDataRoot(string $pixieCode, ?Config $config=null): string
+    {
+        if (!$config) {
+            $config = $this->getConfig($pixieCode);
+        }
+
+        if (!$dir = $config->getDataDirectory()) {
+            $this->dataRoot . "/$pixieCode";
+        }
+
+        if (!file_exists($dir)) {
+            $dir = $this->projectDir . "/" .  $this->dataRoot . "/$dir";
+        }
+//        dd($dir);
+//        if (!file_exists($dir)) {
+//            $dir = $this->projectDir . "/" . $config->getDataDirectory();
+//        }
+//        dd($dir, $this->dataDir, $config->getDataDirectory());
+        assert(file_exists($dir), $dir);
+        return realpath($dir);
+
 
     }
 

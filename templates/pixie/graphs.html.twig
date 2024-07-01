@@ -33,7 +33,7 @@
                                 :data="chart.counts"
                         >
                             <twig:block name="count">
-                                <a href="{{ path('pixie_browse', {index: indexName, value: row.value, 'pixieName': pixieName, tableName: tableName}) }}">
+                                <a href="{{ path('pixie_browse', {index: indexName, value: row.value, 'pixieCode': pixieCode, tableName: tableName}) }}">
                                     {{ row.count }}
                                 </a>
                             </twig:block>

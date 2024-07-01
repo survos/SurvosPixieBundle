@@ -33,6 +33,19 @@ bin/console pixie:import movies --limit 10
 symfony open:local --path="/pixie/movies"
 ```
 
+## Loading a Pixie
+
+As the data directories (where the csv/json files are located) can be anywhere, there are a few way to indicate them.
+
+```bash
+# explicitly 
+bin/console pixie:import /path/to/csv/directory -c directory.yaml
+# use source.dir key, absolute, or relative to bundle data_root).  If !exists, use the bundle data_root and append 'code'.
+bin/console pixie:import -c code.yaml
+
+```
+There are 3 way to load data into pixie.   
+
 ## "Special" Tables
 
 Since pixie databases offer a convenient way to work with Excel data, there is a special table for handling drawings (embedded images).

@@ -8,6 +8,7 @@ use League\Csv\Info;
 use League\Csv\Reader;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
+use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Finder\Finder;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -18,35 +19,49 @@ use \JsonMachine\Items;
 class PixieImportService
 {
     public function __construct(
-        private string                            $dataDir,
-        private PixieService                   $pixieService,
+        private PixieService                      $pixieService,
         private LoggerInterface                   $logger,
         private readonly EventDispatcherInterface $eventDispatcher)
     {
     }
 
-    public function import(array $configData, string $pixieDbName, ?string $dirOrFilename = null,
-                           int $limit = 0, ?callable $callback=null): StorageBox
+    public function import(Config $config, string $pixieCode, ?string $dirOrFilename = null,
+                           int    $limit = 0, ?callable $callback=null): StorageBox
     {
-        $dirOrFilename = $dirOrFilename ?? $configData["source"]["dir"];
-        $finder = new Finder();
-        if (!file_exists($dirOrFilename)) {
-            $dirOrFilename = $this->dataDir . $dirOrFilename;
-        }
-        if (!file_exists($dirOrFilename)) {
-            throw new \LogicException("$dirOrFilename does not exist");
-        }
+
+        $this->pixieService->getConfigDir();
+        // the csv/json files
+        $dirOrFilename = $this->pixieService->getDataRoot($pixieCode);
+//        if (!file_exists($dirOrFilename)) {
+//            $dirOrFilename = $this->pixieService->getDataDir($pixieCode, $config);
+//        }
+//        if (file_exists($this->dataDir)) {
+//            $this->dataDir = realpath($this->dataDir);
+//        }
+//        dd($dirOrFilename, $this->dataDir, $config->getDataDirectory());
+//        $dirOrFilename = $this->pixieService->getDataDir($pixieCode, $config);
+//        $dirOrFilename = $dirOrFilename ?? $config->getDataDirectory();
+//        $dirOrFilename = $dirOrFilename ?? $this->dataDir . DIRECTORY_SEPARATOR . $pixieCode;
+//        if (!file_exists($dirOrFilename)) {
+//            $dirOrFilename = $this->dataDir . $dirOrFilename;
+//        }
+//        if (!file_exists($dirOrFilename)) {
+//            throw new \LogicException("$dirOrFilename does not exist");
+//        }
         assert(file_exists($dirOrFilename), $dirOrFilename);
+//        dd($dirOrFilename);
+        $finder = new Finder();
 
         $files = $finder->in($dirOrFilename)->name(['*.json', '*.csv', '*.tsv', '*.txt', '*.tsv']);
-        if ($ignore = $configData["source"]["ignore"] ?? false) {
+
+        if ($ignore = $config->getIgnored()) {
             $files->notName($ignore);
         }
         assert($files->count(), "No files in $dirOrFilename");
 
         foreach ($files as $splFile) {
             $map[$splFile->getRealPath()] = u($splFile->getFilenameWithoutExtension())->snake()->toString();
-            foreach ($configData['files'] ?? [] as $rule => $tableNameRule) {
+                foreach ($config->getFileToTableMap() as $rule => $tableNameRule) {
                 if (preg_match($rule, $splFile->getFilename(), $mm)) {
 //                    dd($mm, $splFile->getFilename(), $tableName);
                     $map[$splFile->getRealPath()] = $tableNameRule;
@@ -58,21 +73,23 @@ class PixieImportService
         unset($splFile);
 
 //        list($splFile, $tableName, $mm, $fileMap, $fn, $tables, $tableData, $kv) =
-        $kv = $this->createKv($fileMap, $configData, $pixieDbName);
-        assert(count($kv->getTables()), "no tables in $pixieDbName");
-        $validTableNames = $configData['tables'];
+        $kv = $this->createKv($fileMap, $config, $pixieCode);
+        assert(count($kv->getTables()), "no tables in $pixieCode");
+        $validTableNames = $config->getTables();
 
         // $fn is the csv filename
         foreach ($fileMap as $fn => $tableName) {
             if (empty($tableName)) {
                 $this->logger && $this->logger->warning("Skipping $fn, no map to tables");
+                dd($fn, $tableName);
                 continue;
             }
+//            dd($fn, $tableName, $fileMap);
             $schemaTables = $kv->inspectSchema();
             if (!array_key_exists($tableName, $validTableNames)) {
                 $this->logger && $this->logger->warning("Skipping $fn, table is undefined");
-                continue;
                 dd($tableName, $kv->getFilename(), $validTableNames, array_keys($schemaTables));
+                continue;
             }
 //            if (!str_contains($pixieDbName, 'moma')) dd($tableName, $pixieDbName, $kv->getFilename());
 //            dd($tableName, $tablesToCreate);
@@ -84,14 +101,15 @@ class PixieImportService
 //                continue;
 //            }
 //            $tableData = (array)$table; // $tables[$tableName];
-            $tableData = $configData['tables'][$tableName];
-            $rules = $tableData['rules'];
+            $tables = $config->getTables(); // with the rules and such
+            $tableData = $tables[$tableName];
+            $rules = $config->getTableRules($tableName);
             $kv->map($rules, [$tableName]);
             $kv->select($tableName);
 
             list($ext, $iterator, $headers) =
-                $this->setupHeader($configData, $tableName, $kv, $fn);
-            assert(count($kv->getTables()), "no tables in $pixieDbName");
+                $this->setupHeader($config, $tableName, $kv, $fn);
+            assert(count($kv->getTables()), "no tables in $pixieCode");
 //            dd($mappedHeader, $headers, $tableName, $configData);
 
             // takes a function that will iterate through an object
@@ -133,13 +151,14 @@ class PixieImportService
                         }
                     }
                 }
-                assert(count($kv->getTables()), "no tables in $pixieDbName");
+                assert(count($kv->getTables()), "no tables in $pixieCode");
 
                 $kv->set($row);
 //                if ($idx == 1) dump($tableName, $row);
                 if ($limit && ($idx > $limit)) break;
                 if ($callback) {
                     if (!$continue = $callback($row, $idx, $kv)) {
+                        dd('stopping!');
                         break;
                     }
                 }
@@ -153,19 +172,20 @@ class PixieImportService
 
     }
 
-    public function createKv(array $fileMap,  array $configData, string $pixieDbName): StorageBox
+    public function createKv(array $fileMap, Config $config, string $pixieCode): StorageBox
     {
 
 
         // only create the tables that match the filenames
         foreach ($fileMap as $fn => $tableName) {
-            $tables = $configData['tables'];
+            $tables = $config->getTables();
             foreach ($tables as $tableName => $tableData) {
                 $tablesToCreate[$tableName] = $tableData['indexes'];
             }
         }
-        if (file_exists($pixieDbName)) unlink($pixieDbName);
-        $kv = $this->pixieService->getStorageBox($pixieDbName, $tablesToCreate);
+        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
+        $this->pixieService->destroy($pixieFilename);
+        $kv = $this->pixieService->getStorageBox($pixieFilename, $tablesToCreate);
 //        if (str_contains($kv->getFilename(), 'edu')) dd($kv->getFilename());
         return $kv;
         return array($splFile, $tableName, $mm, $fileMap, $fn, $tables, $tableData, $kv);
@@ -186,7 +206,7 @@ class PixieImportService
      * @throws \League\Csv\SyntaxError
      * @throws \League\Csv\UnavailableStream
      */
-    public function setupHeader(array $configData, string $tableName, StorageBox $kv, int|string $fn): array
+    public function setupHeader(Config $config, string $tableName, StorageBox $kv, int|string $fn): array
     {
         $ext = pathinfo($fn, PATHINFO_EXTENSION);
         if ($ext == 'json') {
@@ -208,7 +228,7 @@ class PixieImportService
 //                dd($originalHeaders, $headers);
         }
 
-        $rules = $configData['tables'][$tableName]['rules'];
+        $rules = $config->getTableRules($tableName);
         $mappedHeader = $kv->mapHeader($headers, regexRules: $rules);
 //            dd($rules, $configData, $tableName, filename: $splFile->getFilename(), mappedHeader: $mappedHeader);
         // keep for replacing the key names later

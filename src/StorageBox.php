@@ -14,6 +14,7 @@ use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
+use function PHPUnit\Framework\directoryExists;
 use function Symfony\Component\String\u;
 
 /*
@@ -65,6 +66,10 @@ class StorageBox
 
         // PDO creates the db if it doesn't exist, so check after
         if (!file_exists($path)) {
+            $dir = pathinfo($path, PATHINFO_DIRNAME);
+            if (!file_exists($dir)) {
+                mkdir($dir, 0777, true);
+            }
             try {
                 $this->db = new \PDO("sqlite:" . $path);
             } catch (\PDOException $e) {
@@ -137,8 +142,9 @@ class StorageBox
 
     public function select(string $tableName): self
     {
+        assert(count($this->tables), "no tables in $this->filename");
         if (!in_array($tableName, $this->tables)) {
-            throw new \LogicException("$tableName is not in tables array");
+            throw new \LogicException("$tableName is not in tables array " . join("\n", $this->tables));
         };
         $this->currentTable = $tableName;
         return $this;

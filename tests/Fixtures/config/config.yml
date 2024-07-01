@@ -3,5 +3,7 @@ framework:
     annotations: false
 
 survos_pixie:
-    directory: ./
+    config_dir: ./
+    data_root: ./
+    db_dir: ./
 

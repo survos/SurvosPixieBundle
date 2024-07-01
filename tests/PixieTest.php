@@ -8,6 +8,7 @@ namespace Survos\PixieBundle\Tests;
 use League\Csv\Exception;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Test;
+use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
@@ -134,13 +135,15 @@ class PixieTest extends KernelTestCase
 
         /** @var PixieImportService $importService */
         $importService = static::getContainer()->get(PixieImportService::class);
+
+
         $momaTable = 'moma.pixie.db';
 
         $configFilename = __DIR__ . '/Fixtures/config/test-moma.yaml';
         $this->assertTrue(file_exists($configFilename), $configFilename);
         $configData = Yaml::parseFile($configFilename);
         $testDataDir = __DIR__ . '/Fixtures/testdata';
-        $importService->import($configData, $momaTable, $testDataDir);
+        $importService->import(new Config($configFilename), $momaTable, $testDataDir);
     }
 
     private function import(string $code): StorageBox
