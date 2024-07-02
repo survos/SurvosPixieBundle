@@ -11,6 +11,7 @@ use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use function Symfony\Component\String\u;
 use \JsonMachine\Items;
@@ -25,13 +26,14 @@ class PixieImportService
     {
     }
 
-    public function import(string $pixieCode, ?Config $config=null,  ?string $dirOrFilename = null,
-                           int    $limit = 0, ?callable $callback=null): StorageBox
+    public function import(string $pixieCode, ?Config $config=null,
+                           int    $limit = 0,
+                           ?StorageBox $kv=null, // if we already created it.
+                           ?callable $callback=null): StorageBox
     {
 
         if (!$config) {
-            $configFilename = $this->pixieService->getConfigFilename($pixieCode);
-            $config = new Config($configFilename);
+            $config = $this->pixieService->getConfig($pixieCode);
         }
         // the csv/json files
         $dirOrFilename = $this->pixieService->getSourceFilesDir($pixieCode);
@@ -52,7 +54,6 @@ class PixieImportService
 //            throw new \LogicException("$dirOrFilename does not exist");
 //        }
         assert(file_exists($dirOrFilename), $dirOrFilename);
-//        dd($dirOrFilename);
         $finder = new Finder();
         $files = $finder->in($dirOrFilename);
         if ($include = $config->getInclude()) {
@@ -78,7 +79,9 @@ class PixieImportService
         unset($splFile);
 
 //        list($splFile, $tableName, $mm, $fileMap, $fn, $tables, $tableData, $kv) =
-        $kv = $this->createKv($fileMap, $config, $pixieCode);
+        if (!$kv) {
+            $kv = $this->createKv($fileMap, $config, $pixieCode);
+        }
         assert(count($kv->getTables()), "no tables in $pixieCode");
         $validTableNames = $config->getTables();
 
@@ -93,7 +96,7 @@ class PixieImportService
             $schemaTables = $kv->inspectSchema();
             if (!array_key_exists($tableName, $validTableNames)) {
                 $this->logger && $this->logger->warning("Skipping $fn, table is undefined");
-//                dd($tableName, $kv->getFilename(), $validTableNames, array_keys($schemaTables));
+                dd($tableName, $kv->getFilename(), $validTableNames, array_keys($schemaTables));
                 continue;
             }
 //            if (!str_contains($pixieDbName, 'moma')) dd($tableName, $pixieDbName, $kv->getFilename());
@@ -126,32 +129,42 @@ class PixieImportService
             // don't parse the header match each time, store them
             $regexRules = $configData['tables'][$tableName]['formatter'] ?? [];
             // why not mapped headers?
-            foreach ($headers as $header) {
+            foreach ($headers as $headerOrig=>$header) {
                 foreach ($regexRules as $variableRegexRule => $dataRegexRules) {
                     if (preg_match($variableRegexRule, $header)) {
                         $dataRules[$header] = $dataRegexRules;
                     }
                 }
             }
+            $resolver = new OptionsResolver();
+
             foreach ($iterator as $idx => $row) {
                 // if it's json, remap the keys
                 if ($ext === 'json') {
                     $origRow = $row; // for debugging
-//                    dd($row, $headers, $mappedHeader);
-                    $values = array_values((array)$row);
-                    if ( ($headerCount = count($headers)) <> ($valueCount = count($values))) {
-                        dd($idx, $headers, $values, $row);
-                        // hack, will burn us if fields are in a different order.  need a better solution
-                        if ($headerCount < $valueCount) {
-                            $values = array_splice($values, 0, $headerCount);
-                        } else {
-                            $values = array_pad($values, $headerCount, null);
-                        }
-                        if ( ($headerCount = count($headers)) <> ($valueCount = count($values))) {
-                            dd($headers, $values);
-                        }
+                    $mappedRow = [];
+                    foreach ($headers as $header=>$headerOrig) {
+                        $mappedRow[$header] = $row->{$headerOrig}??null;
                     }
-                    $row = array_combine($headers, $values);
+//                    dd($row, $mappedRow);
+                    $row = $mappedRow;
+
+
+//                    $resolver->setDefault($header, $row[])
+//                    $values = array_values((array)$row);
+//                        dd($idx, $headers, $row, $origRow, $rules);
+//                        // hack, will burn us if fields are in a different order.  need a better solution
+//                        if ($headerCount < $valueCount) {
+//                            $values = array_splice($values, 0, $headerCount);
+//                        } else {
+//                            $values = array_pad($values, $headerCount, null);
+//                        }
+//                        if ( ($headerCount = count($headers)) <> ($valueCount = count($values))) {
+//                            dd($headers, $values);
+//                        }
+//                    if ( ($headerCount = count($headers)) <> ($valueCount = count($values))) {
+//                    }
+//                    $row = array_combine($headers, $values);
 //                    dump(table: $tableName, orig: $origRow, mapped: $mappedHeader, new_row: $row);
 //                    dd($idx, $row, $headers); return $kv;
                 }
@@ -198,7 +211,7 @@ class PixieImportService
         foreach ($fileMap as $fn => $tableName) {
             $tables = $config->getTables();
             foreach ($tables as $tableName => $tableData) {
-                $tablesToCreate[$tableName] = $tableData['indexes'];
+                $tablesToCreate[$tableName] = $tableData;
             }
         }
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);

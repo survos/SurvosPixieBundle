@@ -4,10 +4,12 @@
 
 {% block body %}
         <h1>{{ filename }}</h1>
+        <h1>{{ remoteUrl }}</h1>
 
         <twig:simple_datatables
                 :caller="_self"
                 :columns="columns"
+                :remoteUrl="remoteUrl"
                 :data="iterator"
         >
                 <twig:block name="key">

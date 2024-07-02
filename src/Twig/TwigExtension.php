@@ -18,6 +18,7 @@ class TwigExtension extends AbstractExtension
             // If your filter generates SAFE HTML, add ['is_safe' => ['html']]
             // Reference: https://twig.symfony.com/doc/3.x/advanced.html#automatic-escaping
             new TwigFilter('file_exists', fn (string $s) => file_exists($s)),
+            new TwigFilter('json_decode', fn (string $s, bool $asArray=true) => json_decode($s, $asArray)),
         ];
     }
 

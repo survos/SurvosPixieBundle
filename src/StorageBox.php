@@ -72,7 +72,6 @@ class StorageBox
             }
             try {
                 $this->db = new \PDO("sqlite:" . $path);
-                dump('setting db to NEW ' . $path);
             } catch (\PDOException $e) {
                 dd($path, $e->getMessage());
             }
@@ -81,7 +80,6 @@ class StorageBox
             $this->db->setAttribute(PDO::ATTR_TIMEOUT, 10);
 //            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } else {
-            dump('setting db to existing ' . $path);
             try {
                 $this->db = new \PDO("sqlite:" . $path);
             } catch (\PDOException $e) {
@@ -95,11 +93,15 @@ class StorageBox
         $this->tables = $sth->fetchAll(PDO::FETCH_COLUMN); // load the existing tables
 
         $this->beginTransaction();
-        foreach ($this->tablesToCreate as $table => $indexes) {
+        foreach ($this->tablesToCreate as $table => $tableConfig) {
+            // until we fix the init
+            assert(array_key_exists('indexes', $tableConfig), "missing indexes key!");
+            // if coming in from table, needs to have a shape.
 //            dd($indexes, array_is_list($indexes));
 //            dd($this->tablesToCreate, array_is_list($this->tablesToCreate));
             if (!in_array($table, $this->tables)) {
-                $this->createTable($table, $indexes, $this->valueType);
+
+                $this->createTable($table, $tableConfig, $this->valueType);
                 $this->tables[] = $table;
             }
         }
@@ -140,7 +142,14 @@ class StorageBox
             }
             $newHeaders[] = u($newFieldName)->snake()->toString();
         }
-        return $newHeaders;
+        return array_combine($newHeaders, $header);
+    }
+
+    public function getColumnMap()
+    {
+        // ugh, complicated
+
+
     }
 
     public function select(string $tableName): self
@@ -231,7 +240,9 @@ class StorageBox
         $primaryIndex = 0; // by default
         foreach ($indexConfig as $indexId => $indexName) {
             if (is_array($indexName)) {
-                dd($indexConfig, $indexName, $indexId);
+
+                dump($indexConfig, $indexName, $indexId);
+                assert(false);
                 // parse type and maybe regex rule
                 continue;
             }
@@ -264,21 +275,21 @@ class StorageBox
      * @param string $valueType
      * @return void
      */
-    public function createTable(string $tableName, string|array $indexes, string $valueType = 'JSON'): void
+    public function createTable(string $tableName, string|array $tableConfig,
+                                string $valueType = 'JSON',
+        array $columns=[]
+    ): void
     {
 
-
         // if no column is flagged as unique, assume the first key
+        $indexes = $tableConfig['indexes'] ?? [];
         $indexes = $this->getIndexDefinitions($indexes);
 
         // more json examples at https://www.sqlitetutorial.net/sqlite-json/
         $indexSql = [];
         // @todo: improve PK: https://www.sqlitetutorial.net/sqlite-primary-key/
         // a generated column can't be the primary key, but interesting: https://sqlite.org/forum/info/5928225848d0409f
-        $primaryKey = 'key TEXT PRIMARY KEY';
-        $columns = [
-            'value TEXT NOT NULL',
-        ];
+        $columns['_value'] = 'value TEXT NOT NULL';
 
         /**
          * @var int $indexId
@@ -290,6 +301,7 @@ class StorageBox
             // @todo: handle auto-increment
             if ($index->isPrimary) {
                 $primaryKey = "$name $type PRIMARY KEY";
+                $columns[$name] = $primaryKey;
             } else {
                 // also see json_each example at https://sqlime.org/#deta:m97q76wmvzvd
                 // create a generated column so that it all happens internally
@@ -297,15 +309,18 @@ class StorageBox
 //                https://www.sqlite.org/gencol.html
 
                 // d INT GENERATED ALWAYS AS (a*abs(b)) VIRTUAL,
-                $columns[] = "$name $type  GENERATED ALWAYS AS (json_extract(value, '\$.$name')) STORED /* @searchable */";
-                $indexSql[] = "create index {$tableName}_{$name} on $tableName($name) /* @filterable */";
+                $columns[$name] = "$name $type  GENERATED ALWAYS AS (json_extract(value, '\$.$name')) STORED /* @searchable */";
+                $indexSql[$tableName . $name] = "create index {$tableName}_{$name} on $tableName($name) /* @filterable */";
             }
         }
-        array_unshift($columns, $primaryKey);
+
+//        array_unshift($columns, $primaryKey);
+//        dd($columns, $indexSql);
 
         $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (%s); %s", $tableName,
-            join(",\n", $columns),
-            join(";\n", $indexSql));
+            join(",\n", array_values($columns)),
+            join(";\n", array_values($indexSql))
+        );
         try {
             $result = $this->db->exec($sql);
         } catch (\Exception $exception) {

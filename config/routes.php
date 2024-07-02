@@ -10,8 +10,9 @@ return function (RoutingConfigurator $routes) {
     $routes->add('pixie_import', '/pixie-import/{pixieCode}')
         ->controller([PixieController::class, 'import'])
     ;
-    $routes->add('pixie_browse', '/pixie-browse/{pixieCode}/{tableName}')
+    $routes->add('pixie_browse', '/pixie-browse/{pixieCode}/{tableName}.{_format}')
         ->controller([PixieController::class, 'browse'])
+        ->defaults(['_format' => 'html'])
     ;
 
     $routes->add('pixie_show_record', '/browse/{pixieCode}/{tableName}/{key}')

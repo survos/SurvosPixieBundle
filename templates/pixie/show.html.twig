@@ -4,8 +4,25 @@
 
 {% block body %}
 
-    {{ dump(row.value|fn_json_decode) }}
-    {{ dump(row) }}
+    <h3>Properties</h3>
+    <twig:simple_item_grid
+            exclude="value"
+            :data="row"
+    >
+
+    </twig:simple_item_grid>
+
+    <h3>Attributes</h3>
+
+    <twig:simple_item_grid
+            :data="row.value|json_decode(true)"
+    >
+
+    </twig:simple_item_grid>
+
+
+{#    {{ dump(row.value|json_decode) }}#}
+{#    {{ dump(row) }}#}
 
 
 {#        <twig:simple_datatables#}

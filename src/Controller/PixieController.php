@@ -9,10 +9,13 @@ use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Yaml\Yaml;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
@@ -24,6 +27,7 @@ class PixieController extends AbstractController
     public function __construct(
         private ParameterBagInterface $bag,
         private PixieService $pixieService,
+        private UrlGeneratorInterface $urlGenerator,
         private ?ChartBuilderInterface $chartBuilder=null,
     ) {
 
@@ -58,7 +62,9 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int $limit = 5
     ): Response
     {
-        $kv = $this->pixieService->getStorageBox($pixieCode);
+        $kv = $this->pixieService->getStorageBox(
+            $this->pixieService->getPixieFilename($pixieCode)
+        );
         $kv->select($tableName);
         $row = $kv->get($key, $tableName);
         if (!$row) {
@@ -72,13 +78,29 @@ class PixieController extends AbstractController
 
     }
 
-    #[Route('/browse/{pixieCode}/{tableName}', name: 'pixie_browse')]
+    private function flattenArray(array $array): array
+    {
+        foreach ($array as $idx => $row) {
+            foreach ($row as $var => $value) {
+                if (is_iterable($value)) {
+
+//                    $row[$var] = $this->flattenArray($value);  json_encode($value, JSON_UNESCAPED_SLASHES);
+                }
+            }
+        }
+        return $row;
+    }
+
+    #[Route('/browse/{pixieCode}/{tableName}.{_format}', name: 'pixie_browse')]
     public function browse(
+        Request $request,
                          string $pixieCode,
                          string $tableName,
+                         string $_format='html',
                          #[MapQueryParameter] ?string $index=null,
                          #[MapQueryParameter] ?string $value=null,
-                         #[MapQueryParameter] int $limit = 5
+                         #[MapQueryParameter] int $limit = 50,
+                         #[MapQueryParameter] int $offset = 0,
     ): Response
     {
         // need to handle extension
@@ -96,17 +118,52 @@ class PixieController extends AbstractController
         } else {
             $columns = ['value'];
         }
+
+        // @todo: flatten nested json, apply view, column rules, etc.
+        if ($_format=='json') {
+            $pk = $kv->getPrimaryKey();
+            $flattenRows = [];
+            $idx = 0;
+            foreach ($iterator as $key => $row) {
+                $idx++;
+                foreach ($row as $var=>$value) {
+                    if ($var == $pk) {
+                        $row[$var] = sprintf(
+                            "<a href='%s'>%s</a>",
+                            $this->urlGenerator->generate('pixie_show_record', [
+                                'pixieCode' => $pixieCode,
+                                'tableName' => $tableName,
+                                'key' => $value
+                            ]), $value
+                        );
+                    } elseif (is_iterable($value)) {
+                        $row[$var] = json_encode($value, JSON_UNESCAPED_SLASHES);
+                    }
+                }
+                $flattenRows[] = $row;
+                if ($limit && ($idx >= $limit)) {
+                    break;
+                }
+            }
+            return new JsonResponse($flattenRows);
+        }
         array_unshift($columns, 'key');
         $iterator->rewind();
 //        foreach ($kv->iterate($tableName, $where) as $row) {
 //            dd($row);
 //        }
+
+
         // see kaggle for inspiration, https://www.kaggle.com/datasets/shivamb/real-or-fake-fake-jobposting-prediction/data
         return $this->render('@SurvosPixie/pixie/browse.html.twig', [
             'pixieCode' => $pixieCode,
 'tableName' => $tableName,
 //            'kv' => $kv, // avoidable?/
-            'iterator' => $firstRow ? $iterator : [],
+        'remoteUrl' => $this->urlGenerator->generate(
+            $request->get('_route'),
+            [...$request->get('_route_params'), '_format' => 'json']
+        ),
+            'iterator' => [], // $firstRow ? $iterator : [],
             'keyName' => $kv->getPrimaryKey(),
             'columns' => $columns,
             'filename' => $kv->getFilename(),

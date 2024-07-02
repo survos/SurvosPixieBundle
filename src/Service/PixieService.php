@@ -62,8 +62,23 @@ class PixieService
         return ($filename && file_exists($filename)) ? $filename : null;
     }
 
-    function getStorageBox(string $filename, array $tables=[], bool $destroy=false): StorageBox
+    function getStorageBox(string $filename, array $tables=[],
+                           bool $destroy=false,
+                           bool $createFromConfig=false,
+    ?Config $config = null,
+    ): StorageBox
     {
+        if ($createFromConfig) {
+            if (!$config) {
+                assert(false, "Pass in config for now.");
+                // filename? Or code???  ugh,
+//                $config = $this->getConfig($filename)
+            }
+            $tables = $config->getTables();
+//            foreach ($config->getTables() as $tableName => $table) {
+//                dd($tableName, $table);
+//            }
+        }
         $destroy && $this->destroy($filename);
         if (!$kv = $this->storageBoxes[$filename]??false)
         {
@@ -172,7 +187,8 @@ class PixieService
     }
 
 
-    public function getSourceFilesDir(?string $pixieCode=null, ?Config $config=null): string
+    public function getSourceFilesDir(?string $pixieCode=null, ?Config $config=null,
+                                      bool $autoCreate=false, bool $throwErrorIfMissing=true): ?string
     {
         if (!$config) {
             $config = $this->getConfig($pixieCode);
@@ -183,8 +199,13 @@ class PixieService
         }
 
         $dir = $this->addProjectDir($dir);
-        assert(file_exists($dir), $dir);
-        return realpath($dir);
+        if ($autoCreate && !is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        if ($throwErrorIfMissing) {
+            assert(file_exists($dir), "Missing source files dir $dir");
+        }
+        return file_exists($dir) ? realpath($dir): null;
 
 
     }
