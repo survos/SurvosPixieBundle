@@ -2,17 +2,21 @@
 
 namespace Survos\PixieBundle\Model;
 
-class Index
+class Column
 {
     public function __construct(
-        public string $propertyName,
-        public string $type = 'TEXT', // property type, this was from the dexie-link config and isn't needed by the index
+        public ?string $name=null,
+        public string $type = 'TEXT',
+        public string $label = '',
+        public mixed $defaultValue = null,
+        // here? or in Index?
         public bool $isPrimary = false,
         public bool $isUnique = false
     )
     {
         $this->type = strtoupper($this->type);
-
     }
+
+
 
 }

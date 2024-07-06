@@ -8,8 +8,9 @@ source:
 files:
   /Artists/: artist
   /Artworks/: artwork
+
 tables:
-  artwork:
+  - name: artwork
     #        indexes: 'id|int,department,classification,year|int'
     indexes:
       - id|INTEGER
@@ -27,15 +28,23 @@ tables:
       #            /^Date_Acquired/: art_year
       /ConstituentID/: artist_id
     # could come from SQL or created during the import
-    virtualColumns:
-      - isAlive:
-          type: bool
-          value: row.artistDeathYear == 0
-      - decade:
-          type: int
-          value: row.year % 10 == 0
+    properties:
+      - 'id:int#'
+      - c: 'id:int##'
+      - c: 'age:int#'
+      - name: id
+        type: int # or int##? int+
+        pk: true
+      - name: status
+        type: text
+      - name: isAlive
+        type: bool
+        value: row.artistDeathYear == 0
+      - name: decade
+        type: int
+        value: (row.year % 10) * 10
 
-  artist:
+  - name: artist
     indexes:
       - id|INTEGER
       - nationality

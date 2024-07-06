@@ -1,3 +1,0 @@
-#survos_flickr:
-#  resource: '@SurvosFlickrBundle/config/routes.php'
-#  prefix: '/flickr'

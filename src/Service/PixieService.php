@@ -7,11 +7,17 @@ namespace Survos\PixieBundle\Service;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
 use Survos\PixieBundle\Model\Config;
+use Survos\PixieBundle\Model\Source;
+use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
+use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
+use Symfony\Component\Yaml\Yaml;
 
 
 class PixieService
@@ -29,9 +35,14 @@ class PixieService
         #[Autowire('%kernel.project_dir%')] private ?string $projectDir=null,
         private ?LoggerInterface                            $logger=null,
         private ?Stopwatch                                  $stopwatch=null,
-        private ?PropertyAccessorInterface                  $accessor=null
+        private ?PropertyAccessorInterface                  $accessor=null,
+        private ?SerializerInterface $serializer=null,
+        private ?DenormalizerInterface $denormalizer=null,
     )
     {
+//        dd($this->serializer->denormalize($this->data, Config::class));
+//        assert($this->logger);
+        $this->denormalizer=$this->serializer; // ->denormalize($this->data, DenormalizerInterface::class);
     }
 
     public function getPixieFilename(string $pixieCode): string
@@ -62,10 +73,11 @@ class PixieService
         return ($filename && file_exists($filename)) ? $filename : null;
     }
 
-    function getStorageBox(string $filename, array $tables=[],
+    function getStorageBox(string $filename,
+                           array $tables=[],
                            bool $destroy=false,
                            bool $createFromConfig=false,
-    ?Config $config = null,
+                            ?Config $config = null,
     ): StorageBox
     {
         if ($createFromConfig) {
@@ -74,6 +86,7 @@ class PixieService
                 // filename? Or code???  ugh,
 //                $config = $this->getConfig($filename)
             }
+            // the array! someday the model.
             $tables = $config->getTables();
 //            foreach ($config->getTables() as $tableName => $table) {
 //                dd($tableName, $table);
@@ -85,7 +98,7 @@ class PixieService
             $class = $this->isDebug ? TraceableStorageBox::class : StorageBox::class;
             $kv =  new $class($filename,
                 $this->data, // for debug
-                $tables,
+            $config,
                 accessor: $this->accessor,
                 logger: $this->logger, stopwatch: $this->stopwatch);
             $this->storageBoxes[$filename] = $kv;
@@ -124,13 +137,18 @@ class PixieService
     {
         $finder = new Finder();
         $configs  = [];
+        // this is only the configs in the configDir.
         foreach ($finder->files()->name('*.yaml')->in($this->getConfigDir()) as $file) {
             // we can optimize later...
-            $config = new Config($file->getRealPath());
             $code = $file->getFilenameWithoutExtension();
+            $config = $this->getConfig($code);
+
             $resolvedDataPath = $this->resolveFilename($config->getSourceFilesDir(), 'data');
             $config->dataDir = $resolvedDataPath;
-            $config->pixieFilename = $this->getPixieFilename($code);
+//            dd($config);
+            // hacky!  configs can belong to more than one filename
+            $config->setPixieFilename($this->getPixieFilename($code));
+            assert($config->getPixieFilename(), "Missing pixie filename for $code");
             $configs[$code] = $config;
         }
         return $configs;
@@ -142,7 +160,27 @@ class PixieService
     // @todo: add custom dataDir, etc.
     public function getConfig(string $pixieCode): Config
     {
-        return new Config($this->getConfigFilename($pixieCode));
+        $configFilename = $this->getConfigFilename($pixieCode);
+//        $configData = Yaml::parseFile($configFilename);
+//        $config = $this->denormalizer->denormalize($configData, Config::class);
+//        dd(config: $config, data: $configData);
+//        $config->setConfigFilename($configFilename);
+        try {
+            $config = $this->serializer->deserialize(
+                file_get_contents($configFilename),
+                Config::class, 'yaml');
+        } catch (NotNormalizableValueException $exception) {
+            dd($configFilename, $exception->getMessage());
+        }
+        assert($config instanceof Config);
+//        assert($config->source, $configFilename . " missing source key");
+//        assert($config->source instanceof Source);
+        foreach ($config->getTables() as $idx=>$table) {
+            assert($table instanceof Table, "table $idx is not of class Table");
+        }
+        $config->setConfigFilename($configFilename);
+//        dd($config, $configFilename, $config);
+        return $config;
     }
     public function getConfigFilename(string $pixieCode): string
     {

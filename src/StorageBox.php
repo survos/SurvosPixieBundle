@@ -5,10 +5,14 @@ namespace Survos\PixieBundle;
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Schema\Schema;
 use JetBrains\PhpStorm\NoReturn;
 use \PDO;
 use Psr\Log\LoggerInterface;
+use Survos\PixieBundle\CsvSchema\Parser;
+use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Index;
+use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Model\Table;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
@@ -32,10 +36,10 @@ class StorageBox
      * @var \PDO
      */
     private \PDO $db;
-    private array $tables = [];
+    private array $tables = []; // from the config
+    private array $schemaTables = []; // from the schema inspection
     private bool $inTransaction = false;
 
-//    private array $regexRules=[];
     /**
      * Initialises a new store connection.
      * @param string $filename The filename that the store is located in.
@@ -43,8 +47,9 @@ class StorageBox
      */
     #[NoReturn] function __construct(private string                    $filename,
                                      array &$data, // debug data, passed from Pixie
-                                     private array                     $tablesToCreate = [],
-                                     private array                     $regexRules = [],
+    private ?Config $config=null, // for creation only.  Shouldn't be in constructor!
+//                                     private array                     $tablesToCreate = [],
+//                                     private array                     $regexRules = [],
                                      private ?string                   $currentTable = null,
                                      private ?int                      $version = 1,
                                      private string                    $valueType = 'json', // eventually jsonb
@@ -57,13 +62,6 @@ class StorageBox
     {
         $path = $this->filename;
 
-
-        // Enable WAL mode to fix locking issues?
-//        $this->beginTransaction();
-//        $sqlite3 = new \SQLite3($this->filename);
-//        dd($this->filename, $path);
-        // HACK: This might not work on some systems, because it depends on the current working directory
-
         // PDO creates the db if it doesn't exist, so check after
         if (!file_exists($path)) {
             $dir = pathinfo($path, PATHINFO_DIRNAME);
@@ -73,7 +71,9 @@ class StorageBox
             try {
                 $this->db = new \PDO("sqlite:" . $path);
             } catch (\PDOException $e) {
-                dd($path, $e->getMessage());
+                throw new \LogicException("Invalid database connection: " . $path . "\n\n" . $e->getMessage());
+//                dd($path, $e->getMessage());
+//                return;
             }
             $this->db->query("PRAGMA journal_mode=WAL");
             $this->db->query("PRAGMA lock_timeout=5");
@@ -88,30 +88,27 @@ class StorageBox
 
             }
         }
+        if ($this->config) {
+            $this->createTables($this->config);
+        }
 
+    }
+
+    public function createTables(Config $config): void
+    {
         $sth = $this->db->query($sql = "SELECT name FROM sqlite_master where type='table'");
-        $this->tables = $sth->fetchAll(PDO::FETCH_COLUMN); // load the existing tables
+        $this->schemaTables = $sth->fetchAll(PDO::FETCH_COLUMN); // load the existing tables
 
         $this->beginTransaction();
-        foreach ($this->tablesToCreate as $table => $tableConfig) {
-            // until we fix the init
-            assert(array_key_exists('indexes', $tableConfig), "missing indexes key!");
-            // if coming in from table, needs to have a shape.
-//            dd($indexes, array_is_list($indexes));
-//            dd($this->tablesToCreate, array_is_list($this->tablesToCreate));
-            if (!in_array($table, $this->tables)) {
 
-                $this->createTable($table, $tableConfig, $this->valueType);
+        foreach ($config->getTables() as $tableName => $table) {
+            assert($table instanceof Table, json_encode($table));
+            if (!in_array($table, $this->tables)) {
+                $this->createTable($tableName, $table, $this->valueType);
                 $this->tables[] = $table;
             }
         }
         $this->commit();
-//        $tables = $this->inspectSchema();
-//        dd($this->tablesToCreate, $this->tables, current($this->tablesToCreate));
-        // defaults to first table?
-//        $this->currentTable = current($this->tablesToCreate)??current($this->tables);
-//        $this->commit();
-//        $this->beginTransaction();
         assert(!$this->db->inTransaction());
     }
 
@@ -185,10 +182,27 @@ class StorageBox
     public function getPrimaryKey(?string $tableName=null): string
     {
         $tableName = $tableName ?? $this->currentTable;
-        return $this->inspectSchema()[$tableName]->getPkName();
+        // https://stackoverflow.com/questions/10472103/sqlite-query-to-find-primary-keys
+        // use <> 0 if multiple
+        $result = $this->query($sql = "SELECT l.name FROM pragma_table_info('$tableName') 
+    as l WHERE l.pk = 1");
+        $pk = $result->fetchColumn();
+assert($pk, $tableName .  $sql);
+//dd($result->fetchColumn(), $result);
+return $pk;
+//dd($result->fetchColumn(), $result->fetchAll(), $tableName, $sql);
+//
+//        $schemaTables = $this->inspectSchema();
+//        $table = $schemaTables[$tableName] ?? null;
+//
+//        return $table?->getPkName();
 
     }
 
+
+    /* get the DBAL schema.
+     *
+     */
     public function inspectSchema(string $filename = null): array
     {
         $filename = $filename ?? $this->getFilename();
@@ -198,19 +212,25 @@ class StorageBox
             return $tables[$filename];
         }
 
+        // ripe for caching, refactoring, etc.
         // is it necessary to open it again, or can we get this from the PDO?
         $connectionParams = [
             'path' => $filename,
             'driver' => 'pdo_sqlite',
         ];
             $conn = DriverManager::getConnection($connectionParams);
+//            dump($connectionParams, $filename);
             $sm = $conn->createSchemaManager();
             $fromSchema = $sm->introspectSchema();
 
             $tables[$filename] = [];
+
             foreach ($fromSchema->getTables() as $schemaTable) {
                 $primaryIndex = $schemaTable->getIndex('primary');
-                $table = new Table($schemaTable->getName(), $schemaTable->getColumns(), join('-', $primaryIndex->getColumns()));
+                //
+                $table = new Table($schemaTable->getName(),
+                    $schemaTable->getColumns(),
+                    pkName: join('-', $primaryIndex->getColumns()));
 //                foreach ($schemaTable->getColumns() as $column) {
 //                    $tables[$schemaTable->getName()]['columns'][] = $column->getName();
 //                }
@@ -229,9 +249,13 @@ class StorageBox
      * @param string|array $indexConfig
      * @return Index[] array
      */
-    static function getIndexDefinitions(string|array $indexConfig): array
+    static function getIndexDefinitions(null|string|array $indexConfig): array
     {
+
         $indexes = [];
+        if (empty($indexConfig)) {
+            return $indexes;
+        }
         if (is_string($indexConfig)) {
             $indexConfig = array_map(fn($key) => $key ? trim($key) : assert($key, "empty key! " . $indexConfig),
                 explode(',', $indexConfig));
@@ -275,22 +299,52 @@ class StorageBox
      * @param string $valueType
      * @return void
      */
-    public function createTable(string $tableName, string|array $tableConfig,
+    public function createTable(string $tableName,
+                                Table $table,
                                 string $valueType = 'JSON',
-        array $columns=[]
+//        array $columns=[]
     ): void
     {
-
-        // if no column is flagged as unique, assume the first key
-        $indexes = $tableConfig['indexes'] ?? [];
-        $indexes = $this->getIndexDefinitions($indexes);
+        $properties = [];
+        $columns = [];
+        $indexes = $this->getIndexDefinitions($table->getIndexes());
+        foreach ($table->getProperties() as $propIndex => $propData) {
+            if (is_string($propData)) {
+                $property = Parser::parseConfigHeader($propData);
+            } else {
+//                dd($table->getProperties());
+                $property = new Property(
+                    index: $propData['index']??null,
+                    code: $propData['name'],
+                    type: $propData['type']??null // maybe default type based on code?
+                );
+//                dump($tableName, $table, $propData, $property);
+            }
+            if ($propIndex == 0) {
+                $primaryKey = $property->getCode();
+            }
+            $properties[] = $property;
+//            dd($actual, $propData);
+//            dd($property, $tableName, $this->filename, $this->config->getConfigFilename());
+        }
+//        dd($tableName, properties: $properties, table: $table);
 
         // more json examples at https://www.sqlitetutorial.net/sqlite-json/
         $indexSql = [];
         // @todo: improve PK: https://www.sqlitetutorial.net/sqlite-primary-key/
         // a generated column can't be the primary key, but interesting: https://sqlite.org/forum/info/5928225848d0409f
-        $columns['_value'] = 'value TEXT NOT NULL';
+        if (count($indexes) && count($properties)) {
+            dd("Cannot have both indexes and properties " . $table->getIndexes());
+        }
+        foreach ($properties as $property) {
+            if ($primaryKey == $property->getCode()) {
+                $indexes[] = new Index($property->getCode(), isPrimary: true);
+            } elseif ($property->getIndex()) {
+                $indexes[] = new Index($property->getCode());
+            }
 
+        }
+//        dd($tableName, $indexes);
         /**
          * @var int $indexId
          * @var Index $index
@@ -309,23 +363,31 @@ class StorageBox
 //                https://www.sqlite.org/gencol.html
 
                 // d INT GENERATED ALWAYS AS (a*abs(b)) VIRTUAL,
-                $columns[$name] = "$name $type  GENERATED ALWAYS AS (json_extract(value, '\$.$name')) STORED /* @searchable */";
+                $columns[$name] = "$name $type  GENERATED ALWAYS AS (json_extract(_raw, '\$.$name')) STORED /* @searchable */";
                 $indexSql[$tableName . $name] = "create index {$tableName}_{$name} on $tableName($name) /* @filterable */";
             }
         }
+        $columns['_att'] = '_att TEXT'; // type=att
+        $columns['json'] = '_extra TEXT'; // original data minus defined properties
+        $columns['raw'] = '_raw TEXT'; // original data sent to ->set()
 
+//        dd($tableConfig);
 //        array_unshift($columns, $primaryKey);
-//        dd($columns, $indexSql);
 
-        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (%s); %s", $tableName,
+        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n); \n\n%s", $tableName,
             join(",\n", array_values($columns)),
             join(";\n", array_values($indexSql))
         );
+//        dd($columns, $indexSql, $sql, $primaryKey);
         try {
             $result = $this->db->exec($sql);
         } catch (\Exception $exception) {
             dd($exception, $sql, $columns, $indexSql);
         }
+//        dd($sql, $result, $indexes);
+        // still in a transaction, can't do this yet, wait until all tables are created.
+
+//        assert($this->getPrimaryKey($tableName), "missing pk " . $sql);
 //        if (str_contains($sql, 'student')) dd($sql, $result);
 //        dd($sql);
     }
@@ -340,7 +402,7 @@ class StorageBox
 
     public function close()
     {
-        $this->log(__METHOD__);
+//        $this->log(__METHOD__);
         // if a transaction, commit it
         if ($this->db->inTransaction()) {
             $this->commit();
@@ -350,7 +412,7 @@ class StorageBox
 
     public function beginTransaction()
     {
-        $this->log(__METHOD__);
+//        $this->log(__METHOD__);
         assert(!$this->db->inTransaction(), "already in a transaction");
 
         $this->db->beginTransaction();
@@ -492,14 +554,14 @@ class StorageBox
         if (empty($preparedStatements[$tableName])) {
             $preparedStatements[$tableName] =
                 $this->db->prepare("
-                    INSERT OR REPLACE INTO $tableName($keyName, value) 
+                    INSERT OR REPLACE INTO $tableName($keyName, _raw) 
                         VALUES(:key, :value)
                 ");
         }
+//        dd($value, $key, $tableName);
         $statement = $preparedStatements[$tableName];
-        // @todo: defer these in a batch
-//        $this->db->beginTransaction();
         assert($this->db->inTransaction());
+        try {
             $results = $statement->execute(
                 $params = [
                     'key' => $key,
@@ -508,9 +570,8 @@ class StorageBox
 //            $this->db->commit();
 //        assert(false);
 
-        try {
         } catch (\Exception $exception) {
-            dd($exception, $params, $preparedStatements, $tableName);
+            dd($exception, $params, $value, $preparedStatements, $tableName);
         }
         if (!$results) {
             dd("Error: " . $statement->errorInfo()[2]);
@@ -574,7 +635,7 @@ class StorageBox
     ): \Generator
     {
         $table = $table??$this->currentTable;
-        assert($table, "no table configuredd");
+        assert($table, "no table configured");
         $pkName = $this->getPrimaryKey($table);
         [$sql, $params] = $this->getSql($table, $where, $max);
 
@@ -588,7 +649,8 @@ class StorageBox
 //        foreach ($sth as $idx => $row)
 //        while ($row = $sth->fetch(PDO::FETCH_ASSOC))
         {
-            $value = $row['value'];
+            // @todo: lax, strict, none
+            $value = $row['_raw'];
 //            dump($value);
             $value = json_decode($value, $associative, $depth, $flags);
             // now merge with the keys
@@ -663,7 +725,7 @@ $sql .= " ORDER BY COUNT(rowid) DESC";
 
     public function commit()
     {
-        $this->log(__METHOD__);
+//        $this->log(__METHOD__);
         // we could check the db, too
         assert($this->db->inTransaction(), "NOT in a transaction");
         $this->db->commit();

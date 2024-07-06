@@ -5,6 +5,7 @@
 namespace Survos\PixieBundle;
 
 use Survos\ApiGrid\Controller\GridController;
+use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\DataCollector\PixieDataCollector;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
@@ -71,13 +72,21 @@ class SurvosPixieBundle extends AbstractBundle
 
         }
 
+        // check https://github.com/zenstruck/console-extra/issues/59
+        $builder->autowire(PixieImportCommand::class)
+            ->setAutoconfigured(true)
+            ->addTag('console.command')
+        ;
+
         $x = $builder->register(PixieService::class)
             ->setAutowired(true)
+            ->setAutoconfigured(true)
             ->setArgument('$isDebug', $builder->getParameter('kernel.debug'))
             ->setArgument('$dataRoot', $config['data_root'])
             ->setArgument('$configDir', $config['config_dir'])
             ->setArgument('$dbDir', $config['db_dir'])
             ->setArgument('$stopwatch', new Reference('debug.stopwatch'))
+            ->setArgument('$serializer', new Reference('serializer'))
             ->setArgument('$logger', new Reference('logger'))
         ;
 

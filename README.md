@@ -18,6 +18,33 @@ There is (will be) an API endpoint if api-platform is installed.
 
 Integration with survos/translation-bundle
 
+To import a collection of csv files in a directory to a Pixie database, we'll need to do the following
+
+* each csv file becomes a table, which we often rename
+* rename the columns 
+* map data to specific columns, by default simply extract the json
+* allow arrays and objects to be property encoded, e.g. genre| or tags,
+* add columns that aren't present in the csv, e.g. status or createdAt
+* tweak the data, including casting to type and applying regex rules
+* @todo: map related tables, e.g. artwork.artist -> artist table
+* create indexes for filter queries
+* meili index the pixie file
+
+## Pixie-specific naming
+
+When creating the table, we add a json snippet after the property creation to indicate some attributes.
+To support related tables and translation, there are some specific columns names we use that are (maybe?) prefixed by _ or __:
+
+Or should we do this?
+
+* _key: the primary key of a table that can be used by a related table
+* _attributes: the JSON blob of everything that's not a property
+* _label: the label that is used when a relation is displayed in another table.  Translatable. Definable
+* _description: eventually we'll support defining translatable properties but for now we just support _description
+
+
+
+
 ## Setup
 
 All pixie db files have an associated configuration file that describes the mapping and underlying data structure.  Generally it shares the same base filename.

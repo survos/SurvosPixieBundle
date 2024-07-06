@@ -15,8 +15,8 @@ We need a schema to define the output csv database, which we can create by namin
 
 ```php
 
-$gridGroup = new GridGroup('movie_and_genre');
-$grid = (new \Survos\GridGroupBundle\Model\Grid('movie'));
+$Pixie = new Pixie('movie_and_genre');
+$grid = (new \Survos\PixieBundle\Model\Grid('movie'));
 $grid->addRow()
 
 

@@ -1,3 +1,0 @@
-#survos_flickr:
-#  api_key: '%env(FLICKR_API_KEY)%'
-#  secret: '%env(FLICKR_SECRET)%'

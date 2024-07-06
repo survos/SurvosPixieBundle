@@ -8,6 +8,7 @@ use Doctrine\Persistence\ObjectManager;
 use Meilisearch\Bundle\Collection;
 use Meilisearch\Bundle\SearchService;
 use Psr\Log\LoggerInterface;
+use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
@@ -17,8 +18,7 @@ final class TraceableStorageBox extends StorageBox
 //    private Stopwatch $stopwatch;
     #[NoReturn] function __construct(private string                    $filename,
                                      private array                     &$data, // debug data, passed from Pixie
-                                     private array                     $tablesToCreate = [],
-                                     private array                     $regexRules = [],
+                                     private ?Config $config=null, // for creation only.  Shouldn't be in constructor!
                                      private ?string                   $currentTable = null,
                                      private ?int                      $version = 1,
                                      private string                    $valueType = 'json', // eventually jsonb
@@ -35,7 +35,7 @@ final class TraceableStorageBox extends StorageBox
 //        $this->stopwatch = $stopwatch;
     }
 
-    public function map(array $tableRegexRules, array $tables = ['__all'])
+    public function mapHeader(array $header, string $tableName = null, array $regexRules=[]): array
     {
         return $this->innerSearchService(__FUNCTION__, \func_get_args());
     }

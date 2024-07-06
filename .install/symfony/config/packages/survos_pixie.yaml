@@ -1,0 +1,14 @@
+survos_pixie:
+  # directories are relative to the project dir if not prefixed with /
+
+  # location of the .pixie files.  Add to .gitignore to prevent checkin if in the repo path
+  extension: .pixie.sqlite
+
+  db_dir: pixie
+  # path for csv and json data.
+  data_root: data
+  # location of the .config.yaml files
+  config_dir: config/packages/pixie
+
+  # data is defined in the .conf files
+

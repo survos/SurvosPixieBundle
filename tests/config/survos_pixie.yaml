@@ -1,6 +1,8 @@
 framework:
     test: true
     annotations: false
+    router:
+        resource: null
 
     secret: x
 

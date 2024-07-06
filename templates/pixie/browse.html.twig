@@ -6,6 +6,11 @@
         <h1>{{ filename }}</h1>
         <h1>{{ remoteUrl }}</h1>
 
+{#    {{ dump(columns) }}#}
+    {% set columns = [
+        'id'
+    ] %}
+
         <twig:simple_datatables
                 :caller="_self"
                 :columns="columns"
@@ -20,7 +25,8 @@
                     }) }}"> {{ row[keyName] }}</a>
                 </twig:block>
             <twig:block name="value">
-                <a href="">{{ row.value|default('~~') }}</a>
+{#                {{ row.value|json_encode }}#}
+{#                <a href="">{{ row.value|default('~~') }}</a>#}
             </twig:block>
 
         </twig:simple_datatables>
