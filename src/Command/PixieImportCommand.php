@@ -5,7 +5,7 @@ namespace Survos\PixieBundle\Command;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\Event\ImportFileEvent;
-use Survos\PixieBundle\Event\ImportRowEvent;
+use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
@@ -116,8 +116,8 @@ final class PixieImportCommand extends InvokableServiceCommand
         $this->progressBar = new ProgressBar($this->io()->output());
     }
 
-    #[AsEventListener(event: ImportRowEvent::class)]
-    public function importRow(ImportRowEvent $event): void
+    #[AsEventListener(event: RowEvent::class)]
+    public function importRow(RowEvent $event): void
     {
         $this->initialized && $this->progressBar->advance();
     }

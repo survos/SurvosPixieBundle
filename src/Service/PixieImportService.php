@@ -10,7 +10,7 @@ use League\Csv\SyntaxError;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\Event\ImportFileEvent;
-use Survos\PixieBundle\Event\ImportRowEvent;
+use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\StorageBox;
@@ -178,7 +178,13 @@ class PixieImportService
                 }
                 assert(count($kv->getTables()), "no tables in $pixieCode");
 
-                $this->eventDispatcher->dispatch(new ImportRowEvent($row));
+                $event = $this->eventDispatcher->dispatch(new RowEvent(
+                    $config->code, $tableName, $row, action: self::class,
+                    storageBox: $kv ));
+                // seems hackish
+                if (!$event->row) {
+                    continue;
+                }
                 $kv->set($row);
 //                if ($idx == 1) dump($tableName, $row);
                 if ($limit && ($idx > $limit)) break;

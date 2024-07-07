@@ -8,6 +8,7 @@ class Config
 {
     public function __construct(
         private string|float|null $version=null,
+        public ?string $code=null,
         public ?Source $source=null,
         private array $files=[],
         /**
@@ -18,6 +19,7 @@ class Config
         private array           $data=[],
         public ?string $dataDir = null, // set in service, kinda hacky
         public ?string $pixieFilename = null // set in service, kinda hacky, the sqlite file
+
     )
     {
 //        if ($this->$configFilename) {
