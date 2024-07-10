@@ -74,6 +74,9 @@ class PixieController extends AbstractController
         }
         $row = (array)$row;
         return $this->render('@SurvosPixie/pixie/show.html.twig', [
+            'key' => $key,
+            'tableName' => $tableName,
+            'pixieCode' => $pixieCode,
             'row' => $row,
             'columns' => array_keys($row),
             ]);
@@ -128,6 +131,7 @@ class PixieController extends AbstractController
             $flattenRows = [];
             $idx = 0;
             foreach ($iterator as $key => $row) {
+                assert($row, "Invalid data in $key " . $kv->getFilename());
                 $idx++;
                 foreach ($row as $var=>$value) {
                     if ($var == $pk) {
@@ -206,7 +210,8 @@ class PixieController extends AbstractController
             $count = $kv->count($tableName);
 //            dd($tableName, $count);
             $tables[$tableName] = [
-                'first' => $kv->iterate($tableName)->current()
+                'first' => $kv->iterate($tableName)->current(),
+                'count' => $kv->count($tableName) // we could cache this someday, like ->closeWithCounts()
             ];
 
             $charts = [];

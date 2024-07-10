@@ -119,5 +119,11 @@ class Config
         return $this->version;
     }
 
+    public function rp()
+    {
+        return ['pixieCode' => $this->code];
+
+    }
+
 
 }

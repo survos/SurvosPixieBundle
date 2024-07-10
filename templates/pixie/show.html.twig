@@ -4,28 +4,39 @@
 
 {% block body %}
 
-    {{ dump(row._raw|json_decode) }}
 
-    <h3>Properties</h3>
+    <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
+
+
+{#    {{ row._raw|default(false) ? dump(row._raw|json_decode) }}#}
+{#    {{ row.value|default(false) ? dump(row.value|json_decode) }}#}
+
     {% if row %}
+        <h3>Properties</h3>
         <twig:simple_item_grid
-                exclude="_raw,_att,_extra"
+                exclude="_raw,_att,_extra,value"
                 :data="row"
         >
 
         </twig:simple_item_grid>
 
 
-        {% if row._att %}
-            <h3>Attributes</h3>
+        {% if row._att|default(false) %}
+            <h3>._att</h3>
             <twig:simple_item_grid
                     :data="row._att|json_decode(true)"
             />
         {% endif %}
-        {% if row._raw %}
-            <h3>Raw</h3>
+        {% if row._raw|default(false) %}
+            <h3>._raw</h3>
             <twig:simple_item_grid
                     :data="row._raw|json_decode(true)"
+            />
+        {% endif %}
+        {% if row.value|default(false) %}
+            <h3>.value</h3>
+            <twig:simple_item_grid
+                    :data="row.value|json_decode(true)"
             />
         {% endif %}
     {% endif %}

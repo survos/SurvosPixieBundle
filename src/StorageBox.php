@@ -103,7 +103,7 @@ class StorageBox
 
         foreach ($config->getTables() as $tableName => $table) {
             assert($table instanceof Table, json_encode($table));
-            if (!in_array($table, $this->tables)) {
+            if (!in_array($tableName, $this->schemaTables)) {
                 $this->createTable($tableName, $table, $this->valueType);
                 $this->tables[] = $table;
             }
@@ -342,7 +342,6 @@ return $pk;
             } elseif ($property->getIndex()) {
                 $indexes[] = new Index($property->getCode());
             }
-
         }
 //        dd($tableName, $indexes);
         /**
@@ -649,13 +648,17 @@ return $pk;
 //        foreach ($sth as $idx => $row)
 //        while ($row = $sth->fetch(PDO::FETCH_ASSOC))
         {
-            // @todo: lax, strict, none
-            $value = $row['_raw'];
+//            dd($idx, $row);
+            // can 'value' be configured?  _raw
+            // @todo: lax, strict, none (handle _raw, _value, etc. )
+            // value is deprecated!
+            if ($value = $row['_raw']??null) {
 //            dump($value);
-            $value = json_decode($value, $associative, $depth, $flags);
+                $value = json_decode($value, $associative, $depth, $flags);
+                unset($row['_raw']);
+                $value = array_merge((array)$value, $row);
+            }
             // now merge with the keys
-            unset($row['value']);
-            $value = array_merge((array)$value, $row);
 //            dd($value);
             // check, or is the value always json?
             yield $row[$pkName] => $value;

@@ -98,7 +98,7 @@ class PixieService
             $class = $this->isDebug ? TraceableStorageBox::class : StorageBox::class;
             $kv =  new $class($filename,
                 $this->data, // for debug
-            $config,
+                $config,
                 accessor: $this->accessor,
                 logger: $this->logger, stopwatch: $this->stopwatch);
             $this->storageBoxes[$filename] = $kv;
@@ -172,6 +172,7 @@ class PixieService
         } catch (NotNormalizableValueException $exception) {
             dd($configFilename, $exception->getMessage());
         }
+        $config->code = $pixieCode; // quirky
         assert($config instanceof Config);
 //        assert($config->source, $configFilename . " missing source key");
 //        assert($config->source instanceof Source);
