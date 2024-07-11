@@ -7,6 +7,18 @@
 
     <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
 
+{#    {{ dump(row) }}#}
+{#    {{ dump(row.rp) }}#}
+{#    {{ dump(row.marking) }}#}
+
+    {% if workflowEnabled %}
+        {{ include('@SurvosWorkflow/_entity_transitions.html.twig', {
+            transition_path: 'pixie_transition',
+            flowName: workflow,
+            entity: row
+        }) }}
+
+    {% endif %}
 
 {#    {{ row._raw|default(false) ? dump(row._raw|json_decode) }}#}
 {#    {{ row.value|default(false) ? dump(row.value|json_decode) }}#}

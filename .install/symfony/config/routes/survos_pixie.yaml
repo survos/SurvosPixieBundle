@@ -1,6 +1,3 @@
 survos_pixie:
-  resource: '@SurvosPixieBundle/config/routes.php'
+  resource: '@SurvosPixieBundle/config/routes.yaml'
   prefix: '/pixie'
-
-##  resource: '@SurvosPixieBundle/Controller/PixieController.php'
-##  type: attribute

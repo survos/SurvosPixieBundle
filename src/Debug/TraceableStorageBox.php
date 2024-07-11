@@ -9,6 +9,7 @@ use Meilisearch\Bundle\Collection;
 use Meilisearch\Bundle\SearchService;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Model\Config;
+use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
@@ -27,6 +28,7 @@ final class TraceableStorageBox extends StorageBox
                                      private readonly ?PropertyAccessorInterface  $accessor = null,
                                      private array                     $formatters = [],
                                      private readonly ?Stopwatch       $stopwatch = null,
+                                     private ?string $pixieCode=null //
 
     )
     {
@@ -45,7 +47,8 @@ final class TraceableStorageBox extends StorageBox
         return $this->innerSearchService(__FUNCTION__, \func_get_args());
     }
 
-    public function get(string $key, string $table = null): string|object|array|null
+    public function get(string $key, string $tableName = null): Item // string|object|array|null
+//    public function get(string $key, string $table = null): string|object|array|null
     {
         return $this->innerSearchService(__FUNCTION__, \func_get_args());
     }

@@ -73,13 +73,20 @@ class PixieService
         return ($filename && file_exists($filename)) ? $filename : null;
     }
 
-    function getStorageBox(string $filename,
+    function getStorageBox(string $pixieCode,
+                           ?string $filename=null, // since files can share a config
                            array $tables=[],
                            bool $destroy=false,
                            bool $createFromConfig=false,
                             ?Config $config = null,
     ): StorageBox
     {
+        if (!$filename) {
+            $filename = $this->getPixieFilename($pixieCode);
+        }
+        if ($createFromConfig && !$config) {
+            $config = $this->getConfig($pixieCode);
+        }
         if ($createFromConfig) {
             if (!$config) {
                 assert(false, "Pass in config for now.");
@@ -99,6 +106,7 @@ class PixieService
             $kv =  new $class($filename,
                 $this->data, // for debug
                 $config,
+                pixieCode: $pixieCode,
                 accessor: $this->accessor,
                 logger: $this->logger, stopwatch: $this->stopwatch);
             $this->storageBoxes[$filename] = $kv;

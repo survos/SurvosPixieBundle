@@ -38,7 +38,9 @@ class Property implements \Stringable
         private ?string $type=null, // self::PROPERTY_STRING, // rel, cat, att
         private ?string $subType = null, // e.g. type, relatedCore, dbField.  aka subType?
         private ?array $settings=[], // min/max, delimited, etc.
-        private ?string $index=null, // 'INDEX', 'UNIQUE' ??
+        private string|bool|null $index=null, // 'INDEX', 'UNIQUE' ??
+        public bool $generated=true,
+        private ?string $initial=null,
         private ?Schema $schema = null,
 
     )
@@ -48,7 +50,18 @@ class Property implements \Stringable
         }
     }
 
-    public function getIndex(): ?string
+    public function getInitial(): ?string
+    {
+        return $this->initial;
+    }
+
+    public function setInitial(?string $initial): Property
+    {
+        $this->initial = $initial;
+        return $this;
+    }
+
+    public function getIndex(): string|bool|null
     {
         return $this->index;
     }

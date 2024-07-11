@@ -8,6 +8,7 @@ use Survos\ApiGrid\Controller\GridController;
 use Survos\PixieBundle\Command\IterateCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Controller\PixieController;
+use Survos\PixieBundle\Controller\PixieTransitionController;
 use Survos\PixieBundle\DataCollector\PixieDataCollector;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
@@ -51,9 +52,11 @@ class SurvosPixieBundle extends AbstractBundle
             ->addTag('container.service_subscriber')
             ->addTag('controller.service_arguments')
             ->setArgument('$chartBuilder', new Reference('chartjs.builder', ContainerInterface::NULL_ON_INVALID_REFERENCE))
-//            ->setAutoconfigured(true)
-//            ->setAutowired(true)
-//            ->setPublic(true)
+        ;
+
+        $builder->autowire(PixieTransitionController::class)
+            ->addTag('container.service_subscriber')
+            ->addTag('controller.service_arguments')
         ;
 
         $builder->autowire(PixieDataCollector::class)

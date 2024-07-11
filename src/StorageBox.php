@@ -12,6 +12,7 @@ use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Index;
+use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Model\Table;
 use Symfony\Component\Cache\CacheItem;
@@ -31,6 +32,8 @@ use function Symfony\Component\String\u;
 
 class StorageBox
 {
+    const MODE_REPLACE = 'replace';
+    const MODE_PATCH = 'patch';
     /**
      * The SQLite database connection.
      * @var \PDO
@@ -45,19 +48,20 @@ class StorageBox
      * @param string $filename The filename that the store is located in.
      * @param array $tablesToCreate The ADDITIONAL tables to create with writing.  Others may already exist.
      */
-    #[NoReturn] function __construct(private string                    $filename,
-                                     array &$data, // debug data, passed from Pixie
-    private ?Config $config=null, // for creation only.  Shouldn't be in constructor!
+    #[NoReturn] function __construct(private string                              $filename,
+                                     array                                       &$data, // debug data, passed from Pixie
+                                     private ?Config                             $config = null, // for creation only.  Shouldn't be in constructor!
 //                                     private array                     $tablesToCreate = [],
 //                                     private array                     $regexRules = [],
-                                     private ?string                   $currentTable = null,
-                                     private ?int                      $version = 1,
-                                     private string                    $valueType = 'json', // eventually jsonb
-                                     private bool                      $temporary = false, // nyi
-                                     private readonly ?LoggerInterface $logger = null,
+                                     private ?string                             $currentTable = null,
+                                     private ?int                                $version = 1,
+                                     private string                              $valueType = 'json', // eventually jsonb
+                                     private bool                                $temporary = false, // nyi
+                                     private readonly ?LoggerInterface           $logger = null,
                                      private readonly ?PropertyAccessorInterface $accessor = null,
-                                     private array $formatters = [],
-                                     private readonly ?Stopwatch $stopwatch = null,
+                                     private array                               $formatters = [],
+                                     private readonly ?Stopwatch                 $stopwatch = null,
+    private readonly ?string                                                     $pixieCode=null //
     )
     {
         $path = $this->filename;
@@ -94,6 +98,11 @@ class StorageBox
 
     }
 
+    public function getPixieCode(): ?string
+    {
+        return $this->pixieCode;
+    }
+
     public function createTables(Config $config): void
     {
         $sth = $this->db->query($sql = "SELECT name FROM sqlite_master where type='table'");
@@ -119,7 +128,7 @@ class StorageBox
 
     // @todo: make this an event listener?
     // given the HEADER array, map the key names, for array_combine or csv getRecords
-    public function mapHeader(array $header, string $tableName = null, array $regexRules=[]): array
+    public function mapHeader(array $header, string $tableName = null, array $regexRules = []): array
     {
         $tableName = $tableName ?? $this->currentTable;
         // $fieldName is the attribute (json) or column name (csv)
@@ -179,7 +188,7 @@ class StorageBox
         }
     }
 
-    public function getPrimaryKey(?string $tableName=null): string
+    public function getPrimaryKey(?string $tableName = null): string
     {
         $tableName = $tableName ?? $this->currentTable;
         // https://stackoverflow.com/questions/10472103/sqlite-query-to-find-primary-keys
@@ -187,9 +196,9 @@ class StorageBox
         $result = $this->query($sql = "SELECT l.name FROM pragma_table_info('$tableName') 
     as l WHERE l.pk = 1");
         $pk = $result->fetchColumn();
-assert($pk, $tableName .  $sql);
+        assert($pk, $tableName . $sql);
 //dd($result->fetchColumn(), $result);
-return $pk;
+        return $pk;
 //dd($result->fetchColumn(), $result->fetchAll(), $tableName, $sql);
 //
 //        $schemaTables = $this->inspectSchema();
@@ -207,7 +216,7 @@ return $pk;
     {
         $filename = $filename ?? $this->getFilename();
 
-        static $tables=[];
+        static $tables = [];
         if (array_key_exists($filename, $tables) && count($tables[$filename])) {
             return $tables[$filename];
         }
@@ -218,24 +227,24 @@ return $pk;
             'path' => $filename,
             'driver' => 'pdo_sqlite',
         ];
-            $conn = DriverManager::getConnection($connectionParams);
+        $conn = DriverManager::getConnection($connectionParams);
 //            dump($connectionParams, $filename);
-            $sm = $conn->createSchemaManager();
-            $fromSchema = $sm->introspectSchema();
+        $sm = $conn->createSchemaManager();
+        $fromSchema = $sm->introspectSchema();
 
-            $tables[$filename] = [];
+        $tables[$filename] = [];
 
-            foreach ($fromSchema->getTables() as $schemaTable) {
-                $primaryIndex = $schemaTable->getIndex('primary');
-                //
-                $table = new Table($schemaTable->getName(),
-                    $schemaTable->getColumns(),
-                    pkName: join('-', $primaryIndex->getColumns()));
+        foreach ($fromSchema->getTables() as $schemaTable) {
+            $primaryIndex = $schemaTable->getIndex('primary');
+            //
+            $table = new Table($schemaTable->getName(),
+                $schemaTable->getColumns(),
+                pkName: join('-', $primaryIndex->getColumns()));
 //                foreach ($schemaTable->getColumns() as $column) {
 //                    $tables[$schemaTable->getName()]['columns'][] = $column->getName();
 //                }
-                $tables[$filename][$schemaTable->getName()] = $table;
-            }
+            $tables[$filename][$schemaTable->getName()] = $table;
+        }
 //            dd($fromSchema, $tables);
         try {
         } catch (\Exception $exception) {
@@ -287,7 +296,7 @@ return $pk;
         }
 
         // set primary and unique
-        $indexes[$primaryIndex]->isPrimary=true;
+        $indexes[$primaryIndex]->isPrimary = true;
 
         return $indexes;
 
@@ -300,7 +309,7 @@ return $pk;
      * @return void
      */
     public function createTable(string $tableName,
-                                Table $table,
+                                Table  $table,
                                 string $valueType = 'JSON',
 //        array $columns=[]
     ): void
@@ -308,17 +317,21 @@ return $pk;
         $properties = [];
         $columns = [];
         $indexes = $this->getIndexDefinitions($table->getIndexes());
+        $primaryKey = null;
+        // really it's propertyDataArray
         foreach ($table->getProperties() as $propIndex => $propData) {
             if (is_string($propData)) {
                 $property = Parser::parseConfigHeader($propData);
             } else {
 //                dd($table->getProperties());
                 $property = new Property(
-                    index: $propData['index']??null,
+                    index: $propData['index'] ?? null,
                     code: $propData['name'],
-                    type: $propData['type']??null // maybe default type based on code?
+                    generated: isset($propData['generated']) ? $propData['generated'] : true,
+                    initial: $propData['initial'] ?? null,
+                    type: $propData['type'] ?? null // maybe default type based on code?
                 );
-//                dump($tableName, $table, $propData, $property);
+//                dd($property);
             }
             if ($propIndex == 0) {
                 $primaryKey = $property->getCode();
@@ -336,11 +349,12 @@ return $pk;
         if (count($indexes) && count($properties)) {
             dd("Cannot have both indexes and properties " . $table->getIndexes());
         }
+
+        $propertyIndexes = [];
         foreach ($properties as $property) {
-            if ($primaryKey == $property->getCode()) {
-                $indexes[] = new Index($property->getCode(), isPrimary: true);
-            } elseif ($property->getIndex()) {
-                $indexes[] = new Index($property->getCode());
+            // hack, property->setIndex would be better.
+            if ($property->getIndex() || ($primaryKey === $property->getCode())) {
+                $propertyIndexes[$property->getCode()] = new Index($property->getCode(), isPrimary: $primaryKey === $property->getCode());
             }
         }
 //        dd($tableName, $indexes);
@@ -348,21 +362,33 @@ return $pk;
          * @var int $indexId
          * @var Index $index
          */
-        foreach ($indexes as $indexId => $index) {
-            $type = $index->type;
-            $name = $index->propertyName;
+        foreach ($properties as $idx => $property) {
+            $name = $property->getCode();
+            $index = $propertyIndexes[$name] ?? null;
             // @todo: handle auto-increment
-            if ($index->isPrimary) {
-                $primaryKey = "$name $type PRIMARY KEY";
-                $columns[$name] = $primaryKey;
-            } else {
-                // also see json_each example at https://sqlime.org/#deta:m97q76wmvzvd
-                // create a generated column so that it all happens internally
-                // json_extract('{"a":"xyz"}', '$.a') → 'xyz'
+            if ($index) {
+                $type = $property->getType();
+                if ($index->isPrimary) {
+                    $primaryKey = "$name $type PRIMARY KEY";
+                    $columns[$name] = $primaryKey;
+                    continue; // we don't need an explicit index
+                }
+            }
+
+            // also see json_each example at https://sqlime.org/#deta:m97q76wmvzvd
+            // create a generated column so that it all happens internally
+            // json_extract('{"a":"xyz"}', '$.a') → 'xyz'
 //                https://www.sqlite.org/gencol.html
 
-                // d INT GENERATED ALWAYS AS (a*abs(b)) VIRTUAL,
-                $columns[$name] = "$name $type  GENERATED ALWAYS AS (json_extract(_raw, '\$.$name')) STORED /* @searchable */";
+            // d INT GENERATED ALWAYS AS (a*abs(b)) VIRTUAL,
+            $columns[$name] = "$name " . ($property->getType() ?? 'TEXT');
+            if ($default = $property->getInitial()) {
+                $columns[$name] .= sprintf(' DEFAULT %s ', is_string($default) ? sprintf('"%s"', $default) : $default);
+            }
+            if ($property->generated) {
+                $columns[$name] .= " GENERATED ALWAYS AS (json_extract(_raw, '\$.$name')) STORED /* @searchable */";
+            }
+            if ($index) {
                 $indexSql[$tableName . $name] = "create index {$tableName}_{$name} on $tableName($name) /* @filterable */";
             }
         }
@@ -377,6 +403,7 @@ return $pk;
             join(",\n", array_values($columns)),
             join(";\n", array_values($indexSql))
         );
+//        dd($sql);
 //        dd($columns, $indexSql, $sql, $primaryKey);
         try {
             $result = $this->db->exec($sql);
@@ -412,9 +439,10 @@ return $pk;
     public function beginTransaction()
     {
 //        $this->log(__METHOD__);
-        assert(!$this->db->inTransaction(), "already in a transaction");
-
-        $this->db->beginTransaction();
+//        assert(!$this->db->inTransaction(), "already in a transaction");
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+        }
     }
 
     public function getFilename(): string
@@ -480,9 +508,9 @@ return $pk;
         assert(!$this->db->inTransaction(), "already in a transaction");
         $table = $table ?? $this->currentTable;
         $pk = $this->getPrimaryKey($table);
-            $count = $this->query($sql = "SELECT COUNT($pk) FROM $table")->fetchColumn();
-            $this->log("$table has $count");
-            return $count;
+        $count = $this->query($sql = "SELECT COUNT($pk) FROM $table")->fetchColumn();
+        $this->log("$table has $count");
+        return $count;
         try {
         } catch (\Exception $exception) {
             dd($sql, $exception);
@@ -506,16 +534,17 @@ return $pk;
      * @param string $key The key to store the value under.
      * @return    string    The value to store.
      */
-    public function get(string $key, string $table = null): string|object|array|null
+    public function get(string $key, string $tableName = null): Item // string|object|array|null
     {
-        $tableName = $table?? $this->currentTable;
+        $tableName = $tableName ?? $this->currentTable;
         $keyName = $this->getPrimaryKey($tableName);
         $results = $this->query(
             sprintf("SELECT * FROM %s WHERE $keyName = :key;", $tableName),
             ["key" => $key]
         )->fetchObject();
-//        dd($results);
-        return $results ?: null;
+        $marking = $results->marking??null;
+        // hack for workflow, ugh. Could generalize with properties, casting, etc.
+        return $results ? new Item($results,$key, $tableName, $this->getPixieCode(), marking: $marking) : null;
 //        return json_decode($results, true);
     }
 
@@ -523,9 +552,16 @@ return $pk;
      * Sets a value in the data store.
      * @param string $key The key to set the value of.
      * @param string $value The value to store.
+     * @param string $propertyName If set, update the property, not _raw
      */
-    public function set(array|object $value, string $tableName = null, string|int|null $key=null): mixed
+    public function set(array|object|string $value, string $tableName = null,
+                        string|int|null $key = null, string $propertyName = null,
+    string $mode='replace' // _raw, if patch then read first and merge
+    ): mixed
     {
+        if (!$propertyName) {
+            assert(is_iterable($value), "if property is not set, must be iterable");
+        }
         static $preparedStatements = [];
         $tableName = $tableName ?? $this->currentTable;
 
@@ -533,48 +569,76 @@ return $pk;
         $table = $this->inspectSchema()[$tableName];
         assert($table, "No table $tableName");
         $keyName = $table->getPkName();
-        // @todo: strings require a key, probably another method
-        if (is_object($value)) {
-            $value = (array)$value;
+
+//        dd($mode, $keyName, $value);
+        if ($mode === self::MODE_PATCH) {
+            $data = $this->get($key)->getData();
+            $value = array_merge((array)$data, $value);
         }
-        if (is_array($value) && !array_key_exists($keyName, $value)) {
-            throw new \LogicException("Missing key $keyName in document " . join("\n", array_keys($value)));
-            dd($table, $value, $keyName, $tableName);
-        }
-        $value = (array)$value; // if JSON
-        assert(array_key_exists($keyName, $value),
-            "$keyName missing $tableName in " . join(',', array_keys($value)));
-        if (!$key) {
-            $key = is_array($value) ? $value[$keyName] : $value->$keyName;
-//            $accessor->getValue($value, $keyName);
-//            dd($key, $keyName, $value);
-            // must come from the value blob
-        }
-        if (empty($preparedStatements[$tableName])) {
-            $preparedStatements[$tableName] =
-                $this->db->prepare("
-                    INSERT OR REPLACE INTO $tableName($keyName, _raw) 
-                        VALUES(:key, :value)
+        if ($propertyName) {
+            $updateKey = $tableName . '_' . $propertyName;
+            if (empty($preparedStatements[$updateKey])) {
+                $preparedStatements[$updateKey] =
+                    $this->db->prepare("
+                    UPDATE $tableName set $propertyName = :value WHERE {$keyName} = :key
                 ");
-        }
-//        dd($value, $key, $tableName);
-        $statement = $preparedStatements[$tableName];
-        assert($this->db->inTransaction());
-        try {
+            }
+            $statement = $preparedStatements[$updateKey];
             $results = $statement->execute(
                 $params = [
                     'key' => $key,
                     "value" => is_string($value) ? $value : json_encode($value)
                 ]);
+//            dd($params, $results, $statement);
+
+        } else {
+            // update _raw, the json blob
+
+            // @todo: strings require a key, probably another method
+            if (is_object($value)) {
+                $value = (array)$value;
+            }
+            if (is_array($value) && !array_key_exists($keyName, $value)) {
+                throw new \LogicException("Missing key $keyName in document " . join("\n", array_keys($value)));
+                dd($table, $value, $keyName, $tableName);
+            }
+            $value = (array)$value; // if JSON
+            assert(array_key_exists($keyName, $value),
+                "$keyName missing $tableName in " . join(',', array_keys($value)));
+            if (!$key) {
+                $key = is_array($value) ? $value[$keyName] : $value->$keyName;
+//            $accessor->getValue($value, $keyName);
+//            dd($key, $keyName, $value);
+                // must come from the value blob
+            }
+            if (empty($preparedStatements[$tableName])) {
+                $preparedStatements[$tableName] =
+                    $this->db->prepare("
+                    INSERT OR REPLACE INTO $tableName($keyName, _raw) 
+                        VALUES(:key, :value)
+                ");
+            }
+//        dd($value, $key, $tableName);
+            $statement = $preparedStatements[$tableName];
+            assert($this->db->inTransaction(), "not in a transaction for the update");
+            try {
+                $results = $statement->execute(
+                    $params = [
+                        'key' => $key,
+                        "value" => is_string($value) ? $value : json_encode($value)
+                    ]);
+//                if ($mode === self::MODE_PATCH) dd($key, $value);
 //            $this->db->commit();
 //        assert(false);
 
-        } catch (\Exception $exception) {
-            dd($exception, $params, $value, $preparedStatements, $tableName);
+            } catch (\Exception $exception) {
+                dd($exception, $params, $value, $preparedStatements, $tableName);
+            }
+            if (!$results) {
+                dd("Error: " . $statement->errorInfo()[2]);
+            }
         }
-        if (!$results) {
-            dd("Error: " . $statement->errorInfo()[2]);
-        }
+
 
         return $results;
     }
@@ -586,11 +650,11 @@ return $pk;
      */
     public function delete(string $key, string $table = null): bool
     {
-        $tableName = $table?? $this->currentTable;
+        $tableName = $table ?? $this->currentTable;
         return $this->query(
                 sprintf("DELETE FROM %s WHERE %s = :key;",
                     $tableName,
-                $this->getPrimaryKey($tableName)),
+                    $this->getPrimaryKey($tableName)),
                 ["key" => $key]
             )->rowCount() > 0;
     }
@@ -603,7 +667,7 @@ return $pk;
         $this->query("DELETE FROM $this->currentTable;");
     }
 
-    public function getSql(string $table, array $where=[], int $max=0): array
+    public function getSql(string $table, array $where = [], int $max = 0): array
     {
         // @todo: only prepare the statement once
         $sql = "select * from " . ($table ?? $this->currentTable);
@@ -625,15 +689,16 @@ return $pk;
         return [$sql, $params];
 
     }
+
     public function iterate(string $table = null,
                             ?array $where = [],
                             ?bool  $associative = null,
-                            int $depth = 512,
+                            int    $depth = 512,
                             int    $flags = PDO::FETCH_ASSOC,
                             int    $max = 0
     ): \Generator
     {
-        $table = $table??$this->currentTable;
+        $table = $table ?? $this->currentTable;
         assert($table, "no table configured");
         $pkName = $this->getPrimaryKey($table);
         [$sql, $params] = $this->getSql($table, $where, $max);
@@ -652,7 +717,7 @@ return $pk;
             // can 'value' be configured?  _raw
             // @todo: lax, strict, none (handle _raw, _value, etc. )
             // value is deprecated!
-            if ($value = $row['_raw']??null) {
+            if ($value = $row['_raw'] ?? null) {
 //            dump($value);
                 $value = json_decode($value, $associative, $depth, $flags);
                 unset($row['_raw']);
@@ -674,9 +739,12 @@ return $pk;
         return $results;
     }
 
-    public function getKeys(string $table = null): array
+    public function getKeys(string $tableName = null): array
     {
-        $sth = $this->query("select key from " . ($table ?? $this->currentTable));
+        $tableName = $tableName ?? $this->currentTable;
+        assert($tableName, "no table configured");
+        $primaryKey = $this->getPrimaryKey($tableName);
+        $sth = $this->query("select $primaryKey from $tableName");
         return $sth->fetchAll(PDO::FETCH_COLUMN);
     }
 
@@ -694,14 +762,14 @@ return $pk;
         return count($sth->fetchAll(PDO::FETCH_COLUMN)) > 0;
     }
 
-    public function getCounts(string $column, string $table = null, int $limit=15): array
+    public function getCounts(string $column, string $table = null, int $limit = 15): array
     {
         $tablename = $table ?? $this->currentTable;
         $sql = "SELECT COUNT(rowid) as count, $column as value
 FROM $tablename
 GROUP BY $column
 ";
-$sql .= " ORDER BY COUNT(rowid) DESC";
+        $sql .= " ORDER BY COUNT(rowid) DESC";
         if ($limit) {
             $sql .= " LIMIT " . $limit;
         }
