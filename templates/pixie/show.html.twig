@@ -4,6 +4,11 @@
 
 {% block body %}
 
+    <details>
+        <summary>Row data</summary>
+        {{ dump(row, row.data) }}
+
+    </details>
 
     <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
 
@@ -12,6 +17,9 @@
 {#    {{ dump(row.marking) }}#}
 
     {% if workflowEnabled %}
+        Workflow: {{ workflow }}
+        {{ dump(workflow, row) }}
+
         {{ include('@SurvosWorkflow/_entity_transitions.html.twig', {
             transition_path: 'pixie_transition',
             flowName: workflow,

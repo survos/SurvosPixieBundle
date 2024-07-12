@@ -16,6 +16,11 @@ class Item
 
     }
 
+    public function getKey(): ?string
+    {
+        return $this->key;
+    }
+
     public function getMarking(): ?string
     {
         return $this->data->marking??null; // default to null or throw error?

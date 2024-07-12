@@ -18,9 +18,21 @@ class Table
         private array $properties=[],
         private ?string $indexes=null, // the super-succint dexie-style index defintion, e.g. "id|int,department"
         private ?string $pkName=null,
+        private ?string $workflow=null,
     )
     {
 
+    }
+
+    public function getWorkflow(): ?string
+    {
+        return $this->workflow;
+    }
+
+    public function setWorkflow(?string $workflow): Table
+    {
+        $this->workflow = $workflow;
+        return $this;
     }
 
     public function getIndexes(): ?string

@@ -7,6 +7,7 @@ use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
+use Survos\PixieBundle\StorageBox;
 use Survos\WorkflowBundle\Service\WorkflowHelperService;
 use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,16 +30,17 @@ class PixieController extends AbstractController
 {
 
     public function __construct(
-        private ParameterBagInterface $bag,
-        private PixieService $pixieService,
-        private UrlGeneratorInterface $urlGenerator,
-        private ?WorkflowHelperService $workflowHelperService=null,
-        private ?ChartBuilderInterface $chartBuilder=null,
-    ) {
+        private ParameterBagInterface  $bag,
+        private PixieService           $pixieService,
+        private UrlGeneratorInterface  $urlGenerator,
+        private ?WorkflowHelperService $workflowHelperService = null,
+        private ?ChartBuilderInterface $chartBuilder = null,
+    )
+    {
 
     }
 
-    private function getPixieConf(string $pixieCode, bool $throwIfMissing=true): ?string
+    private function getPixieConf(string $pixieCode, bool $throwIfMissing = true): ?string
     {
 
         dd($pixieCode, $this->pixieService->getConfigDir());
@@ -60,20 +62,25 @@ class PixieController extends AbstractController
     #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record')]
     #[Route('/transition/{pixieCode}/{tableName}/{key}', name: 'pixie_transition')]
     public function show_record(
-        Request $request,
-        string $pixieCode,
-        string $tableName,
-        string $key,
-        #[MapQueryParameter] ?string $transition=null,
-        #[MapQueryParameter] ?string $flowName=null,
-        #[MapQueryParameter] ?string $index=null,
-        #[MapQueryParameter] ?string $value=null,
-        #[MapQueryParameter] int $limit = 5
+        Request                      $request,
+        string                       $pixieCode,
+        string                       $tableName,
+        string                       $key,
+        #[MapQueryParameter] ?string $transition = null,
+        #[MapQueryParameter] ?string $flowName = null,
+        #[MapQueryParameter] ?string $index = null,
+        #[MapQueryParameter] ?string $value = null,
+        #[MapQueryParameter] int     $limit = 5
     ): Response
     {
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $kv->select($tableName);
         $row = $kv->get($key, $tableName);
+        // what a pain, we need to store this somewhere else!
+        $conf = $this->pixieService->getConfig($pixieCode);
+
+        $table = $conf->getTables()[$tableName];
+        $workflow = $table->getWorkflow();
         assert($row::class == Item::class);
         if (!$row) {
             throw new NotFoundHttpException("No key $key in $tableName / $pixieCode");
@@ -86,18 +93,25 @@ class PixieController extends AbstractController
                     'kv' => $kv
                 ]);
                 $context = $marking->getContext();
+                dump($row, $transition, $marking, $workflow->can($row, $transition), $context);
                 $markingString = array_key_first($marking->getPlaces());
-                $data = $context['data'];
-                $data['marking'] = $markingString;
-//                $row->setMarking($markingString);
-//                dd($row);
-//                dd($marking->getPlaces());
-                $kv->beginTransaction();
-                $x = $kv->set($data, $tableName);
-                dd($x, $data, $tableName);
-                $kv->commit();
-
-//                dd($x, $data, $kv->get($key));
+                $data = $context['data'] ?? null;
+                $mode = $context['mode'] ?? StorageBox::MODE_NOOP;
+                if ($mode !== StorageBox::MODE_NOOP) {
+                    if ($data) {
+                        $data['marking'] = $markingString;
+                        //                $row->setMarking($markingString);
+                        //                dd($row);
+                        //                dd($marking->getPlaces());
+                        $kv->beginTransaction();
+                        $x = $kv->set($data, $tableName, key: $key, mode: $mode);
+                        $kv->commit();
+                        $current = $kv->get($key);
+                        dump($x, $data, $current, $current->getData());
+                    } else {
+                        dd($context, $transition, $row);
+                    }
+                }
             } else {
                 $marking = $row->getMarking();
                 dd("cannot transition from $marking to $transition");
@@ -108,13 +122,13 @@ class PixieController extends AbstractController
 //        $row = (array)$row;
         return $this->render('@SurvosPixie/pixie/show.html.twig', [
             'workflowEnabled' => true,
-            'workflow' => 'OwnerWorkflow', // from config, specific to application
+            'workflow' => $workflow,
             'key' => $key,
             'tableName' => $tableName,
             'pixieCode' => $pixieCode,
             'row' => $row,
             'columns' => array_keys((array)$row),
-            ]);
+        ]);
 
     }
 
@@ -133,20 +147,20 @@ class PixieController extends AbstractController
 
     #[Route('/browse/{pixieCode}/{tableName}.{_format}', name: 'pixie_browse')]
     public function browse(
-        Request $request,
-                         string $pixieCode,
-                         string $tableName,
-                         string $_format='html',
-                         #[MapQueryParameter] ?string $index=null,
-                         #[MapQueryParameter] ?string $value=null,
-                         #[MapQueryParameter] int $limit = 50,
-                         #[MapQueryParameter] int $offset = 0,
+        Request                      $request,
+        string                       $pixieCode,
+        string                       $tableName,
+        string                       $_format = 'html',
+        #[MapQueryParameter] ?string $index = null,
+        #[MapQueryParameter] ?string $value = null,
+        #[MapQueryParameter] int     $limit = 50,
+        #[MapQueryParameter] int     $offset = 0,
     ): Response
     {
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $where = [];
         if ($index) {
-            $where[$index] = $value?:null;
+            $where[$index] = $value ?: null;
         }
         $kv->select($tableName);
         $iterator = $kv->iterate($tableName, $where);
@@ -159,14 +173,14 @@ class PixieController extends AbstractController
 //        dd($where, $firstRow, $columns);
 
         // @todo: flatten nested json, apply view, column rules, etc.
-        if ($_format=='json') {
+        if ($_format == 'json') {
             $pk = $kv->getPrimaryKey();
             $flattenRows = [];
             $idx = 0;
             foreach ($iterator as $key => $row) {
                 assert($row, "Invalid data in $key " . $kv->getFilename());
                 $idx++;
-                foreach ($row as $var=>$value) {
+                foreach ($row as $var => $value) {
                     if ($var == $pk) {
                         $row[$var] = sprintf(
                             "<a href='%s'>%s</a>",
@@ -203,9 +217,9 @@ class PixieController extends AbstractController
         // see kaggle for inspiration, https://www.kaggle.com/datasets/shivamb/real-or-fake-fake-jobposting-prediction/data
         return $this->render('@SurvosPixie/pixie/browse.html.twig', [
             'pixieCode' => $pixieCode,
-'tableName' => $tableName,
+            'tableName' => $tableName,
 //            'kv' => $kv, // avoidable?/
-        'remoteUrl' => $remoteUrl,
+            'remoteUrl' => $remoteUrl,
             'iterator' => [], // $firstRow ? $iterator : [],
             'keyName' => $kv->getPrimaryKey(),
             'columns' => $columns,
@@ -228,8 +242,8 @@ class PixieController extends AbstractController
 
     #[Route('/{pixieCode}', name: 'pixie_homepage')]
     public function home(
-                         string $pixieCode,
-    #[MapQueryParameter] int $limit = 25
+        string                   $pixieCode,
+        #[MapQueryParameter] int $limit = 25
     ): Response
     {
         $chartBuilder = $this->chartBuilder;
@@ -249,7 +263,7 @@ class PixieController extends AbstractController
 
             $charts = [];
             foreach ($kv->getIndexes($tableName) as $indexName) {
-                $labels =  [];
+                $labels = [];
                 $values = [];
                 $counts = $kv->getCounts($indexName, $tableName, $limit);
                 if (count($counts) === 0) {
@@ -260,14 +274,14 @@ class PixieController extends AbstractController
                     $values[] = $count['count'];
                     // @todo: composer require phpcolor/bootstrap-colors
                     $colors[] = sprintf('rgb(%d, %d, %d)',
-                        rand(0,255),
-                        rand(0,255),
-                        rand(0,255)
+                        rand(0, 255),
+                        rand(0, 255),
+                        rand(0, 255)
                     );
                 }
                 $chart = $chartBuilder->createChart(
                     str_contains($indexName, 'year') ? Chart::TYPE_LINE :
-                    Chart::TYPE_PIE
+                        Chart::TYPE_PIE
                 );
 
                 $chart->setData([
@@ -283,9 +297,9 @@ class PixieController extends AbstractController
                 ]);
 
                 $charts[$indexName] = [
-                    'chart'=> $chart,
+                    'chart' => $chart,
                     'counts' => $counts
-                    ];
+                ];
             }
             $tables[$tableName]['charts'] = $charts;
         }
@@ -293,12 +307,13 @@ class PixieController extends AbstractController
         return $this->render('@SurvosPixie/pixie/graphs.html.twig', [
             'pixieCode' => $pixieCode,
 //            'kv' => $kv, // avoidable?/
-        'tables' => $tables,
+            'tables' => $tables,
             'filename' => $kv->getFilename(),
             'firstRecords' => $firstRecords
         ]);
 
     }
+
     #[Route('/import/{pixieCode}', name: 'pixie_import')]
     public function import(PixieService             $pixieService,
                            PixieImportService       $pixieImportService,
@@ -311,7 +326,7 @@ class PixieController extends AbstractController
             $pixieService->getPixieFilename($pixieCode),
             destroy: true,
             createFromConfig: true,
-            config:$config
+            config: $config
         );
 //        dd($config, $pixie->getTables());
 

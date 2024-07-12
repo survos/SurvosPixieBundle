@@ -33,6 +33,7 @@ use function Symfony\Component\String\u;
 class StorageBox
 {
     const MODE_REPLACE = 'replace';
+    const MODE_NOOP = 'noop';
     const MODE_PATCH = 'patch';
     /**
      * The SQLite database connection.
@@ -534,7 +535,7 @@ class StorageBox
      * @param string $key The key to store the value under.
      * @return    string    The value to store.
      */
-    public function get(string $key, string $tableName = null): Item // string|object|array|null
+    public function get(string $key, string $tableName = null): ?Item // string|object|array|null
     {
         $tableName = $tableName ?? $this->currentTable;
         $keyName = $this->getPrimaryKey($tableName);
@@ -542,9 +543,16 @@ class StorageBox
             sprintf("SELECT * FROM %s WHERE $keyName = :key;", $tableName),
             ["key" => $key]
         )->fetchObject();
+        assert($results, "no record for $key in $tableName");
         $marking = $results->marking??null;
         // hack for workflow, ugh. Could generalize with properties, casting, etc.
-        return $results ? new Item($results,$key, $tableName, $this->getPixieCode(), marking: $marking) : null;
+        // the _raw is really the data!
+        $raw = $results->_raw;
+        // there may be a way in sqlite to return this already parsed.
+        if (is_string($raw)) {
+            $raw = json_decode($raw);
+        }
+        return $results ? new Item($raw,$key, $tableName, $this->getPixieCode(), marking: $marking) : null;
 //        return json_decode($results, true);
     }
 
@@ -576,6 +584,7 @@ class StorageBox
             $value = array_merge((array)$data, $value);
         }
         if ($propertyName) {
+            assert(false, "propertyName may need some attention");
             $updateKey = $tableName . '_' . $propertyName;
             if (empty($preparedStatements[$updateKey])) {
                 $preparedStatements[$updateKey] =
@@ -621,6 +630,7 @@ class StorageBox
 //        dd($value, $key, $tableName);
             $statement = $preparedStatements[$tableName];
             assert($this->db->inTransaction(), "not in a transaction for the update");
+            assert(!array_key_exists('_raw', $value), "Do not add _raw to _raw!");
             try {
                 $results = $statement->execute(
                     $params = [
