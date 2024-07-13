@@ -126,7 +126,6 @@ class PixieController extends AbstractController
         if ($request->get('_route') == 'pixie_transition') {
             $message = new PixieTransitionMessage($pixieCode, $key, $tableName, $transition, $flowName);
             // call it, rather than dispatch, since this is interactive, unless we pass async.
-            $this->hand
 
             return $this->redirectToRoute('pixie_show_record', $row->getRp());
         }
