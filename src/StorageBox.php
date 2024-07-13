@@ -567,6 +567,8 @@ class StorageBox
     string $mode='replace' // _raw, if patch then read first and merge
     ): mixed
     {
+        dump(setting_tablename: $tableName, key: $key);
+        $previousTable = $this->currentTable;
         if (!$propertyName) {
             assert(is_iterable($value), "if property is not set, must be iterable");
         }
@@ -649,6 +651,7 @@ class StorageBox
             }
         }
 
+        $this->currentTable = $previousTable;
 
         return $results;
     }
@@ -736,7 +739,11 @@ class StorageBox
             // now merge with the keys
 //            dd($value);
             // check, or is the value always json?
-            yield $row[$pkName] => $value;
+            $key = $value[$pkName] ?? null;
+//            dd($value, $table, $key);
+            $item =  $value ? new Item((object)$value, $key, $table, $this->getPixieCode()) : null;
+//dd($item, $value);
+            yield $row[$pkName] => $item;
         }
     }
 

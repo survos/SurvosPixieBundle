@@ -3,6 +3,7 @@
 namespace Survos\PixieBundle\Controller;
 
 use League\Csv\Reader;
+use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Service\PixieService;
@@ -18,6 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -59,6 +61,41 @@ class PixieController extends AbstractController
         return null;
     }
 
+    #[AsMessageHandler]
+    public function handleTransition(PixieTransitionMessage $message)
+    {
+        $workflow = $this->workflowHelperService->getWorkflow($row, $flowName);
+        if ($workflow->can($row, $transition)) {
+            $marking = $workflow->apply($row, $transition, [
+                'kv' => $kv
+            ]);
+            $context = $marking->getContext();
+            dump($row, $transition, $marking, $workflow->can($row, $transition), $context);
+            $markingString = array_key_first($marking->getPlaces());
+            $data = $context['data'] ?? null;
+            $mode = $context['mode'] ?? StorageBox::MODE_NOOP;
+            if ($mode !== StorageBox::MODE_NOOP) {
+                if ($data) {
+                    $data['marking'] = $markingString;
+                    //                $row->setMarking($markingString);
+                    //                dd($row);
+                    //                dd($marking->getPlaces());
+                    $kv->beginTransaction();
+                    $x = $kv->set($data, $tableName, key: $key, mode: $mode);
+                    $kv->commit();
+                    $current = $kv->get($key);
+                    dump($x, $data, $current, $current->getData());
+                } else {
+                    dd($context, $transition, $row);
+                }
+            }
+        } else {
+            $marking = $row->getMarking();
+            dd("cannot transition from $marking to $transition");
+        }
+
+    }
+
     #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record')]
     #[Route('/transition/{pixieCode}/{tableName}/{key}', name: 'pixie_transition')]
     public function show_record(
@@ -87,35 +124,10 @@ class PixieController extends AbstractController
         }
 
         if ($request->get('_route') == 'pixie_transition') {
-            $workflow = $this->workflowHelperService->getWorkflow($row, $flowName);
-            if ($workflow->can($row, $transition)) {
-                $marking = $workflow->apply($row, $transition, [
-                    'kv' => $kv
-                ]);
-                $context = $marking->getContext();
-                dump($row, $transition, $marking, $workflow->can($row, $transition), $context);
-                $markingString = array_key_first($marking->getPlaces());
-                $data = $context['data'] ?? null;
-                $mode = $context['mode'] ?? StorageBox::MODE_NOOP;
-                if ($mode !== StorageBox::MODE_NOOP) {
-                    if ($data) {
-                        $data['marking'] = $markingString;
-                        //                $row->setMarking($markingString);
-                        //                dd($row);
-                        //                dd($marking->getPlaces());
-                        $kv->beginTransaction();
-                        $x = $kv->set($data, $tableName, key: $key, mode: $mode);
-                        $kv->commit();
-                        $current = $kv->get($key);
-                        dump($x, $data, $current, $current->getData());
-                    } else {
-                        dd($context, $transition, $row);
-                    }
-                }
-            } else {
-                $marking = $row->getMarking();
-                dd("cannot transition from $marking to $transition");
-            }
+            $message = new PixieTransitionMessage($pixieCode, $key, $tableName, $transition, $flowName);
+            // call it, rather than dispatch, since this is interactive, unless we pass async.
+            $this->hand
+
             return $this->redirectToRoute('pixie_show_record', $row->getRp());
         }
 
@@ -165,7 +177,9 @@ class PixieController extends AbstractController
         $kv->select($tableName);
         $iterator = $kv->iterate($tableName, $where);
 
-        if ($firstRow = $iterator->current()) {
+        if ($firstItem = $iterator->current()) {
+            $firstRow = (array)$firstItem->getData();
+//            dd($firstRow, $firstItem);
             $columns = array_keys($firstRow);
         } else {
             $columns = ['value'];
@@ -177,8 +191,9 @@ class PixieController extends AbstractController
             $pk = $kv->getPrimaryKey();
             $flattenRows = [];
             $idx = 0;
-            foreach ($iterator as $key => $row) {
-                assert($row, "Invalid data in $key " . $kv->getFilename());
+            foreach ($iterator as $key => $item) {
+                $row = (array)$item->getData();
+//                assert($row, "Invalid data in $key " . $kv->getFilename());
                 $idx++;
                 foreach ($row as $var => $value) {
                     if ($var == $pk) {
@@ -203,6 +218,11 @@ class PixieController extends AbstractController
         }
         array_unshift($columns, 'key');
         $iterator->rewind();
+
+//        $rows = [];
+//        foreach ($iterator as $key => $item) {
+//            $rows[$key] =  $item->getData();
+//        }
 //        foreach ($kv->iterate($tableName, $where) as $row) {
 //            dd($row);
 //        }
@@ -241,19 +261,37 @@ class PixieController extends AbstractController
     }
 
     #[Route('/{pixieCode}', name: 'pixie_homepage')]
+    public function table(
+        string                   $pixieCode,
+        #[MapQueryParameter] int $limit = 25
+    ): Response
+    {
+        $kv = $this->pixieService->getStorageBox($pixieCode);
+        $tables = [];
+
+        foreach ($kv->getTables() as $tableName)
+        {
+
+        }
+
+        return $this->render('@SurvosPixie/pixie/homepage.html.twig', [
+            'tables' => $kv->getTables(),
+            ]);
+    }
+
+    #[Route('/table/{pixieCode}/{tableName}', name: 'pixie_table')]
     public function home(
         string                   $pixieCode,
+        string                   $tableName,
         #[MapQueryParameter] int $limit = 25
     ): Response
     {
         $chartBuilder = $this->chartBuilder;
         $firstRecords = [];
-        $charts = [];
-        $tables = [];
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
         assert(file_exists($pixieFilename));
         $kv = $this->pixieService->getStorageBox($pixieCode);
-        foreach ($kv->getTables() as $tableName) {
+        {
             $count = $kv->count($tableName);
 //            dd($tableName, $count);
             $tables[$tableName] = [

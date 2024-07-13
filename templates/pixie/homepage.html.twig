@@ -1,0 +1,9 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ pixieCode }} Tables{% endblock %}
+
+{% block body %}
+    {% for table in tables %}
+        {{ dump(table) }}
+    {% endfor %}
+{% endblock %}
