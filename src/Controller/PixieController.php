@@ -31,6 +31,7 @@ use Symfony\UX\Chartjs\Model\Chart;
 //#[Route('/pixie')]
 class PixieController extends AbstractController
 {
+    const TRANSITION_RESET='_reset';
 
     public function __construct(
         private ParameterBagInterface  $bag,
@@ -80,6 +81,7 @@ class PixieController extends AbstractController
     {
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $kv->select($tableName);
+        $pk = $kv->getPrimaryKey($tableName);
         $item = $kv->get($key, $tableName);
         // what a pain, we need to store this somewhere else!
         $conf = $this->pixieService->getConfig($pixieCode);
@@ -92,6 +94,20 @@ class PixieController extends AbstractController
         }
 
         if ($request->get('_route') == 'pixie_transition') {
+            if ($transition == self::TRANSITION_RESET) {
+                $kv->beginTransaction();
+                $kv->set(
+                    $item->getRp([
+                        $kv->getPrimaryKey($tableName) => $key,
+                        'marking' => null
+                    ]
+                ));
+                $kv->commit();
+                return $this->redirectToRoute('pixie_show_record', $item->getRp());
+
+                dd($item);
+
+            }
             $message = new PixieTransitionMessage($pixieCode, $key, $tableName, $transition, $flowName);
             // call it, rather than dispatch, since this is interactive, unless we pass async.
             $this->pixieService->handleTransition($message);
@@ -101,6 +117,7 @@ class PixieController extends AbstractController
 
 //        $item = (array)$item;
         return $this->render('@SurvosPixie/pixie/show.html.twig', [
+            'kv' => $kv,
             'workflowEnabled' => true,
             'workflow' => $workflow,
             'key' => $key,
@@ -201,6 +218,7 @@ class PixieController extends AbstractController
                 ...$request->query->all(),
                 '_format' => 'json']
         );
+        $columns = array_values(array_unique($columns));
         // see kaggle for inspiration, https://www.kaggle.com/datasets/shivamb/real-or-fake-fake-jobposting-prediction/data
         return $this->render('@SurvosPixie/pixie/browse.html.twig', [
             'pixieCode' => $pixieCode,

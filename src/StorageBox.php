@@ -580,7 +580,6 @@ class StorageBox
         assert($table, "No table $tableName");
         $keyName = $table->getPkName();
 
-//        dd($mode, $keyName, $value);
         if ($mode === self::MODE_PATCH) {
             $data = $this->get($key, $tableName)->getData();
             $value = array_merge((array)$data, $value);
@@ -600,7 +599,6 @@ class StorageBox
                     'key' => $key,
                     "value" => is_string($value) ? $value : json_encode($value)
                 ]);
-//            dd($params, $results, $statement);
 
         } else {
             // update _raw, the json blob
@@ -644,7 +642,12 @@ class StorageBox
 //        assert(false);
 
             } catch (\Exception $exception) {
-                dd($exception, $params, $value, $preparedStatements, $tableName);
+                if ($exception->getCode() === 'HY000') {
+                    // locked
+                    throw new \Exception($this->filename . " is locked \n\n" . $exception->getMessage());
+                } else {
+                    dd($exception, $params, $value, $preparedStatements, $tableName);
+                }
             }
             if (!$results) {
                 dd("Error: " . $statement->errorInfo()[2]);
@@ -693,8 +696,12 @@ class StorageBox
         // pass a tuple with operator?  or a string?  I think that's how api grid works.
         $params = [];
         foreach ($where as $key => $value) {
-            $sql .= " and " . $key . " = :$key";
-            $params[$key] = $value;
+            if ($value === null) {
+                $sql .= " and ($key IS NULL)";
+            } else {
+                $sql .= " and " . $key . " = :$key";
+                $params[$key] = $value;
+            }
         }
         if ($max > 0) {
             $sql .= " limit " . $max;
@@ -716,11 +723,13 @@ class StorageBox
         $pkName = $this->getPrimaryKey($table);
         [$sql, $params] = $this->getSql($table, $where, $max);
 
-//        dd($sql, $params);
 
         // https://stackoverflow.com/questions/78623214/using-a-generator-to-loop-through-an-update-a-table-in-pdo
         $sth = $this->query($sql, $params);
         $all = $sth->fetchAll($flags);
+        if (count($all) === 0) {
+            return;
+        }
 
         foreach ($all as $idx => $row)
 //        foreach ($sth as $idx => $row)

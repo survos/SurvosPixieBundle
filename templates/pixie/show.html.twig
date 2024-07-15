@@ -11,6 +11,11 @@
     </details>
 
     <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
+    {{ include(["pixie/%s/%s.html.twig"|format(pixieCode, tableName),  "pixie/%s.html.twig"|format(pixieCode)], {
+        item: row,
+        data: row.data,
+        kv: kv|default(null)
+    }, ignore_missing=true)  }}
 
 {#    {{ dump(row) }}#}
 {#    {{ dump(row.rp) }}#}

@@ -30,7 +30,7 @@ class PixieImportService
     }
 
     public function import(string $pixieCode,
-                           Config $config,
+                           ?Config $config=null,
                            int    $limit = 0,
                            ?StorageBox $kv=null, // if we already created it.
                            ?callable $callback=null): StorageBox
@@ -183,11 +183,12 @@ class PixieImportService
                     storageBox: $kv ));
                 // seems hackish
                 if (!$event->row) {
+                    dd($event);
                     continue;
                 }
                 $kv->set($row);
-//                if ($idx == 1) dump($tableName, $row);
-                if ($limit && ($idx > $limit)) break;
+//                if ($idx == 1) dump($tableName, $row, $limit, $idx);
+                if ($limit && ($idx >= $limit-1)) break;
                 if ($callback) {
                     if (!$continue = $callback($row, $idx, $kv)) {
                         dd('stopping!');
@@ -195,7 +196,7 @@ class PixieImportService
                     }
                 }
 //            dd($kv->get($row['id']));
-//            dump($row); break;
+                // dd($row); break;
             }
             $kv->commit();
         }

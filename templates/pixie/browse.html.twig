@@ -7,14 +7,11 @@
         <h1>{{ remoteUrl }}</h1>
 
 {#    {{ dump(columns) }}#}
-    {% set columns = [
-        'id'
-    ] %}
 
         <twig:simple_datatables
                 :caller="_self"
-                :columns="columns"
                 :remoteUrl="remoteUrl"
+                :columns="columns"
                 :data="iterator"
         >
                 <twig:block name="key">
