@@ -2,7 +2,7 @@
 
 namespace Survos\PixieBundle\Model;
 
-class Item
+class Item implements \Stringable
 {
     public function __construct(
         private object $data,
@@ -19,6 +19,11 @@ class Item
     public function getKey(): ?string
     {
         return $this->key;
+    }
+
+    public function __toString(): string
+    {
+        return $this->getKey();
     }
 
     public function getMarking(): ?string

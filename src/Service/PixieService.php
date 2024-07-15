@@ -6,18 +6,21 @@ namespace Survos\PixieBundle\Service;
 
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
+use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Source;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Yaml\Yaml;
+use Survos\WorkflowBundle\Service\WorkflowHelperService;
 
 
 class PixieService
@@ -37,6 +40,7 @@ class PixieService
         private ?Stopwatch                                  $stopwatch=null,
         private ?PropertyAccessorInterface                  $accessor=null,
         private ?SerializerInterface $serializer=null,
+        private ?WorkflowHelperService $workflowHelperService=null,
         private ?DenormalizerInterface $denormalizer=null,
     )
     {
@@ -256,6 +260,54 @@ class PixieService
 
 
     }
+
+    #[AsMessageHandler]
+    public function handleTransition(PixieTransitionMessage $message)
+    {
+        $flowName = $message->workflow;
+        $transition = $message->transition;
+        $kv = $this->getStorageBox($message->pixieCode);
+        $row = $kv->get($message->key, $message->table);
+        $tableName = $message->table;
+        $key = $message->key;
+        $workflow = $this->workflowHelperService->getWorkflow($row, $flowName);
+        if ($workflow->can($row, $transition)) {
+            $marking = $workflow->apply($row, $transition, [
+                'kv' => $kv
+            ]);
+            $context = $marking->getContext();
+            $markingString = array_key_first($marking->getPlaces());
+            $data = $context['data'] ?? null;
+            $mode = $context['mode'] ?? StorageBox::MODE_NOOP;
+            $kv->beginTransaction();
+            if ($mode !== StorageBox::MODE_NOOP) {
+                if ($data) {
+                    $data['marking'] = $markingString;
+                    //                $row->setMarking($markingString);
+                    //                dd($row);
+                    //                dd($marking->getPlaces());
+                    $x = $kv->set($data, $tableName, key: $key, mode: $mode);
+//                    $current = $kv->get($key, $tableName);
+                } else {
+                    dd($context, $transition, $row);
+                }
+            } else {
+                // update marking for no-op
+                $kv->set([
+                    'marking' => $markingString,
+                ],
+                    tableName: $message->table,
+                    key: $key, mode: StorageBox::MODE_PATCH);
+            }
+            $this->logger->info("Transition $transition  $tableName.$key to $markingString");
+            $kv->commit();
+        } else {
+            $marking = $row->getMarking();
+            dd("cannot transition from $marking to $transition");
+        }
+
+    }
+
 
 
 

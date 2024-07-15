@@ -20,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -34,6 +35,7 @@ class PixieController extends AbstractController
     public function __construct(
         private ParameterBagInterface  $bag,
         private PixieService           $pixieService,
+        private MessageBusInterface $bus,
         private UrlGeneratorInterface  $urlGenerator,
         private ?WorkflowHelperService $workflowHelperService = null,
         private ?ChartBuilderInterface $chartBuilder = null,
@@ -61,40 +63,6 @@ class PixieController extends AbstractController
         return null;
     }
 
-    #[AsMessageHandler]
-    public function handleTransition(PixieTransitionMessage $message)
-    {
-        $workflow = $this->workflowHelperService->getWorkflow($row, $flowName);
-        if ($workflow->can($row, $transition)) {
-            $marking = $workflow->apply($row, $transition, [
-                'kv' => $kv
-            ]);
-            $context = $marking->getContext();
-            dump($row, $transition, $marking, $workflow->can($row, $transition), $context);
-            $markingString = array_key_first($marking->getPlaces());
-            $data = $context['data'] ?? null;
-            $mode = $context['mode'] ?? StorageBox::MODE_NOOP;
-            if ($mode !== StorageBox::MODE_NOOP) {
-                if ($data) {
-                    $data['marking'] = $markingString;
-                    //                $row->setMarking($markingString);
-                    //                dd($row);
-                    //                dd($marking->getPlaces());
-                    $kv->beginTransaction();
-                    $x = $kv->set($data, $tableName, key: $key, mode: $mode);
-                    $kv->commit();
-                    $current = $kv->get($key);
-                    dump($x, $data, $current, $current->getData());
-                } else {
-                    dd($context, $transition, $row);
-                }
-            }
-        } else {
-            $marking = $row->getMarking();
-            dd("cannot transition from $marking to $transition");
-        }
-
-    }
 
     #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record')]
     #[Route('/transition/{pixieCode}/{tableName}/{key}', name: 'pixie_transition')]
@@ -112,33 +80,34 @@ class PixieController extends AbstractController
     {
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $kv->select($tableName);
-        $row = $kv->get($key, $tableName);
+        $item = $kv->get($key, $tableName);
         // what a pain, we need to store this somewhere else!
         $conf = $this->pixieService->getConfig($pixieCode);
 
         $table = $conf->getTables()[$tableName];
         $workflow = $table->getWorkflow();
-        assert($row::class == Item::class);
-        if (!$row) {
-            throw new NotFoundHttpException("No key $key in $tableName / $pixieCode");
+        assert($item::class == Item::class);
+        if (!$item) {
+            throw new NotFoundHttpException("No item $key in $tableName / $pixieCode");
         }
 
         if ($request->get('_route') == 'pixie_transition') {
             $message = new PixieTransitionMessage($pixieCode, $key, $tableName, $transition, $flowName);
             // call it, rather than dispatch, since this is interactive, unless we pass async.
+            $this->pixieService->handleTransition($message);
 
-            return $this->redirectToRoute('pixie_show_record', $row->getRp());
+            return $this->redirectToRoute('pixie_show_record', $item->getRp());
         }
 
-//        $row = (array)$row;
+//        $item = (array)$item;
         return $this->render('@SurvosPixie/pixie/show.html.twig', [
             'workflowEnabled' => true,
             'workflow' => $workflow,
             'key' => $key,
             'tableName' => $tableName,
             'pixieCode' => $pixieCode,
-            'row' => $row,
-            'columns' => array_keys((array)$row),
+            'row' => $item,
+            'columns' => array_keys((array)$item),
         ]);
 
     }
@@ -175,11 +144,11 @@ class PixieController extends AbstractController
         }
         $kv->select($tableName);
         $iterator = $kv->iterate($tableName, $where);
+        $keyName = $kv->getPrimaryKey($tableName);
 
         if ($firstItem = $iterator->current()) {
-            $firstRow = (array)$firstItem->getData();
 //            dd($firstRow, $firstItem);
-            $columns = array_keys($firstRow);
+            $columns = array_keys((array)$firstItem->getData());
         } else {
             $columns = ['value'];
         }
@@ -187,7 +156,6 @@ class PixieController extends AbstractController
 
         // @todo: flatten nested json, apply view, column rules, etc.
         if ($_format == 'json') {
-            $pk = $kv->getPrimaryKey();
             $flattenRows = [];
             $idx = 0;
             foreach ($iterator as $key => $item) {
@@ -195,7 +163,7 @@ class PixieController extends AbstractController
 //                assert($row, "Invalid data in $key " . $kv->getFilename());
                 $idx++;
                 foreach ($row as $var => $value) {
-                    if ($var == $pk) {
+                    if ($var == $keyName) {
                         $row[$var] = sprintf(
                             "<a href='%s'>%s</a>",
                             $this->urlGenerator->generate('pixie_show_record', [
@@ -215,7 +183,7 @@ class PixieController extends AbstractController
             }
             return new JsonResponse($flattenRows);
         }
-        array_unshift($columns, 'key');
+        array_unshift($columns, $keyName, 'marking');
         $iterator->rewind();
 
 //        $rows = [];
@@ -240,7 +208,7 @@ class PixieController extends AbstractController
 //            'kv' => $kv, // avoidable?/
             'remoteUrl' => $remoteUrl,
             'iterator' => [], // $firstRow ? $iterator : [],
-            'keyName' => $kv->getPrimaryKey(),
+            'keyName' => $keyName,
             'columns' => $columns,
             'filename' => $kv->getFilename(),
         ]);
@@ -286,7 +254,6 @@ class PixieController extends AbstractController
     ): Response
     {
         $chartBuilder = $this->chartBuilder;
-        $firstRecords = [];
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
         assert(file_exists($pixieFilename));
         $kv = $this->pixieService->getStorageBox($pixieCode);
@@ -345,8 +312,7 @@ class PixieController extends AbstractController
             'pixieCode' => $pixieCode,
 //            'kv' => $kv, // avoidable?/
             'tables' => $tables,
-            'filename' => $kv->getFilename(),
-            'firstRecords' => $firstRecords
+            'filename' => $kv->getFilename()
         ]);
 
     }

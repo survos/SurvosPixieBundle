@@ -189,9 +189,10 @@ class StorageBox
         }
     }
 
-    public function getPrimaryKey(?string $tableName = null): string
+    public function getPrimaryKey(string $tableName): string
     {
         $tableName = $tableName ?? $this->currentTable;
+        assert($tableName);
         // https://stackoverflow.com/questions/10472103/sqlite-query-to-find-primary-keys
         // use <> 0 if multiple
         $result = $this->query($sql = "SELECT l.name FROM pragma_table_info('$tableName') 
@@ -567,13 +568,12 @@ class StorageBox
     string $mode='replace' // _raw, if patch then read first and merge
     ): mixed
     {
-        dump(setting_tablename: $tableName, key: $key);
         $previousTable = $this->currentTable;
+        $tableName = $tableName ?? $this->currentTable;
         if (!$propertyName) {
             assert(is_iterable($value), "if property is not set, must be iterable");
         }
         static $preparedStatements = [];
-        $tableName = $tableName ?? $this->currentTable;
 
         /** @var Table $table */
         $table = $this->inspectSchema()[$tableName];
@@ -582,7 +582,7 @@ class StorageBox
 
 //        dd($mode, $keyName, $value);
         if ($mode === self::MODE_PATCH) {
-            $data = $this->get($key)->getData();
+            $data = $this->get($key, $tableName)->getData();
             $value = array_merge((array)$data, $value);
         }
         if ($propertyName) {

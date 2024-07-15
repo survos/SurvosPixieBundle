@@ -9,25 +9,28 @@
 
 
         {% for tableName, tableData in tables %}
-        {% set row = tableData.first %}
-
-
-            {% if row %}
+        {% set item = tableData.first %}
+            {% if item %}
                 <details>
-                    <summary>First Row</summary>
+                    <summary>Row
+                        {{ item }}
+                        <a href="{{ path('pixie_show_record', item.rp) }}">
+                            Show item and transitions
+                        </a>
+                    </summary>
                     <twig:simple_item_grid
                             exclude="_raw,_att,_extra"
-                            :data="row"
+                            :data="item.data"
                     >
                     </twig:simple_item_grid>
 
 
-            {% if row._att %}
-                <h3>Attributes</h3>
-        <twig:simple_item_grid
-                :data="row._raw|json_decode(true)"
-        />
-            {% endif %}
+{#            {% if item._att %}#}
+{#                <h3>Attributes</h3>#}
+{#        <twig:simple_item_grid#}
+{#                :data="row._raw|json_decode(true)"#}
+{#        />#}
+{#            {% endif %}#}
             {% endif %}
             </details>
 
@@ -63,7 +66,10 @@
                         >
                             <twig:block name="count">
                                 <a href="{{ path('pixie_browse', {index: indexName, value: row.value, 'pixieCode': pixieCode, tableName: tableName}) }}">
+                                    {# this is the row from chart.counts #}
                                     {{ row.count }}
+{#                                    {{ dump(item) }}#}
+{#                                    {{ item }}#}
                                 </a>
                             </twig:block>
 
