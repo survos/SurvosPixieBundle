@@ -98,10 +98,9 @@ class PixieController extends AbstractController
                 $kv->beginTransaction();
                 $kv->set(
                     $item->getRp([
-                        $kv->getPrimaryKey($tableName) => $key,
                         'marking' => null
                     ]
-                ));
+                ), key: $key, tableName: $tableName, mode: $kv::MODE_PATCH);
                 $kv->commit();
                 return $this->redirectToRoute('pixie_show_record', $item->getRp());
 

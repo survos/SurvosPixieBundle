@@ -303,7 +303,7 @@ class PixieService
             $kv->commit();
         } else {
             $marking = $row->getMarking();
-            dd("cannot transition from $marking to $transition");
+            $this->logger->info("cannot transition from $marking to $transition");
         }
 
     }

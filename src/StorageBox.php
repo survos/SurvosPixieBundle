@@ -683,7 +683,7 @@ class StorageBox
         $this->query("DELETE FROM $this->currentTable;");
     }
 
-    public function getSql(string $table, array $where = [], int $max = 0): array
+    public function getSql(string $table, array $where = [], array $order=[], int $startingAt=0, int $max = 0): array
     {
         // @todo: only prepare the statement once
         $sql = "select * from " . ($table ?? $this->currentTable);
@@ -703,6 +703,15 @@ class StorageBox
                 $params[$key] = $value;
             }
         }
+        if (count($order) == 0) {
+            $order = [$this->getPrimaryKey($table) => 'ASC'];
+        }
+        foreach ($order as $key => $value) {
+            $sql .= " order by $key $value";
+        }
+        if ($startingAt > 0) {
+            $sql .= " OFFSET " . $max;
+        }
         if ($max > 0) {
             $sql .= " limit " . $max;
         }
@@ -712,6 +721,7 @@ class StorageBox
 
     public function iterate(string $table = null,
                             ?array $where = [],
+                            array $order = [],
                             ?bool  $associative = null,
                             int    $depth = 512,
                             int    $flags = PDO::FETCH_ASSOC,
@@ -721,7 +731,7 @@ class StorageBox
         $table = $table ?? $this->currentTable;
         assert($table, "no table configured");
         $pkName = $this->getPrimaryKey($table);
-        [$sql, $params] = $this->getSql($table, $where, $max);
+        [$sql, $params] = $this->getSql($table, $where, $order, $max);
 
 
         // https://stackoverflow.com/questions/78623214/using-a-generator-to-loop-through-an-update-a-table-in-pdo

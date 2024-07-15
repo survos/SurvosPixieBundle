@@ -6,13 +6,10 @@
         <h1>{{ filename }}</h1>
         <h1>{{ remoteUrl }}</h1>
 
-{#    {{ dump(columns) }}#}
-
         <twig:simple_datatables
                 :caller="_self"
                 :remoteUrl="remoteUrl"
                 :columns="columns"
-                :data="iterator"
         >
                 <twig:block name="key">
                     <a href="{{ path('pixie_show_record', {
