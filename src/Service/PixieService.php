@@ -85,6 +85,7 @@ class PixieService
                             ?Config $config = null,
     ): StorageBox
     {
+        assert(!str_contains($pixieCode, "/"), "pass in pixieCode, not filename");
         if (!$filename) {
             $filename = $this->getPixieFilename($pixieCode);
         }

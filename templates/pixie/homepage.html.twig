@@ -4,6 +4,9 @@
 
 {% block body %}
     {% for table in tables %}
-        {{ dump(table) }}
+        <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: table}) }}">
+            Browse {{ table }}
+
+        </a>
     {% endfor %}
 {% endblock %}

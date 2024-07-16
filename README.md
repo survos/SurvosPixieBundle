@@ -42,8 +42,44 @@ Or should we do this?
 * _label: the label that is used when a relation is displayed in another table.  Translatable. Definable
 * _description: eventually we'll support defining translatable properties but for now we just support _description
 
+## Events / Data Adjustments
 
+During the import, columns can be renamed with the rules key, and data can be tweaked with the formatters key.
 
+Additionally, a RowEvent is called for before and after every row is inserted into the StorageBox, as well as before and after the import process.  This allows for creating new fields or tables or cleaning up data that needs services.
+
+```php
+    #[AsEventListener(event: RowEvent::class)]
+    public function onRowEvent(RowEvent $event): void
+    {
+        static $mun = []; // the array of municipios
+        $row = $event->row;
+        switch ($event->type) {
+            case $event::POST_LOAD:
+                ksort($mun);
+                // save this to a new table or JSON file
+                break;
+            case $event::LOAD:
+//                    https://www.facebook.com/MuseoGuadalupePosada?fref=ts -> MuseoGuadalupePosada
+                if ($facebook = $row['facebook']??null) {
+                    $parseUrl = parse_url($facebook);
+                    $row['facebook'] = trim($parseUrl['path'],'/');
+                }
+                $mun[$row['municipio_id']] = $row['municipio'];
+        }
+    }
+
+```
+
+## Workflows
+
+Manipulating data that involves web services can be done with workflows, so events can be dispatched async. For example, an 'enhance' event can use the facebook id above to get the latest events, or the latest instagram post.
+
+```bash
+bin/console survos:make:workflow MexMus new,enhanced enhance --entity-class=Survos\\PixieBundle\\Model\\Item
+```
+
+and then 
 
 ## Setup
 

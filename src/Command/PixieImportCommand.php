@@ -119,6 +119,6 @@ final class PixieImportCommand extends InvokableServiceCommand
     #[AsEventListener(event: RowEvent::class)]
     public function importRow(RowEvent $event): void
     {
-        $this->initialized && $this->progressBar->advance();
+        $this->initialized && $event->isRowLoad() && $this->progressBar->advance();
     }
 }

@@ -113,7 +113,7 @@ class PixieImportService
             list($ext, $iterator, $headers) =
                 $this->setupHeader($config, $tableName, $kv, $fn);
             assert(count($kv->getTables()), "no tables in $pixieCode");
-//            dd($mappedHeader, $headers, $tableName, $configData);
+//            dd($headers, $tableName, $config);
 
             // takes a function that will iterate through an object
 //            $kv->addFormatter(function());
@@ -131,6 +131,12 @@ class PixieImportService
                     }
                 }
             }
+
+            $event = $this->eventDispatcher->dispatch(new RowEvent(
+                $config->code, $tableName, null, action: self::class,
+                type: RowEvent::PRE_LOAD,
+                storageBox: $kv ));
+
             foreach ($iterator as $idx => $row) {
                 // if it's json, remap the keys
                 if ($ext === 'json') {
@@ -199,7 +205,13 @@ class PixieImportService
                 // dd($row); break;
             }
             $kv->commit();
+//            $count = $kv->count();
         }
+        $event = $this->eventDispatcher->dispatch(new RowEvent(
+            $config->code, $tableName, null, action: self::class,
+            type: RowEvent::POST_LOAD,
+            storageBox: $kv ));
+
         return $kv;
 //        dd($fileMap);
 
@@ -220,10 +232,9 @@ class PixieImportService
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
         $this->pixieService->destroy($pixieFilename);
 
-        $kv = $this->pixieService->getStorageBox($pixieFilename,
-            $tablesToCreate,
+        $kv = $this->pixieService->getStorageBox($pixieCode,
             createFromConfig: true,
-            config: $config);
+        );
 //        if (str_contains($kv->getFilename(), 'edu')) dd($kv->getFilename());
         return $kv;
         return array($splFile, $tableName, $mm, $fileMap, $fn, $tables, $tableData, $kv);

@@ -114,10 +114,11 @@ class PixieController extends AbstractController
             return $this->redirectToRoute('pixie_show_record', $item->getRp());
         }
 
+//        dd($workflow, $table);
 //        $item = (array)$item;
         return $this->render('@SurvosPixie/pixie/show.html.twig', [
             'kv' => $kv,
-            'workflowEnabled' => true,
+            'workflowEnabled' => (bool)$workflow, // comes from config
             'workflow' => $workflow,
             'key' => $key,
             'tableName' => $tableName,
@@ -245,7 +246,7 @@ class PixieController extends AbstractController
     }
 
     #[Route('/{pixieCode}', name: 'pixie_homepage')]
-    public function table(
+    public function pixie_overview(
         string                   $pixieCode,
         #[MapQueryParameter] int $limit = 25
     ): Response
@@ -260,6 +261,7 @@ class PixieController extends AbstractController
 
         return $this->render('@SurvosPixie/pixie/homepage.html.twig', [
             'tables' => $kv->getTables(),
+            'pixieCode' => $pixieCode,
             ]);
     }
 
@@ -341,16 +343,14 @@ class PixieController extends AbstractController
                            #[MapQueryParameter] int $limit = 0,
     ): Response
     {
-        $config = $this->pixieService->getConfig($pixieCode);
         $pixie = $pixieService->getStorageBox(
-            $pixieService->getPixieFilename($pixieCode),
+            $pixieCode,
             destroy: true,
-            createFromConfig: true,
-            config: $config
+            createFromConfig: true
         );
 //        dd($config, $pixie->getTables());
 
-        $pixieImportService->import($pixieCode, $config, limit: $limit, kv: $pixie);
+        $pixieImportService->import($pixieCode, limit: $limit, kv: $pixie);
         return $this->redirectToRoute('pixie_homepage', [
             'pixieCode' => $pixieCode
         ]);
