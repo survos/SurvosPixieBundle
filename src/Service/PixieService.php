@@ -5,9 +5,11 @@ namespace Survos\PixieBundle\Service;
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
 use Psr\Log\LoggerInterface;
+use Survos\PixieBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Model\Config;
+use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Model\Source;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\StorageBox;
@@ -39,7 +41,7 @@ class PixieService
         private ?LoggerInterface                            $logger=null,
         private ?Stopwatch                                  $stopwatch=null,
         private ?PropertyAccessorInterface                  $accessor=null,
-        private ?SerializerInterface $serializer=null,
+        private ?SerializerInterface                        $serializer=null,
         private ?WorkflowHelperService $workflowHelperService=null,
         private ?DenormalizerInterface $denormalizer=null,
     )
@@ -174,25 +176,54 @@ class PixieService
     public function getConfig(string $pixieCode): Config
     {
         $configFilename = $this->getConfigFilename($pixieCode);
-//        $configData = Yaml::parseFile($configFilename);
+        $configData = Yaml::parseFile($configFilename, Yaml::PARSE_CONSTANT); // so we can use php constants!
+        $yaml = Yaml::dump($configData);
+//        $yaml = file_get_contents($configFilename);
 //        $config = $this->denormalizer->denormalize($configData, Config::class);
 //        dd(config: $config, data: $configData);
 //        $config->setConfigFilename($configFilename);
         try {
             $config = $this->serializer->deserialize(
-                file_get_contents($configFilename),
+                $yaml,
                 Config::class, 'yaml');
         } catch (NotNormalizableValueException $exception) {
             dd($configFilename, $exception->getMessage());
         }
+        // if the properties are strings, we need to parse them
+        foreach ($config->getTables() as $table) {
+            $properties = [];
+            foreach ($table->getProperties() as $propIndex => $propData) {
+                if (is_string($propData)) {
+                    $property = Parser::parseConfigHeader($propData);
+                } else {
+                    $property = new Property(
+                        index: $propData['index'] ?? null,
+                        code: $propData['name'],
+                        generated: isset($propData['generated']) ? $propData['generated'] : true,
+                        initial: $propData['initial'] ?? null,
+                        type: $propData['type'] ?? null // maybe default type based on code?
+                    );
+                }
+                // better would be to look for ## or something like that
+                if ($propIndex == 0) {
+                    $primaryKey = $property->getCode();
+                    $table->setPkName($primaryKey);
+                    $property->setIndex('PRIMARY');
+                }
+                $properties[] = $property;
+            }
+            $table->setProperties($properties);
+        }
+
         $config->code = $pixieCode; // quirky
+        $config->setConfigFilename($configFilename);
+//        dd($config);
         assert($config instanceof Config);
 //        assert($config->source, $configFilename . " missing source key");
 //        assert($config->source instanceof Source);
         foreach ($config->getTables() as $idx=>$table) {
             assert($table instanceof Table, "table $idx is not of class Table");
         }
-        $config->setConfigFilename($configFilename);
 //        dd($config, $configFilename, $config);
         return $config;
     }

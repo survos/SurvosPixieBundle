@@ -3,10 +3,17 @@
 {% block title %}{{ pixieCode }} Tables{% endblock %}
 
 {% block body %}
-    {% for table in tables %}
-        <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: table}) }}">
-            Browse {{ table }}
-
+    {% for tableName, table in tables %}
+        <li>
+        <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
+            Browse {{ tableName }}
+            {{ table.count }}
         </a>
+        <ul>
+            {% for indexName, values in table.counts %}
+                <li>{{ indexName }}</li>
+            {% endfor %}
+        </ul>
+        </li>
     {% endfor %}
 {% endblock %}

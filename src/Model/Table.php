@@ -13,12 +13,13 @@ class Table
          */
         private array $columns=[],
         /**
-         * @var array<string>
+         * @var array<Property|string>
          */
         private array $properties=[],
         private ?string $indexes=null, // the super-succint dexie-style index defintion, e.g. "id|int,department"
         private ?string $pkName=null,
         private ?string $workflow=null,
+        private ?string $parent=null, // one ManyToOne, e.g. Artwork or Objekt in the 'image' table
     )
     {
 

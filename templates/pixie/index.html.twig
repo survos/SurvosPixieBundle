@@ -27,7 +27,7 @@
                         {{ config.sourceFilesDir }}
                     </details>
                     IMPORT:
-                    {% for limit in [50, 500, 5000, 50000, 0] %}
+                    {% for limit in [5, 50, 500, 5000, 50000, 0] %}
                         <a href="{{ path('pixie_import', {limit: limit, pixieCode: p}) }}">{{ limit }}</a>
                     {% endfor %}
                 </li>

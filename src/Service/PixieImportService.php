@@ -32,6 +32,7 @@ class PixieImportService
     public function import(string $pixieCode,
                            ?Config $config=null,
                            int    $limit = 0,
+                           bool $overwrite = false,
                            ?StorageBox $kv=null, // if we already created it.
                            ?callable $callback=null): StorageBox
     {
@@ -85,7 +86,7 @@ class PixieImportService
                 continue;
             }
 //            dd($fn, $tableName, $fileMap);
-            $schemaTables = $kv->inspectSchema();
+//            $schemaTables = $kv->inspectSchema();
             if (!array_key_exists($tableName, $validTableNames)) {
                 $this->logger && $this->logger->warning("Skipping $fn, table is undefined");
 //                dd($tableName, $kv->getFilename(), $validTableNames, array_keys($schemaTables));
@@ -105,6 +106,7 @@ class PixieImportService
 //            $tableData = (array)$table; // $tables[$tableName];
             $tables = $config->getTables(); // with the rules and such
             $table = $tables[$tableName];
+            $pkName = $table->getPkName();
             assert($table instanceof Table, "Invalid table type");
             $rules = $config->getTableRules($tableName);
             $kv->map($rules, [$tableName]);
@@ -133,11 +135,18 @@ class PixieImportService
             }
 
             $event = $this->eventDispatcher->dispatch(new RowEvent(
-                $config->code, $tableName, null, action: self::class,
+                $config->code, $tableName,
+                null,
+                action: self::class,
                 type: RowEvent::PRE_LOAD,
                 storageBox: $kv ));
 
+            // this is the json/csv iterator
             foreach ($iterator as $idx => $row) {
+                // first, if it's already there and not --overwrite, skip it
+                if (!$overwrite && $kv->has($row->{$pkName})) {
+                    continue;
+                }
                 // if it's json, remap the keys
                 if ($ext === 'json') {
                     $origRow = $row; // for debugging
@@ -184,15 +193,31 @@ class PixieImportService
                 }
                 assert(count($kv->getTables()), "no tables in $pixieCode");
 
+                if (!$row) {
+                    dd($row, $idx, $tableName);
+                    continue;
+                }
+
                 $event = $this->eventDispatcher->dispatch(new RowEvent(
-                    $config->code, $tableName, $row, action: self::class,
+                    $config->code, $tableName, $row,
+                    action: self::class,
                     storageBox: $kv ));
                 // seems hackish
                 if (!$event->row) {
                     dd($event);
                     continue;
                 }
-                $kv->set($row);
+                // don't set if discard
+                if ($event->type == RowEvent::DISCARD) {
+                    continue;
+                }
+
+                try {
+                    $kv->set($row);
+                } catch (\Exception $e) {
+                    dd($kv->getFilename(), $kv, $e);
+
+                }
 //                if ($idx == 1) dump($tableName, $row, $limit, $idx);
                 if ($limit && ($idx >= $limit-1)) break;
                 if ($callback) {
@@ -208,7 +233,8 @@ class PixieImportService
 //            $count = $kv->count();
         }
         $event = $this->eventDispatcher->dispatch(new RowEvent(
-            $config->code, $tableName, null, action: self::class,
+            $config->code, $tableName, null,
+            action: self::class,
             type: RowEvent::POST_LOAD,
             storageBox: $kv ));
 

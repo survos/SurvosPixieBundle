@@ -256,11 +256,17 @@ class PixieController extends AbstractController
 
         foreach ($kv->getTables() as $tableName)
         {
-
+            foreach ($kv->getIndexes($tableName) as $indexName) {
+                $counts[$indexName] = $kv->getCounts($indexName, $tableName, $limit);
+                $tables[$tableName] = [
+                    'count' => $kv->count($tableName),
+                    'counts' => $counts
+                ];
+            }
         }
 
         return $this->render('@SurvosPixie/pixie/homepage.html.twig', [
-            'tables' => $kv->getTables(),
+            'tables' => $tables,
             'pixieCode' => $pixieCode,
             ]);
     }
@@ -345,10 +351,10 @@ class PixieController extends AbstractController
     {
         $pixie = $pixieService->getStorageBox(
             $pixieCode,
-            destroy: true,
+            destroy: false,
             createFromConfig: true
         );
-//        dd($config, $pixie->getTables());
+//        dd($pixie->getTables());
 
         $pixieImportService->import($pixieCode, limit: $limit, kv: $pixie);
         return $this->redirectToRoute('pixie_homepage', [

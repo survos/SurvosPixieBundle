@@ -47,6 +47,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(shortcut: 'c', description: 'conf filename, default to directory name of first argument')]
         string                                                                  $configCode = null,
         #[Option(description: "max number of records per table to import")] int $limit = 0,
+        #[Option(description: "overwrite if it already exists")] bool $overwrite = false,
         #[Option(description: "Batch size for commit")] int                     $batch = 500,
 
     ): int
@@ -91,7 +92,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
 
 
-        $pixieImportService->import($configCode, $config, limit: $limit,
+        $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite,
             callback: function ($row, $idx, StorageBox $kv) use ($batch) {
 //            dd($row);
                 if (($idx % $batch) == 0) {

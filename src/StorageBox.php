@@ -93,6 +93,7 @@ class StorageBox
 
             }
         }
+
         if ($this->config) {
             $this->createTables($this->config);
         }
@@ -112,6 +113,7 @@ class StorageBox
         $this->beginTransaction();
 
         foreach ($config->getTables() as $tableName => $table) {
+
             assert($table instanceof Table, json_encode($table));
             if (!in_array($tableName, $this->schemaTables)) {
                 $this->createTable($tableName, $table, $this->valueType);
@@ -316,48 +318,29 @@ class StorageBox
 //        array $columns=[]
     ): void
     {
-        $properties = [];
         $columns = [];
         $indexes = $this->getIndexDefinitions($table->getIndexes());
-        $primaryKey = null;
+        $properties = [];
+        // by this point, the table properties are already objects
         // really it's propertyDataArray
-        foreach ($table->getProperties() as $propIndex => $propData) {
-            if (is_string($propData)) {
-                $property = Parser::parseConfigHeader($propData);
-            } else {
-//                dd($table->getProperties());
-                $property = new Property(
-                    index: $propData['index'] ?? null,
-                    code: $propData['name'],
-                    generated: isset($propData['generated']) ? $propData['generated'] : true,
-                    initial: $propData['initial'] ?? null,
-                    type: $propData['type'] ?? null // maybe default type based on code?
-                );
-//                dd($property);
-            }
-            if ($propIndex == 0) {
-                $primaryKey = $property->getCode();
-            }
-            $properties[] = $property;
-//            dd($actual, $propData);
-//            dd($property, $tableName, $this->filename, $this->config->getConfigFilename());
-        }
-//        dd($tableName, properties: $properties, table: $table);
 
         // more json examples at https://www.sqlitetutorial.net/sqlite-json/
         $indexSql = [];
         // @todo: improve PK: https://www.sqlitetutorial.net/sqlite-primary-key/
         // a generated column can't be the primary key, but interesting: https://sqlite.org/forum/info/5928225848d0409f
-        if (count($indexes) && count($properties)) {
+        if (count($indexes)) { // && count($properties)) {
             dd("Cannot have both indexes and properties " . $table->getIndexes());
         }
 
         $propertyIndexes = [];
-        foreach ($properties as $property) {
+        foreach ($table->getProperties() as $property) {
+            assert($property::class === Property::class);
             // hack, property->setIndex would be better.
-            if ($property->getIndex() || ($primaryKey === $property->getCode())) {
-                $propertyIndexes[$property->getCode()] = new Index($property->getCode(), isPrimary: $primaryKey === $property->getCode());
+            if ($property->getIndex()) {
+                $propertyIndexes[$property->getCode()] = new Index($property->getCode(),
+                    isPrimary: $property->getIndex() === 'PRIMARY');
             }
+            $properties[] = $property; // now with the index
         }
 //        dd($tableName, $indexes);
         /**
@@ -571,7 +554,7 @@ class StorageBox
         $previousTable = $this->currentTable;
         $tableName = $tableName ?? $this->currentTable;
         if (!$propertyName) {
-            assert(is_iterable($value), "if property is not set, must be iterable");
+            assert(is_object($value) || is_iterable($value), "if property is not set, must be iterable");
         }
         static $preparedStatements = [];
 
