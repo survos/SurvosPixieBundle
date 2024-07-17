@@ -90,7 +90,7 @@ final class TraceableStorageBox extends StorageBox
     }
 
 
-    public function count(string $table = null): int
+    public function count(string $table = null, array $where=[]): int
     {
         return $this->innerSearchService(__FUNCTION__, \func_get_args());
     }

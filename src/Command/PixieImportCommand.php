@@ -30,9 +30,10 @@ final class PixieImportCommand extends InvokableServiceCommand
 
     private bool $initialized = false; // so the event listener can be called from outside the command
     private ProgressBar $progressBar;
+
     public function __construct(
         private LoggerInterface       $logger,
-        private ParameterBagInterface $bag,
+        private ParameterBagInterface $bag, private readonly PixieService $pixieService,
     )
     {
 
@@ -40,14 +41,15 @@ final class PixieImportCommand extends InvokableServiceCommand
     }
 
     public function __invoke(
-        IO                    $io,
+        IO                                                                      $io,
         PixieService                                                            $pixieService,
         PixieImportService                                                      $pixieImportService,
         #[Argument(description: '(string)')] string                             $dirOrFilename = '',
         #[Option(shortcut: 'c', description: 'conf filename, default to directory name of first argument')]
         string                                                                  $configCode = null,
         #[Option(description: "max number of records per table to import")] int $limit = 0,
-        #[Option(description: "overwrite if it already exists")] bool $overwrite = false,
+        #[Option(description: "overwrite records if they already exist")] bool  $overwrite = false,
+        #[Option(description: "purge db file first")] bool                      $reset = false,
         #[Option(description: "Batch size for commit")] int                     $batch = 500,
 
     ): int
@@ -89,6 +91,9 @@ final class PixieImportCommand extends InvokableServiceCommand
         $pixieDbName = $pixieService->getPixieFilename($configCode);
         if (!file_exists($dirName = pathinfo($pixieDbName, PATHINFO_DIRNAME))) {
             mkdir($dirName, 0777, true);
+        }
+        if ($reset) {
+            $this->pixieService->destroy($pixieDbName);
         }
 
 

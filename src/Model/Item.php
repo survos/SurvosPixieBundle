@@ -16,6 +16,15 @@ class Item implements \Stringable
 
     }
 
+    public function setData(object|array $data): self
+    {
+        if (is_array($data)) {
+            $data = (object)$data;
+        }
+        $this->data = $data;
+        return $this;
+    }
+
     public function getKey(): ?string
     {
         return $this->key;

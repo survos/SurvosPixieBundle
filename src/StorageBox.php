@@ -481,20 +481,28 @@ class StorageBox
         }
 
         //
-        // sqlite EXISTS might be faster
+        // SELECT exists(SELECT 1 FROM users WHERE username = 'john_doe') AS row_exists;
+        // https://stackoverflow.com/questions/9755860/valid-query-to-check-if-row-exists-in-sqlite3
         return $this->query(
                 "SELECT COUNT($pk) FROM $table WHERE $pk = :key",
                 ["key" => $key]
             )->fetchColumn() > 0;
     }
 
-    public function count(string $table = null): int
+    public function count(string $table = null, array $where=[]): int
     {
         assert(!$this->db->inTransaction(), "already in a transaction");
         $table = $table ?? $this->currentTable;
         $pk = $this->getPrimaryKey($table);
-        $count = $this->query($sql = "SELECT COUNT($pk) FROM $table")->fetchColumn();
-        $this->log("$table has $count");
+        $sql =  "SELECT COUNT($pk) FROM $table";
+        if (count($where) > 0) {
+            $sql .= " WHERE ";
+            foreach ($where as $key => $value) {
+                $sql .= " $key = :$key";
+            }
+        }
+        $count = $this->query($sql, $where)->fetchColumn();
+        $this->log("$table has $count " . json_encode($where));
         return $count;
         try {
         } catch (\Exception $exception) {
@@ -777,7 +785,7 @@ class StorageBox
 
     public function tableExists(string $table): bool
     {
-        $sth = $this->query("SELECT * FROM sqlite_master WHERE name='$table' type='table';");
+        $sth = $this->query("SELECT * FROM sqlite_master WHERE name='$table' and type='table';");
         return count($sth->fetchAll(PDO::FETCH_COLUMN)) > 0;
     }
 

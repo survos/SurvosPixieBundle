@@ -11,6 +11,7 @@ final class PixieTransitionMessage
         public readonly string $table,
         public readonly string $transition,
         public readonly string $workflow,
+        public readonly ?string $transport=null,
     ) {
     }
 }

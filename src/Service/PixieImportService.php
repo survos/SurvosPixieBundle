@@ -32,7 +32,7 @@ class PixieImportService
     public function import(string $pixieCode,
                            ?Config $config=null,
                            int    $limit = 0,
-                           bool $overwrite = false,
+                           bool $overwrite = false, // individual records
                            ?StorageBox $kv=null, // if we already created it.
                            ?callable $callback=null): StorageBox
     {
@@ -107,6 +107,7 @@ class PixieImportService
             $tables = $config->getTables(); // with the rules and such
             $table = $tables[$tableName];
             $pkName = $table->getPkName();
+            assert($pkName == $kv->getPrimaryKey($tableName), $tableName . ": " . $pkName . "<>" . $kv->getPrimaryKey($tableName));
             assert($table instanceof Table, "Invalid table type");
             $rules = $config->getTableRules($tableName);
             $kv->map($rules, [$tableName]);
@@ -143,10 +144,6 @@ class PixieImportService
 
             // this is the json/csv iterator
             foreach ($iterator as $idx => $row) {
-                // first, if it's already there and not --overwrite, skip it
-                if (!$overwrite && $kv->has($row->{$pkName})) {
-                    continue;
-                }
                 // if it's json, remap the keys
                 if ($ext === 'json') {
                     $origRow = $row; // for debugging
@@ -182,6 +179,18 @@ class PixieImportService
                     $tableName . " should have $pk  " .
                     json_encode($row, JSON_PRETTY_PRINT));
 
+                $existing = null;
+                $exists = $kv->has($row[$pkName], preloadKeys: true);
+//                if ($exists) {
+//                    $existing = $kv->get($row[$pkName]);
+//                }
+                if (!$overwrite && $exists) {
+                    if ($row[$pk] === 114) {
+//                        dd($row, $kv->has($row[$pkName]), ));
+                    }
+                    continue;
+                }
+
                 foreach ($row as $k => $v) {
                     foreach ($dataRules[$k] ?? [] as $dataRegexRule => $substitution) {
                         $match = preg_match($dataRegexRule, $v, $mm);
@@ -202,7 +211,7 @@ class PixieImportService
                     $config->code, $tableName, $row,
                     action: self::class,
                     storageBox: $kv ));
-                // seems hackish
+                // seems hackish, better to use discard
                 if (!$event->row) {
                     dd($event);
                     continue;
@@ -243,7 +252,11 @@ class PixieImportService
 
     }
 
-    public function createKv(array $fileMap, Config $config, string $pixieCode): StorageBox
+    public function createKv(array $fileMap,
+                             Config $config,
+                             string $pixieCode,
+    bool $destroyFirst = false
+    ): StorageBox
     {
 
 
@@ -256,7 +269,9 @@ class PixieImportService
             }
         }
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
-        $this->pixieService->destroy($pixieFilename);
+        if ($destroyFirst) {
+            $this->pixieService->destroy($pixieFilename);
+        }
 
         $kv = $this->pixieService->getStorageBox($pixieCode,
             createFromConfig: true,

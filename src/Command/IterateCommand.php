@@ -15,6 +15,7 @@ use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
 use Symfony\Component\Yaml\Yaml;
 use Zenstruck\Console\Attribute\Argument;
 use Zenstruck\Console\Attribute\Option;
@@ -47,22 +48,32 @@ final class IterateCommand extends InvokableServiceCommand
         PixieImportService                                                      $pixieImportService,
         #[Argument(description: 'config code')] string                             $configCode,
         #[Option(description: 'table name')] string                             $table,
-        #[Option(description: 'workflow transition')] string                             $transition,
+        #[Option(description: 'workflow transition')] ?string                             $transition=null,
+        // marking CAN be null, which is why we should set it when inserting
+        #[Option(description: 'workflow marking')] ?string                             $marking=null,
+        #[Option(description: 'message transport')] ?string                             $transport=null,
         #[Option] int $limit = 100,
 
     ): int
     {
         // do we need the Config?  Or is it all in the StorageBox?
         $kv = $pixieService->getStorageBox($configCode);
+        if ($table) {
+            assert($kv->tableExists($table), "Missing table $table: \n".join("\n", $kv->getTables()));
+        }
         foreach ($kv->getTables() as $tableName) {
             if ($table && ($table <> $tableName)) {
                 continue;
             }
             $io->title($tableName);
             $kv->select($tableName);
-            $progressBar = new ProgressBar($io, $count = $kv->count());
+            $where = [];
+            if ($marking) {
+                $where = ['marking' => $marking];
+            }
+            $progressBar = new ProgressBar($io, $count = $kv->count(where: $where));
             $idx = 0;
-            foreach ($kv->iterate() as $key => $item) {
+            foreach ($kv->iterate(where: $where) as $key => $item) {
                 $idx++;
                 $this->eventDispatcher->dispatch(
                     $rowEvent = new RowEvent(
@@ -77,9 +88,13 @@ final class IterateCommand extends InvokableServiceCommand
                         type: RowEvent::LOAD,
                         action: self::class,
                         context: [
-                            'transition' => $transition
+                            'transition' => $transition,
+                            'transport' => $transport
                         ])
                 );
+                // if it's an event that changes the values, like a cleanup, we need to update the row.
+                // if it's just dispatching an event, then we don't.
+                // @todo: update
                 if ($limit && $idx >= $limit) {
                     break;
                 }
@@ -88,7 +103,7 @@ final class IterateCommand extends InvokableServiceCommand
             $progressBar->finish();
         }
 
-        $io->success('Pixie:import success ' . $kv->getFilename());
+        $io->success('Pixie:iterate success ' . $kv->getFilename());
         return self::SUCCESS;
     }
 

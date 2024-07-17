@@ -9,6 +9,7 @@ use Survos\PixieBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Model\Config;
+use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Model\Source;
 use Survos\PixieBundle\Model\Table;
@@ -293,6 +294,28 @@ class PixieService
 
     }
 
+    public function populateRecordWithRelations(Item $item, Config $config, StorageBox $kv): Item
+    {
+        $table = $config->getTables()[$item->table];
+        $properties = $table->getProperties();
+        $data = (array)$item->getData();
+        foreach ($properties as $property) {
+            $propertyName = $property->getCode();
+            if ($property->getType() === 'rel') {
+                // get the related item from the PK stored in the item, replace it with the actual record, but without the _id?
+                $relatedId = $data[$propertyName];
+                // publish these properties as flickr tags, including label and description
+                $relatedItem = $kv->get($relatedId, $property->getSubType()); // subtype is related table
+                $relatedName = str_replace('_id', '', $propertyName);
+                $data[$relatedName] = $relatedItem;
+            }
+        }
+        // need to be selective about when we save this.
+        $item->setData($data);
+        return $item;
+    }
+
+
     #[AsMessageHandler]
     public function handleTransition(PixieTransitionMessage $message)
     {
@@ -334,6 +357,7 @@ class PixieService
             $this->logger->info("Transition $transition  $tableName.$key to $markingString");
             $kv->commit();
         } else {
+            // no biggie, we can't transition, but the message itself doesn't fail.
             $marking = $row->getMarking();
             $this->logger->info("cannot transition from $marking to $transition");
         }
