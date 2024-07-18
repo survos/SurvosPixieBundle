@@ -41,16 +41,15 @@ final class PixieImportCommand extends InvokableServiceCommand
     }
 
     public function __invoke(
-        IO                                                                      $io,
-        PixieService                                                            $pixieService,
-        PixieImportService                                                      $pixieImportService,
-        #[Argument(description: '(string)')] string                             $dirOrFilename = '',
-        #[Option(shortcut: 'c', description: 'conf filename, default to directory name of first argument')]
-        string                                                                  $configCode = null,
-        #[Option(description: "max number of records per table to import")] int $limit = 0,
-        #[Option(description: "overwrite records if they already exist")] bool  $overwrite = false,
-        #[Option(description: "purge db file first")] bool                      $reset = false,
-        #[Option(description: "Batch size for commit")] int                     $batch = 500,
+        IO                                                                                          $io,
+        PixieService                                                                                $pixieService,
+        PixieImportService                                                                          $pixieImportService,
+        #[Argument(description: 'config code')] string                                              $configCode,
+        #[Option(description: 'conf filename, default to directory name of first argument')] ?string $dirOrFilename,
+        #[Option(description: "max number of records per table to import")] int                     $limit = 0,
+        #[Option(description: "overwrite records if they already exist")] bool                      $overwrite = false,
+        #[Option(description: "purge db file first")] bool                                          $reset = false,
+        #[Option(description: "Batch size for commit")] int                                         $batch = 500,
 
     ): int
     {

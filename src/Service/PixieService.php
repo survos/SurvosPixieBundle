@@ -15,6 +15,7 @@ use Survos\PixieBundle\Model\Source;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -32,7 +33,7 @@ class PixieService
     private array $storageBoxes = [];
 
     public function __construct(
-        private bool                                        $isDebug,
+        private bool                                        $isDebug, private readonly EventDispatcherInterface $eventDispatcher,
         private array                                       $data=[],
         private string                                      $extension = "pixie.db",
         private string                                      $dbDir='pixie',
@@ -356,6 +357,28 @@ class PixieService
             }
             $this->logger->info("Transition $transition  $tableName.$key to $markingString");
             $kv->commit();
+
+            // dispatch the FIRST valid next transition
+            foreach ($context['nextTransitions']??[] as $transition) {
+                if ($workflow->can($row, $transition)) {
+                    // apply it? Or dispatch it?  or recursively call this?
+                    // since it's been saved (above), we will refetch it when this is recursively called
+                    $this->handleTransition(new PixieTransitionMessage(
+                        $message->pixieCode,
+                        $message->key,
+                        $message->table,
+                        $transition,
+                        $message->workflow
+                    ));
+//                    $marking = $workflow->apply($row, $transition, [
+//                        'kv' => $kv
+//                    ]);
+//                    dd($marking, $row, $message, $transition);
+                } else {
+//                    dd($row, $transition, $context);
+                }
+            }
+
         } else {
             // no biggie, we can't transition, but the message itself doesn't fail.
             $marking = $row->getMarking();
