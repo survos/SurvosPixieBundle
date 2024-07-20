@@ -25,7 +25,9 @@ class PixieImportService
     public function __construct(
         private PixieService                      $pixieService,
         private LoggerInterface                   $logger,
-        private readonly EventDispatcherInterface $eventDispatcher)
+        private readonly EventDispatcherInterface $eventDispatcher,
+        public bool $purgeBeforeImport = false
+    )
     {
     }
 
@@ -216,6 +218,7 @@ class PixieImportService
                     dd($event);
                     continue;
                 }
+                $row  = $event->row;
                 // don't set if discard
                 if ($event->type == RowEvent::DISCARD) {
                     continue;
@@ -225,8 +228,8 @@ class PixieImportService
                     $kv->set($row);
                 } catch (\Exception $e) {
                     dd($kv->getFilename(), $kv, $e);
-
                 }
+                assert($row['marking'] == 'NEW');
 //                if ($idx == 1) dump($tableName, $row, $limit, $idx);
                 if ($limit && ($idx >= $limit-1)) break;
                 if ($callback) {

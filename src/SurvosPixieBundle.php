@@ -33,6 +33,7 @@ class SurvosPixieBundle extends AbstractBundle
 
         $builder->register(PixieImportService::class)
             ->setAutowired(true)
+//            ->setArgument('$config', $config)
         ;
 
         if (class_exists(Environment::class)) {
@@ -116,6 +117,7 @@ class SurvosPixieBundle extends AbstractBundle
             ->scalarNode('extension')->info("the pixie db extension")->defaultValue('.pixie.db')->end()
             ->scalarNode('db_dir')->info("where to store the pixie db files")->defaultValue('pixie]')->end()
             ->scalarNode('data_root')->info("root for csv/json data")->defaultValue('data')->end()
+            ->booleanNode('purge_before_import')->info("purge db before import")->defaultValue(false)->end()
             ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('config/packages/pixie')->end()
             ->end();
     }

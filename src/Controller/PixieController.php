@@ -353,7 +353,7 @@ class PixieController extends AbstractController
     {
         $pixie = $pixieService->getStorageBox(
             $pixieCode,
-            destroy: false,
+            destroy: $pixieImportService->purgeBeforeImport,
             createFromConfig: true
         );
 //        dd($pixie->getTables());

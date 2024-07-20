@@ -58,7 +58,7 @@ final class IterateCommand extends InvokableServiceCommand
         // marking CAN be null, which is why we should set it when inserting
         #[Option(description: 'workflow marking')] ?string    $marking=null,
         #[Option(description: 'message transport')] ?string   $transport=null,
-        #[Option] int                                         $limit = 100,
+        #[Option] int                                         $limit = 0,
 
     ): int
     {

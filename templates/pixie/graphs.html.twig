@@ -41,10 +41,10 @@
 {#            </twig:item>>#}
 
 
-            <h2>{{ tableName }} (n={{ tableData.count }})</h2>
+            <h2> {{ tableName }} (n={{ tableData.count }})</h2>
             {% for indexName, chart in tableData.charts %}
 
-                <div class="row">
+                <div class="row" id="{{ indexName }}">
                     <div class="col-md-3">
                         <h3>{{ indexName }}</h3>
 
