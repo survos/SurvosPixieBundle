@@ -33,7 +33,8 @@ class SurvosPixieBundle extends AbstractBundle
 
         $builder->register(PixieImportService::class)
             ->setAutowired(true)
-//            ->setArgument('$config', $config)
+            ->setArgument('$logger', new Reference('logger'))
+            ->setArgument('$purgeBeforeImport', $config['purge_before_import'])
         ;
 
         if (class_exists(Environment::class)) {
@@ -62,7 +63,6 @@ class SurvosPixieBundle extends AbstractBundle
 
         $builder->autowire(PixieDataCollector::class)
             ->setArgument('$pixieService', new Reference(PixieService::class))
-//            ->setArgument('$logger', new Reference('logger'))
             ->addTag('data_collector', [
                 'template' => '@SurvosPixie/DataCollector/pixie_debug_profile.html.twig'
             ]);

@@ -30,6 +30,21 @@ class Config
 //        }
     }
 
+    public function getSource(): ?Source
+    {
+        return $this->source;
+    }
+
+    public function getDataDir(): ?string
+    {
+        return $this->dataDir;
+    }
+
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
     public function getPixieFilename(): ?string
     {
         return $this->pixieFilename;
@@ -59,12 +74,6 @@ class Config
         }
         return $ignore;
     }
-    public function getInclude(): array
-    {
-        $include = $this->data["source"]["include"]??[];
-        return is_string($include) ? [$include] : $include;
-    }
-
     public function getFileToTableMap(): array
     {
         return $this->files;

@@ -13,9 +13,7 @@
             {% for indexName, values in table.counts %}
                 <li>
                     <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName, '_fragment': indexName}) }}">
-                        Browse
-
-                    {{ indexName }}
+                    by {{ indexName }}
                     </a>
                 </li>
             {% endfor %}

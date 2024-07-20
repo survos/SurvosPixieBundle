@@ -8,6 +8,7 @@ class Source
         public ?string $dir=null,
         public string $locale = 'en',
         public null|string|array $ignore = [],
+        public null|string|array $include = [],
     )
     {
 

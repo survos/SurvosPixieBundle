@@ -258,22 +258,36 @@ class PixieController extends AbstractController
 
         foreach ($kv->getTables() as $tableName)
         {
+            $counts = [];
             foreach ($kv->getIndexes($tableName) as $indexName) {
                 $counts[$indexName] = $kv->getCounts($indexName, $tableName, $limit);
+            }
                 $tables[$tableName] = [
                     'count' => $kv->count($tableName),
                     'counts' => $counts
                 ];
-            }
         }
-
         return $this->render('@SurvosPixie/pixie/homepage.html.twig', [
+            'kv' => $kv,
             'tables' => $tables,
             'pixieCode' => $pixieCode,
             ]);
     }
 
-    #[Route('/table/{pixieCode}/{tableName}', name: 'pixie_table')]
+
+    #[Route('/schema/{pixieCode}', name: 'pixie_schema')]
+    public function schema(
+        string                   $pixieCode,
+    ): Response
+    {
+        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
+        return $this->render('@SurvosPixie/pixie/homepage.html.twig', [
+            'kv' => $this->pixieService->getStorageBox($pixieCode),
+            'pixieCode' => $pixieCode,
+        ]);
+    }
+
+        #[Route('/table/{pixieCode}/{tableName}', name: 'pixie_table')]
     public function home(
         string                   $pixieCode,
         string                   $tableName,
@@ -351,14 +365,15 @@ class PixieController extends AbstractController
                            #[MapQueryParameter] int $limit = 0,
     ): Response
     {
+        $purgeFirst = $pixieImportService->purgeBeforeImport;
         $pixie = $pixieService->getStorageBox(
             $pixieCode,
-            destroy: $pixieImportService->purgeBeforeImport,
+            destroy: $purgeFirst,
             createFromConfig: true
         );
-//        dd($pixie->getTables());
+//        dd($pixie->getTables(), $purgeFirst);
 
-        $pixieImportService->import($pixieCode, limit: $limit, kv: $pixie);
+        $pixieImportService->import($pixieCode, limit: $limit, kv: $pixie, overwrite: true);
         return $this->redirectToRoute('pixie_homepage', [
             'pixieCode' => $pixieCode
         ]);

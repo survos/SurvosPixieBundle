@@ -48,7 +48,7 @@ class PixieImportService
         assert(file_exists($dirOrFilename), $dirOrFilename);
         $finder = new Finder();
         $files = $finder->in($dirOrFilename);
-        if ($include = $config->getInclude()) {
+        if ($include = $config->getSource()->include) {
             $files->name($include);
         }
 
@@ -82,6 +82,7 @@ class PixieImportService
 
         // $fn is the csv filename
         foreach ($fileMap as $fn => $tableName) {
+            dump($fn, $tableName);
             if (empty($tableName)) {
                 $this->logger && $this->logger->warning("Skipping $fn, no map to tables");
                 dd($fn, $tableName);
@@ -91,7 +92,7 @@ class PixieImportService
 //            $schemaTables = $kv->inspectSchema();
             if (!array_key_exists($tableName, $validTableNames)) {
                 $this->logger && $this->logger->warning("Skipping $fn, table is undefined");
-//                dd($tableName, $kv->getFilename(), $validTableNames, array_keys($schemaTables));
+                dd($tableName, $kv->getFilename(), $validTableNames);
                 continue;
             }
             // we could do a callback here tagging it as a file.  Or some sort of event?
@@ -229,7 +230,7 @@ class PixieImportService
                 } catch (\Exception $e) {
                     dd($kv->getFilename(), $kv, $e);
                 }
-                assert($row['marking'] == 'NEW');
+//                assert($row['marking'] == 'NEW');
 //                if ($idx == 1) dump($tableName, $row, $limit, $idx);
                 if ($limit && ($idx >= $limit-1)) break;
                 if ($callback) {
