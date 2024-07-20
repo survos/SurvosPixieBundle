@@ -1,4 +1,4 @@
-p<?php
+<?php
 
 
 namespace Survos\PixieBundle\Event;
@@ -12,6 +12,7 @@ class RowEvent extends Event
 
     public const string PRE_LOAD='pre_load';
     public const string LOAD='load';
+    public const string SAVE='save';
     public const string POST_LOAD='post_load';
     public const string DISCARD='discard'; // do not import the row
 

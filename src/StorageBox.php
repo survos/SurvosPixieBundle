@@ -453,7 +453,8 @@ class StorageBox
             try {
                 $preparedStatements[$this->filename][$sql] = $this->db->prepare($sql);;
             } catch (\Exception $exception) {
-                dd($exception, $sql, $this->filename);
+                dump($exception, $sql, $this->filename, $variables);
+//                assert(false);
             }
         }
         $statement = $preparedStatements[$this->filename][$sql];
