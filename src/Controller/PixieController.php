@@ -202,7 +202,11 @@ class PixieController extends AbstractController
             }
             return new JsonResponse($flattenRows);
         }
-        array_unshift($columns, $keyName, 'marking');
+        if (in_array('marking', $columns)) {
+            array_unshift($columns, $keyName, 'marking');
+        }
+        array_unshift($columns, $keyName);
+        $columns = array_unique($columns);
         $iterator->rewind();
 
 //        $rows = [];
