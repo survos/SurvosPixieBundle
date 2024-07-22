@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pixie {{  pixieCode }}{% endblock %}
+
+{% block page_header %}
+    Pixie {{ pixieCode }}
+    <a href="{{ path('pixie_schema', {pixieCode: pixieCode}) }}">
+        Schema
+    </a>
+    {% for table in kv.tables %}
+        <a href="{{ path('pixie_browse', {tableName: table, pixieCode: pixieCode}) }}">
+            {{ table }}
+        </a>
+
+    {% endfor %}
+{% endblock %}
+{% block body %}
+
+
+{% endblock %}

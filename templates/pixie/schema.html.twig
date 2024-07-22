@@ -1,0 +1,34 @@
+{% extends '@SurvosPixie/pixie/layout.html.twig' %}
+
+{% block title %}{{ pixieCode }} Tables{% endblock %}
+
+{% block body %}
+    Schema
+    {{ dump(config) }}
+    {% for tableName, table in config.tables %}
+        <li>
+            {{ dump(table) }}
+        <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
+            Browse {{ tableName }}
+        </a>
+            {% set columns = [
+                'code',
+                'type',
+                'index',
+                'initial'
+            ] %}
+            <twig:simple_datatables
+                    :caller="_self"
+                    :data="table.properties"
+                    :columns="columns"
+            >
+            </twig:simple_datatables>
+
+            {% for property in table.properties %}
+                {{ dump(property) }}
+            {% endfor %}
+        <ul>
+        </ul>
+        </li>
+    {% endfor %}
+{% endblock %}

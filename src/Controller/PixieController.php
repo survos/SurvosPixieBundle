@@ -235,6 +235,7 @@ class PixieController extends AbstractController
             'keyName' => $keyName,
             'columns' => $columns,
             'filename' => $kv->getFilename(),
+            'kv'=>$kv
         ]);
 
     }
@@ -285,8 +286,9 @@ class PixieController extends AbstractController
     ): Response
     {
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
-        return $this->render('@SurvosPixie/pixie/homepage.html.twig', [
+        return $this->render('@SurvosPixie/pixie/schema.html.twig', [
             'kv' => $this->pixieService->getStorageBox($pixieCode),
+            'config' => $this->pixieService->getConfig($pixieCode),
             'pixieCode' => $pixieCode,
         ]);
     }
