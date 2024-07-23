@@ -7,7 +7,7 @@
     <a href="{{ path('pixie_schema', {pixieCode: pixieCode}) }}">
         Schema
     </a>
-    {% for table in kv.tables %}
+    {% for table in kv.tableNames %}
         <a href="{{ path('pixie_browse', {tableName: table, pixieCode: pixieCode}) }}">
             {{ table }}
         </a>

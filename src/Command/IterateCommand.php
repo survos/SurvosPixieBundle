@@ -65,7 +65,7 @@ final class IterateCommand extends InvokableServiceCommand
         // do we need the Config?  Or is it all in the StorageBox?
         $kv = $pixieService->getStorageBox($pixieCode);
         $config = $pixieService->getConfig($pixieCode);
-        assert($kv->tableExists($tableName), "Missing table $tableName: \n".join("\n", $kv->getTables()));
+        assert($kv->tableExists($tableName), "Missing table $tableName: \n".join("\n", $kv->getTableNames()));
 
         $table = $config->getTables()[$tableName];
         $workflow = null;

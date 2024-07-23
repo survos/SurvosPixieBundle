@@ -162,15 +162,28 @@ class PixieController extends AbstractController
             $where[$index] = $value ?: null;
         }
         $kv->select($tableName);
-        $iterator = $kv->iterate($tableName, $where);
         $keyName = $kv->getPrimaryKey($tableName);
 
-        if ($firstItem = $iterator->current()) {
-//            dd($firstRow, $firstItem);
-            $columns = array_keys((array)$firstItem->getData());
-        } else {
-            $columns = ['value'];
+        $iterator = $kv->iterate($tableName, $where);
+//        foreach ($iterator as $key => $item) {
+//            dd($item);
+//        }
+
+
+        $table = $kv->getTable($tableName);
+        // @todo: refactor to pass properties to datatables
+        foreach ($table->getProperties() as $property) {
+            $columns[] = $property->getCode();
         }
+//        if ($firstItem = $iterator->current()) {
+////            dd($firstRow, $firstItem);
+//
+//            $columns = array_keys((array)$firstItem->getData());
+//            $iterator = $kv->iterate($tableName, $where);
+////            $iterator->rewind();
+//        } else {
+//            $columns = ['value'];
+//        }
 //        dd($where, $firstRow, $columns);
 
         // @todo: flatten nested json, apply view, column rules, etc.
@@ -261,7 +274,7 @@ class PixieController extends AbstractController
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $tables = [];
 
-        foreach ($kv->getTables() as $tableName)
+        foreach ($kv->getTableNames() as $tableName)
         {
             $counts = [];
             foreach ($kv->getIndexes($tableName) as $indexName) {
@@ -313,7 +326,16 @@ class PixieController extends AbstractController
             ];
 
             $charts = [];
-            foreach ($kv->getIndexes($tableName) as $indexName) {
+            $table = $kv->getTable($tableName);
+            foreach ($table->getProperties() as $property) {
+                if (!$indexName = $property->getIndex()) {
+                    continue;
+                }
+                // primary is required and maybe min/max?
+                if ($indexName === 'PRIMARY') {
+                    continue;
+                }
+                $indexName = $property->getCode();
                 $labels = [];
                 $values = [];
                 $counts = $kv->getCounts($indexName, $tableName, $limit);

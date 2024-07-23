@@ -96,14 +96,16 @@ class PixieService
         if ($createFromConfig && !$config) {
             $config = $this->getConfig($pixieCode);
         }
-        if ($createFromConfig) {
+        // always parse config so we have it.  certainly could be optimized
+//        if ($createFromConfig)
+        {
             if (!$config) {
-                assert(false, "Pass in config for now.");
+//                assert(false, "Pass in config for now.");
                 // filename? Or code???  ugh,
-//                $config = $this->getConfig($filename)
+                $config = $this->getConfig($pixieCode);
             }
             // the array! someday the model.
-            $tables = $config->getTables();
+//            $tables = $config->getTables();
 //            foreach ($config->getTables() as $tableName => $table) {
 //                dd($tableName, $table);
 //            }

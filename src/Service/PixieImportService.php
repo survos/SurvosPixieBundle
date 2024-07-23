@@ -82,7 +82,6 @@ class PixieImportService
 
         // $fn is the csv filename
         foreach ($fileMap as $fn => $tableName) {
-            dump($fn, $tableName);
             if (empty($tableName)) {
                 $this->logger && $this->logger->warning("Skipping $fn, no map to tables");
                 dd($fn, $tableName);

@@ -11,12 +11,14 @@
         {% for tableName, tableData in tables %}
         {% set item = tableData.first %}
             {% if item %}
+                <a href="{{ path('pixie_show_record', item.rp) }}">
+                    Open first {{ tableName}} [{{ item}}] and transitions
+                </a>
                 <details>
-                    <summary>Row
+                    <summary>
+                        {{ tableName }}
                         {{ item }}
-                        <a href="{{ path('pixie_show_record', item.rp) }}">
-                            Show item and transitions
-                        </a>
+                        Raw Data
                     </summary>
                     <twig:simple_item_grid
                             exclude="_raw,_att,_extra"
@@ -41,7 +43,11 @@
 {#            </twig:item>>#}
 
 
-            <h2> {{ tableName }} (n={{ tableData.count }})</h2>
+            <h2>
+                <a href="{{ path('pixie_browse', {'pixieCode': pixieCode, tableName: tableName}) }}">
+                {{ tableName }} (n={{ tableData.count }})
+                </a>
+            </h2>
             {% for indexName, chart in tableData.charts %}
 
                 <div class="row" id="{{ indexName }}">

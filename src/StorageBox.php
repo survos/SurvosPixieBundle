@@ -100,6 +100,14 @@ class StorageBox
 
     }
 
+    public function getConfig(): ?Config
+    {
+        if (!$this->config) {
+            assert(false, "missing config");
+        }
+        return $this->config;
+    }
+
     public function getPixieCode(): ?string
     {
         return $this->pixieCode;
@@ -163,7 +171,7 @@ class StorageBox
 
     public function select(string $tableName): self
     {
-        $tables = $this->getTables(); // not cached!
+        $tables = $this->getTableNames(); // not cached!
         assert(count($tables), "no tables in $this->filename");
         if (!in_array($tableName, $tables)) {
             throw new \LogicException("$tableName $this->filename is not in tables:\n\n" . join("\n", $tables));
@@ -776,12 +784,29 @@ class StorageBox
         return $sth->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    public function getTables(): array
+    /**
+     * @return array<string>
+     */
+    public function getTableNames(): array
     {
 //        assert(false, $this->filename);
         $sth = $this->query("SELECT name FROM sqlite_master WHERE type='table';");
         $tableNames = $sth->fetchAll(PDO::FETCH_COLUMN);
         return $tableNames;
+    }
+
+    /**
+     * @return array<Table>
+     */
+    public function getTables(): array
+    {
+        return $this->getConfig()->getTables();
+    }
+
+    public function getTable(string $tableName): Table
+    {
+        return $this->getConfig()->getTables()[$tableName];
+
     }
 
     public function tableExists(string $table): bool
