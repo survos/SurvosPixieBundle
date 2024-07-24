@@ -147,7 +147,7 @@ class StorageBox
 //        $regexRules = $this->regexRules[$tableName] ?? [];
 //        dd(tableName: $tableName, regex: $regexRules);
         foreach ($header as $fieldName) {
-            $newFieldName = $fieldName;
+            $newFieldName = trim($fieldName);
             foreach ($regexRules as $regex => $value) {
 //                assert($regex, $regex);
 //                dump($regex, $this->regexRules);
