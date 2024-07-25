@@ -6,15 +6,9 @@
 
     <details>
         <summary>Row data</summary>
-        {{ dump(row, row.data) }}
-
     </details>
 
     <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
-
-{#    {{ dump(row) }}#}
-{#    {{ dump(row.rp) }}#}
-{#    {{ dump(row.marking) }}#}
 
     {% if workflowEnabled %}
         Workflow: {{ workflow }}
@@ -65,9 +59,6 @@
         data: row.data,
         kv: kv|default(null)
     }, ignore_missing=true)  }}
-
-{#    {{ dump(row.value|json_decode) }}#}
-{#    {{ dump(row) }}#}
 
 
 {#        <twig:simple_datatables#}
