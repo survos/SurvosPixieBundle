@@ -115,11 +115,13 @@ class StorageBox
 
     public function createTables(Config $config): void
     {
+        if ($this->db->inTransaction()) {
+            $this->db->commit();
+        }
         $sth = $this->db->query($sql = "SELECT name FROM sqlite_master where type='table'");
         $this->schemaTables = $sth->fetchAll(PDO::FETCH_COLUMN); // load the existing tables
 
         $this->beginTransaction();
-
         foreach ($config->getTables() as $tableName => $table) {
 
             assert($table instanceof Table, json_encode($table));
@@ -570,13 +572,16 @@ class StorageBox
     {
         $previousTable = $this->currentTable;
         $tableName = $tableName ?? $this->currentTable;
+        assert($tableName, "missing tablename in call");
         if (!$propertyName) {
             assert(is_object($value) || is_iterable($value), "if property is not set, must be iterable");
         }
         static $preparedStatements = [];
 
+        $schema = $this->inspectSchema();
+        assert(array_key_exists($tableName, $schema), "no table $tableName in schema " . $this->getFilename());
         /** @var Table $table */
-        $table = $this->inspectSchema()[$tableName];
+        $table = $schema[$tableName];
         assert($table, "No table $tableName");
         $keyName = $table->getPkName();
 

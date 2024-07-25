@@ -13,5 +13,6 @@ final class PixieTransitionMessage
         public readonly string $workflow,
         public readonly ?string $transport=null,
     ) {
+        assert($this->table);
     }
 }

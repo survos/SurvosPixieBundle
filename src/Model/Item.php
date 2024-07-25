@@ -51,9 +51,9 @@ class Item implements \Stringable
     }
 
     // this is more like the raw row.  Or value...
-    public function getData(): object
+    public function getData(bool $asArray=false): object|array
     {
-        return $this->data;
+        return $asArray ? (array)$this->data : $this->data;
     }
 
     public function getRp(array $addl=[])

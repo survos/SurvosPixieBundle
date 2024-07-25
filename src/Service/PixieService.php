@@ -318,7 +318,6 @@ class PixieService
         return $item;
     }
 
-
     #[AsMessageHandler]
     public function handleTransition(PixieTransitionMessage $message)
     {
@@ -326,6 +325,11 @@ class PixieService
         $transition = $message->transition;
         $kv = $this->getStorageBox($message->pixieCode);
         $row = $kv->get($message->key, $message->table);
+        $workflow = $this->workflowHelperService->getWorkflow($row, $flowName);
+        if (!$workflow->can($row, $transition)) {
+            return; //
+        }
+
         $tableName = $message->table;
         $key = $message->key;
         $workflow = $this->workflowHelperService->getWorkflow($row, $flowName);
