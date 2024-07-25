@@ -4,10 +4,8 @@
 
 {% block body %}
     Schema
-    {{ dump(config) }}
     {% for tableName, table in config.tables %}
         <li>
-            {{ dump(table) }}
         <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
             Browse {{ tableName }}
         </a>
@@ -25,7 +23,7 @@
             </twig:simple_datatables>
 
             {% for property in table.properties %}
-                {{ dump(property) }}
+                @todo: property json?
             {% endfor %}
         <ul>
         </ul>
