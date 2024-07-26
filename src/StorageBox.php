@@ -43,6 +43,7 @@ class StorageBox
     private array $tables = []; // from the config
     private array $schemaTables = []; // from the schema inspection
     private bool $inTransaction = false;
+    private ?array                     $regexRules = [];
 
     /**
      * Initialises a new store connection.
@@ -53,7 +54,7 @@ class StorageBox
                                      array                                       &$data, // debug data, passed from Pixie
                                      private ?Config                             $config = null, // for creation only.  Shouldn't be in constructor!
 //                                     private array                     $tablesToCreate = [],
-                                     private array                     $regexRules = [],
+//                                     private ?array                     $regexRules = [],
                                      private ?string                             $currentTable = null,
                                      private ?int                                $version = 1,
                                      private string                              $valueType = 'json', // eventually jsonb
