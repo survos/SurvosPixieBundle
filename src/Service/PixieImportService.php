@@ -91,7 +91,7 @@ class PixieImportService
 //            $schemaTables = $kv->inspectSchema();
             if (!array_key_exists($tableName, $validTableNames)) {
                 $this->logger && $this->logger->warning("Skipping $fn, table is undefined");
-//                dd($tableName, $kv->getFilename(), $validTableNames);
+                dd($tableName, $kv->getFilename(), $validTableNames);
                 continue;
             }
             // we could do a callback here tagging it as a file.  Or some sort of event?

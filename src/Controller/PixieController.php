@@ -65,8 +65,8 @@ class PixieController extends AbstractController
     }
 
 
-    #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record')]
-    #[Route('/transition/{pixieCode}/{tableName}/{key}', name: 'pixie_transition')]
+    #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record', requirements: ['key' => '.+'])]
+    #[Route('/transition/{pixieCode}/{tableName}/{key}', name: 'pixie_transition', requirements: ['key' => '.+'])]
     public function show_record(
         Request                      $request,
         string                       $pixieCode,
