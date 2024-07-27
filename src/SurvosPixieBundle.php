@@ -6,6 +6,7 @@ namespace Survos\PixieBundle;
 
 use Survos\ApiGrid\Controller\GridController;
 use Survos\PixieBundle\Command\IterateCommand;
+use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Controller\PixieTransitionController;
@@ -83,6 +84,10 @@ class SurvosPixieBundle extends AbstractBundle
             ->addTag('console.command')
         ;
         $builder->autowire(IterateCommand::class)
+            ->setAutoconfigured(true)
+            ->addTag('console.command')
+        ;
+        $builder->autowire(PixieExportCommand::class)
             ->setAutoconfigured(true)
             ->addTag('console.command')
         ;

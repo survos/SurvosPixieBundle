@@ -326,6 +326,7 @@ class PixieService
         $kv = $this->getStorageBox($message->pixieCode);
         $row = $kv->get($message->key, $message->table);
         $workflow = $this->workflowHelperService->getWorkflow($row, $flowName);
+        dump($message);
         if (!$workflow->can($row, $transition)) {
             return; //
         }

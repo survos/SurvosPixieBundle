@@ -547,17 +547,20 @@ class StorageBox
             sprintf("SELECT * FROM %s WHERE $keyName = :key;", $tableName),
             ["key" => $key]
         )->fetchObject();
-        assert($results, "no record for $key in $tableName");
-        $marking = $results->marking??null;
-        // hack for workflow, ugh. Could generalize with properties, casting, etc.
-        // the _raw is really the data!
-        $raw = $results->_raw;
-        // there may be a way in sqlite to return this already parsed.
-        if (is_string($raw)) {
-            $raw = json_decode($raw);
+        assert($results, "\nno record for [$key] in table [$tableName]\n");
+        if ($results) {
+            $marking = $results->marking??null;
+            // hack for workflow, ugh. Could generalize with properties, casting, etc.
+            // the _raw is really the data!
+            $raw = $results->_raw;
+            // there may be a way in sqlite to return this already parsed.
+            if (is_string($raw)) {
+                $raw = json_decode($raw);
+            }
+            return new Item($raw,$key, $tableName, $this->getPixieCode(), marking: $marking);
+        } else {
+            return null;
         }
-        return $results ? new Item($raw,$key, $tableName, $this->getPixieCode(), marking: $marking) : null;
-//        return json_decode($results, true);
     }
 
     /**

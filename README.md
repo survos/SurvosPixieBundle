@@ -127,7 +127,8 @@ Translations are also stored as pixie tables, and have their own section.
 ### CSV Datasets
 
 * https://www.stats.govt.nz/large-datasets/csv-files-for-download/
-* 
+* https://www.stats.govt.nz/assets/Uploads/Research-and-development-survey/Research-and-development-survey-2021/Download-data/Research-and-development-survey-2021-CSV-notes.csv
+
 ### Reading an Existing Pixie
 
 ```php
@@ -254,10 +255,31 @@ $transArray = $kvDb->getFields($key);
 // ['en-gb' => ['label' => 'Belgium', 'description'  => ...]]
 
 // ditto for set, needs transactions
-
+```
 
 
 ## Credits
 
 Debug icon from https://www.svgrepo.com/svg/11690/database
-https://www.stats.govt.nz/assets/Uploads/Research-and-development-survey/Research-and-development-survey-2021/Download-data/Research-and-development-survey-2021-CSV-notes.csv
+
+## Backups
+
+For some reason, the .wal file stays open.  We need a utility that does the following
+
+* execute the query "vacuum into 'xx.backup.db'"
+* zip the backup
+* move the backup to s3 or bunny
+
+To restore, do the opposite
+
+* Fetch the zipped backup
+* optionally rename the existing database
+* remove .wal, etc.
+* unzip 
+
+### S3 example
+
+aws s3 sync . s3://voxitour/data/pixie --acl public-read  --exclude="*" --include="x.pixie.db"
+aws s3 sync s3://voxitour/data/pixie . --acl public-read  --exclude="*" --include="x.pixie.db"
+
+
