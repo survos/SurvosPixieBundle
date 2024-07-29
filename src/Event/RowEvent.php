@@ -19,7 +19,7 @@ class RowEvent extends Event
     public function __construct(
         public string $configCode, // same as pixieCode?
         public string $tableName,
-        public ?array $row, // return null to not add to database
+        public ?array $row=null, // return null to not add to database
         public ?Item $item=null, // perhaps it should evolve to this!
         public int|string|null $key=null,
         public ?int $index=null,

@@ -93,7 +93,7 @@ final class IterateCommand extends InvokableServiceCommand
             foreach ($kv->iterate(where: $where) as $key => $item) {
                 $idx++;
                 // since we have the workflow and transition, we can do a "can" here.
-                if ($workflow) {
+                if ($workflow && $transition) {
                     if (!$workflow->can($item, $transition)) {
 //                        dump("$item cannot transition to $transition");
                         continue;
@@ -120,15 +120,19 @@ final class IterateCommand extends InvokableServiceCommand
                             $key,
                             $idx,
                             $count,
+                            storageBox: $kv,
                             type: RowEvent::LOAD,
                             action: self::class,
                             context: [
+//                                'storageBox' => $kv,
                                 'transition' => $transition,
                                 'transport' => $transport
                             ])
                     );
 
                 }
+
+
 
                 // if it's an event that changes the values, like a cleanup, we need to update the row.
                 // if it's just dispatching an event, then we don't.
@@ -140,6 +144,21 @@ final class IterateCommand extends InvokableServiceCommand
             }
             $progressBar->finish();
         }
+
+        // final dispatch, to process
+        $this->eventDispatcher->dispatch(
+            $rowEvent = new RowEvent(
+                $pixieCode,
+                $tableName,
+                storageBox: $kv,
+                type: RowEvent::POST_LOAD,
+                action: self::class,
+                context: [
+                    'transition' => $transition,
+                    'transport' => $transport
+                ])
+        );
+
 
         $io->success('Pixie:iterate success ' . $kv->getFilename());
         return self::SUCCESS;
