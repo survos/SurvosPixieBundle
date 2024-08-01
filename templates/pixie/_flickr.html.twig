@@ -1,0 +1,11 @@
+{% set flickrId = data.flickr_id|default(false) %}
+
+{% if flickrId %}
+    <a href="{{ flickrPageUrl(flickrId) }}" target="_blank">
+        {{ flickrId }}
+        {% if data.flickr_info|default(false) %}
+            <img src="{{ flickrThumbnailUrl(data.flickr_info) }}"/>
+        {% endif %}
+    </a>
+{% endif %}
+

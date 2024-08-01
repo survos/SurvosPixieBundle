@@ -6,11 +6,20 @@
         <h1>{{ filename }}</h1>
         <h1>{{ remoteUrl }}</h1>
 
+    {{ dump(columns) }}
         <twig:simple_datatables
                 :caller="_self"
                 :remoteUrl="remoteUrl"
                 :columns="columns"
         >
+                <twig:block name="marking">
+                    {{ dump(row) }}
+                </twig:block>
+                <twig:block name="url">
+                    <a href="{{ row.url }}" target="_blank">
+                        {{ row.url }}
+                    </a>
+                </twig:block>
                 <twig:block name="key">
                     <a href="{{ path('pixie_show_record', {
                         pixieCode: pixieCode,
