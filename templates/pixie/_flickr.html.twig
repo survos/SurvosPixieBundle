@@ -4,7 +4,7 @@
     <a href="{{ flickrPageUrl(flickrId) }}" target="_blank">
         {{ flickrId }}
         {% if data.flickr_info|default(false) %}
-            <img src="{{ flickrThumbnailUrl(data.flickr_info) }}"/>
+            <img src="{{ flickrThumbnailUrl(data.flickr_info, 'm') }}"/>
         {% endif %}
     </a>
 {% endif %}

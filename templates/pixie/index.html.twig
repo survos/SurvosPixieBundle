@@ -26,6 +26,12 @@
                         {{ config.pixieFilename }}
                         {{ config.sourceFilesDir }}
                     </details>
+                    {% for tableName, table in config.tables %}
+                        <a href="{{ path('pixie_table', {pixieCode: p, tableName: tableName}) }}">
+                            {{ tableName }}
+                        </a>
+                    {% endfor %}
+                    <hr />
                     IMPORT:
                     {% for limit in [5, 50, 500, 5000, 50000, 0] %}
                         <a href="{{ path('pixie_import', {limit: limit, pixieCode: p}) }}">{{ limit }}</a>
