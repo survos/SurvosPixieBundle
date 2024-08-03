@@ -465,7 +465,7 @@ class StorageBox
                 $preparedStatements[$this->filename][$sql] = $this->db->prepare($sql);;
             } catch (\Exception $exception) {
                 dump($exception, $sql, $this->filename, $variables);
-//                assert(false);
+                assert(false, $sql . " " . $exception->getMessage());
             }
         }
         $statement = $preparedStatements[$this->filename][$sql];
@@ -719,7 +719,7 @@ class StorageBox
             $sql .= " order by $key $value";
         }
         if ($startingAt > 0) {
-            $sql .= " OFFSET " . $max;
+            $sql .= " OFFSET " . $startingAt;
         }
         if ($max > 0) {
             $sql .= " limit " . $max;
@@ -740,7 +740,7 @@ class StorageBox
         $table = $table ?? $this->currentTable;
         assert($table, "no table configured");
         $pkName = $this->getPrimaryKey($table);
-        [$sql, $params] = $this->getSql($table, $where, $order, $max);
+        [$sql, $params] = $this->getSql($table, $where, $order, max: $max);
 
 
         // https://stackoverflow.com/questions/78623214/using-a-generator-to-loop-through-an-update-a-table-in-pdo
