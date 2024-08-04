@@ -31,7 +31,7 @@
 {#    {{ row.value|default(false) ? dump(row.value|json_decode) }}#}
 
     {% if row %}
-        <h3>Properties</h3>
+        <h3>{{ tableName }} Properties</h3>
         <twig:simple_item_grid
                 exclude="_raw,_att,_extra,value"
                 :data="row.data"

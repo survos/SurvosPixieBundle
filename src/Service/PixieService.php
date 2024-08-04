@@ -299,7 +299,7 @@ class PixieService
 
     public function populateRecordWithRelations(Item $item, Config $config, StorageBox $kv): Item
     {
-        $table = $config->getTables()[$item->table];
+        $table = $config->getTables()[$item->getTableName()];
         $properties = $table->getProperties();
         $data = (array)$item->getData();
         foreach ($properties as $property) {

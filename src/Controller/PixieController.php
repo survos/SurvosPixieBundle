@@ -83,8 +83,10 @@ class PixieController extends AbstractController
         $kv->select($tableName);
         $pk = $kv->getPrimaryKey($tableName);
         $item = $kv->get($key, $tableName);
-        // what a pain, we need to store this somewhere else!
         $conf = $this->pixieService->getConfig($pixieCode);
+
+        $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
+        // what a pain, we need to store this somewhere else!
 
         $table = $conf->getTables()[$tableName];
         $workflow = $table->getWorkflow();

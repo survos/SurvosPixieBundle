@@ -229,7 +229,6 @@ class PixieImportService
                 } catch (\Exception $e) {
                     dd($kv->getFilename(), $kv, $e);
                 }
-//                assert($row['marking'] == 'NEW');
 //                if ($idx == 1) dump($tableName, $row, $limit, $idx);
                 if ($limit && ($idx >= $limit-1)) break;
                 if ($callback) {

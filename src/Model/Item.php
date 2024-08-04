@@ -7,13 +7,18 @@ class Item implements \Stringable
     public function __construct(
         private object $data,
         public ?string $key=null,
-        public ?string $table=null,
+        private ?string $table=null,
         public ?string $pixieCode=null,// for workflow?
         private ?string $marking=null
     )
     {
 
 
+    }
+
+    public function getTableName(): ?string
+    {
+        return $this->table;
     }
 
     public function setData(object|array $data): self
