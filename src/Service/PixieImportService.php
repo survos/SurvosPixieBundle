@@ -55,7 +55,7 @@ class PixieImportService
         if ($ignore = $config->getIgnored()) {
             $files->notName($ignore);
         }
-        assert($files->count(), "No files in $dirOrFilename");
+        assert($files->count(), "No files in {$this->pixieService->getDataRoot()} $dirOrFilename");
 
         foreach ($files as $splFile) {
             $this->eventDispatcher->dispatch(new ImportFileEvent($splFile->getRealPath()));

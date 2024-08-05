@@ -4,6 +4,7 @@
 
 {% block body %}
 
+
     <h1>{{ dir }}</h1>
     <div class="example-wrapper">
         <ul>
@@ -12,34 +13,185 @@
             </li>
 
             {# deal with headlines separately, license, JSON, etc. #}
-            {% for p, config in configs %}
-                <li>
-                    <b>{{ p }}</b>
-                    {% if config.pixieFilename|file_exists %}
-                        <a href="{{ path('pixie_homepage', {pixieCode: p}) }}">Show</a>
-                    {% else %}
-                        Please import first!
-                    {% endif %}
+            {% for pixieCode, data in tables %}
+                {% with {pixieCode: pixieCode, config: configs[pixieCode], data: data} %}
 
-                    <details>
-                        <summary>Config</summary>
-                        {{ config.pixieFilename }}
-                        {{ config.sourceFilesDir }}
-                    </details>
-                    {% for tableName, table in config.tables %}
-                        <a href="{{ path('pixie_table', {pixieCode: p, tableName: tableName}) }}">
-                            {{ tableName }}
-                        </a>
-                    {% endfor %}
-                    <hr />
-                    IMPORT:
-                    {% for limit in [5, 50, 500, 5000, 50000, 0] %}
-                        <a href="{{ path('pixie_import', {limit: limit, pixieCode: p}) }}">{{ limit }}</a>
-                    {% endfor %}
-                </li>
+                    {{ block('testcard') }}
+                {% endwith %}
+
+{#                    {% for tableName, table in config.tables %}#}
+{#                        <a href="{{ path('pixie_table', {pixieCode: p, tableName: tableName}) }}">#}
+{#                            {{ tableName }}#}
+{#                        </a>#}
+{#                    {% endfor %}#}
+{#                    <hr />#}
+{#                </li>#}
 
             {% endfor %}
 
         </ul>
     </div>
+{% endblock %}
+
+{% block testcard %}
+<div class="col-xxl-3 col-sm-6 project-card">
+    <div class="card card-height-100">
+        <div class="card-body">
+            <div class="d-flex flex-column h-100">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <p class="text-muted mb-4">Updated 2hrs ago</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <div class="d-flex gap-1 align-items-center">
+                            <button type="button" class="btn avatar-xs mt-n1 p-0 favourite-btn active">
+                                                        <span class="avatar-title bg-transparent fs-15">
+                                                            <i class="ri-star-fill"></i>
+                                                        </span>
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-link text-muted p-1 mt-n2 py-0 text-decoration-none fs-15" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                    <i data-feather="more-horizontal" class="icon-sm"></i>
+                                </button>
+
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a class="dropdown-item" href="apps-projects-overview"><i class="ri-eye-fill align-bottom me-2 text-muted"></i>
+                                        View</a>
+                                    <a class="dropdown-item" href="apps-projects-create"><i class="ri-pencil-fill align-bottom me-2 text-muted"></i>
+                                        Edit</a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#removeProjectModal"><i class="ri-delete-bin-fill align-bottom me-2 text-muted"></i>
+                                        Remove</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex mb-2">
+                    <div class="flex-shrink-0 me-3">
+                        <div class="avatar-sm">
+                                                    <span class="avatar-title bg-soft-success rounded p-2">
+                                                        <img src="{{ asset('/bundles/survosvelzon/images/brands/mail_chimp.png') }}" alt="" class="img-fluid p-1">
+                                                    </span>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1 fs-15"><a href="apps-projects-overview" class="text-dark">
+                                {{ config.code }}
+                            </a></h5>
+                        <p class="text-muted text-truncate-two-lines mb-3">
+                            {{ config.source.github|default('') }}
+{#                            {{ config.source|json_encode|json_pretty }}#}
+                        </p>
+
+                        {% if config.pixieFilename|file_exists %}
+                            <a href="{{ path('pixie_homepage', {pixieCode: pixieCode}) }}">Show</a>
+                        {% else %}
+                            Please import first!
+                        {% endif %}
+
+                        <details>
+                            <summary>Config</summary>
+                            {{ config.pixieFilename }}
+                            {{ config.sourceFilesDir }}
+                        </details>
+                    </div>
+                </div>
+                <div class="mt-auto">
+{#                    {% for tableName, table in tables %}#}
+
+
+                    {% for tableName, table in config.tables %}
+                        <div class="d-flex mb-2">
+                            <div class="flex-grow-1">
+                                <div>
+                                    <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
+                                            {{ data[tableName].count }}
+                                            {{ tableName }}
+                                    </a>
+
+                                    |
+                                            {% for indexName, index in data[tableName].indexes|default([]) %}
+                                                <span xclass="badge badge-info">
+                    <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName, '_fragment': indexName}) }}">
+
+                                                    {{ indexName }}
+                    </a>
+                                                    <sup>
+                                                        {{ index|length }}
+                                                    </sup>
+                                                </span>
+                                            {% endfor %}
+
+{#                                    <details>#}
+{#                                        <summary>#}
+{#                                        </summary>#}
+{#                                    </details>#}
+
+                                        <a href="{{ path('pixie_table',
+                                            {pixieCode: pixieCode, tableName: tableName}) }}">
+                                        </a>
+
+                                </div>
+
+                            </div>
+                            <div class="flex-shrink-0">
+                                <div><i class="ri-list-check align-bottom me-1 text-muted"></i>
+{#                                    {{ counts[config.code][tableName]|number_format }}#}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    <div class="progress progress-sm animated-progress">
+                        <div class="progress-bar bg-success" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100" style="width: 65%;">
+                        </div><!-- /.progress-bar -->
+                    </div><!-- /.progress -->
+                </div>
+            </div>
+
+        </div>
+        <!-- end card body -->
+        <div class="card-footer bg-transparent border-top-dashed py-2">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <div class="avatar-group">
+                        <a href="javascript: void(0);" class="avatar-group-item" data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="top" title="Jeffrey Salazar">
+                            <div class="avatar-xxs">
+                                <img src="{{ asset('/bundles/survosvelzon/images/users/avatar-5.jpg') }}" alt="" class="rounded-circle img-fluid">
+                            </div>
+                        </a>
+                        <a href="javascript: void(0);" class="avatar-group-item" data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="top" title="Mark Williams">
+                            <div class="avatar-xxs">
+                                <div class="avatar-title rounded-circle bg-warning">
+                                    M
+                                </div>
+                            </div>
+                        </a>
+                        <a href="javascript: void(0);" class="avatar-group-item" data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="top" title="Add Members">
+                            <div class="avatar-xxs">
+                                <div class="avatar-title fs-16 rounded-circle bg-light border-dashed border text-primary">
+
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex-shrink-0">
+                    <div class="text-muted">
+                        <i class="ri-calendar-event-fill me-1 align-bottom"></i> 21 Feb, 2021
+                    </div>
+                </div>
+
+            </div>
+            IMPORT:
+            {% for limit in [5, 50, 500, 5000, 50000, 0] %}
+                <a href="{{ path('pixie_import', {limit: limit, pixieCode: pixieCode}) }}">{{ limit }}</a>
+            {% endfor %}
+
+        </div>
+        <!-- end card footer -->
+    </div>
+    <!-- end card -->
+</div>
 {% endblock %}

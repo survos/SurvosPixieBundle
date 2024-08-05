@@ -259,10 +259,24 @@ class PixieController extends AbstractController
 //    #[Template()]
     public function browsePixies(): array|Response
     {
+
         $configs = $this->pixieService->getConfigFiles();
+        // cache candidate!
+        $tables = [];
+        foreach ($configs as $pixieCode => $config) {
+            $kv = $this->pixieService->getStorageBox($pixieCode);
+            foreach ($kv->getTables() as $tableName => $table) {
+                $tables[$pixieCode][$tableName]['count'] = $kv->count($tableName);
+                foreach ($kv->getIndexes($tableName) as $indexName) {
+                    $tables[$pixieCode][$tableName]['indexes'][$indexName] = $kv->getCounts($indexName, $tableName);
+                }
+
+            }
+        }
         return $this->render('@SurvosPixie/pixie/index.html.twig', [
             'dir' => $this->pixieService->getConfigDir(),
             'configs' => $configs,
+            'tables' => $tables,
         ]);
 //        return $this->render(, );
     }

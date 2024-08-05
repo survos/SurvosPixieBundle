@@ -37,7 +37,7 @@ class PixieService
         private array                                       $data=[],
         private string                                      $extension = "pixie.db",
         private string                                      $dbDir='pixie',
-        private string                                      $dataRoot='data',
+        private string                                      $dataRoot='data', //
         private string                                      $configDir='config/packages/pixie',
         #[Autowire('%kernel.project_dir%')] private ?string $projectDir=null,
         private ?LoggerInterface                            $logger=null,
@@ -180,6 +180,7 @@ class PixieService
     public function getConfig(string $pixieCode): Config
     {
         $configFilename = $this->getConfigFilename($pixieCode);
+        assert($configFilename, "$configFilename $pixieCode");
         $configData = Yaml::parseFile($configFilename, Yaml::PARSE_CONSTANT); // so we can use php constants!
         $yaml = Yaml::dump($configData);
 //        $yaml = file_get_contents($configFilename);

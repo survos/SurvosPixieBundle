@@ -340,7 +340,7 @@ class StorageBox
         // @todo: improve PK: https://www.sqlitetutorial.net/sqlite-primary-key/
         // a generated column can't be the primary key, but interesting: https://sqlite.org/forum/info/5928225848d0409f
         if (count($indexes)) { // && count($properties)) {
-            dd("Cannot have both indexes and properties " . $table->getIndexes());
+            dd("Cannot have both indexes and properties  {$this->pixieCode} {$tableName}: " . $table->getIndexes());
         }
 
         $propertyIndexes = [];

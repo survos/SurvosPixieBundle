@@ -33,7 +33,8 @@ final class PixieExportCommand extends InvokableServiceCommand
 
     public function __construct(
         private LoggerInterface       $logger,
-        private ParameterBagInterface $bag, private readonly PixieService $pixieService,
+        private ParameterBagInterface $bag,
+        private readonly PixieService $pixieService,
     )
     {
 
@@ -47,6 +48,9 @@ final class PixieExportCommand extends InvokableServiceCommand
         #[Argument(description: 'config code')] string        $pixieCode,
         #[Argument(description: 'table name')] string         $tableName,
         #[Option(description: 'output directory/filename')] ?string $dirOrFilename,
+        #[Option(description: 'new key name')] ?string $key,
+        #[Option(description: 'single value (map)')] ?string $value,
+        #[Option(description: 'comma-delimited values key => array')] ?string $values,
         #[Option(description: "overwrite existing output files")] bool                      $overwrite = false,
         #[Option(description: "max number of records per table to export")] int                     $limit = 0,
 
@@ -65,7 +69,7 @@ final class PixieExportCommand extends InvokableServiceCommand
         assert($kv->tableExists($tableName), "Missing table $tableName: \n".join("\n", $kv->getTableNames()));
 
         // now iterate
-        $table = $config->getTables()[$tableName]; // to get views
+        $table = $config->getTables()[$tableName]; // to get views, key
         foreach ($kv->iterate($tableName) as $row) {
             dd($row);
         }
