@@ -36,7 +36,6 @@
             {% endif %}
             </details>
 
-{#        {{ dump(tableData.first) }}#}
 {#            <twig:item_grid#}
 {#                    :data="tableData.first:#}
 {#                    >#}
@@ -74,8 +73,6 @@
                                 <a href="{{ path('pixie_browse', {index: indexName, value: row.value, 'pixieCode': pixieCode, tableName: tableName}) }}">
                                     {# this is the row from chart.counts #}
                                     {{ row.count }}
-{#                                    {{ dump(item) }}#}
-{#                                    {{ item }}#}
                                 </a>
                             </twig:block>
 
@@ -94,7 +91,6 @@
 {% block debug %}
 Using KV, no doctrine!
 {% for table in kv.tables %}
-    {#        {{ dump(table) }} #}
     <h3>
         {{ table }}
     </h3>
@@ -105,7 +101,11 @@ Using KV, no doctrine!
 
     {% for row in kv.iterate(table) %}
         {% if loop.index < 3 %}
-            {#                    {{ dump(row) }} #}
+            <twig:simple_item_grid
+                    exclude="_raw,_att,_extra"
+                    :data="item.data"
+            >
+            </twig:simple_item_grid>
         {% endif %}
     {% endfor %}
 {% endfor %}

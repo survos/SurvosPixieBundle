@@ -11,7 +11,7 @@
                 :columns="columns"
         >
                 <twig:block name="marking">
-                    {{ dump(row) }}
+                    {{ row.marking }}
                 </twig:block>
                 <twig:block name="url">
                     <a href="{{ row.url }}" target="_blank">

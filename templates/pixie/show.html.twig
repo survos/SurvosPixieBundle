@@ -27,9 +27,6 @@
         kv: kv|default(null)
     }, ignore_missing=true)  }}
 
-    {#    {{ row._raw|default(false) ? dump(row._raw|json_decode) }}#}
-{#    {{ row.value|default(false) ? dump(row.value|json_decode) }}#}
-
     {% if row %}
         <h3>{{ tableName }} Properties</h3>
         <twig:simple_item_grid
