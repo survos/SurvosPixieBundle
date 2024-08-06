@@ -6,6 +6,7 @@ use League\Csv\Reader;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
+use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\StorageBox;
@@ -62,6 +63,36 @@ class PixieController extends AbstractController
         }
         assert(false, "$fn not found");
         return null;
+    }
+
+    #[Route('/property/{pixieCode}/{tableName}/{propertyCode}', name: 'pixie_show_property', requirements: ['key' => '.+'])]
+    public function show_property(
+        Request                      $request,
+        string                       $pixieCode,
+        string                       $tableName,
+        string                       $propertyCode,
+        #[MapQueryParameter] int     $limit = 500
+    ): Response
+    {
+        $kv = $this->pixieService->getStorageBox($pixieCode);
+        $kv->select($tableName);
+        $conf = $this->pixieService->getConfig($pixieCode);
+        $counts = $this->getCounts($kv, $tableName);
+        // @hack, we can do better!
+        foreach ($kv->getTable($tableName)->getProperties() as $property) {
+            if ($propertyCode == $property->getCode()) {
+                break;
+            }
+        }
+
+        return $this->render('@SurvosPixie/pixie/property.html.twig', [
+            'kv' => $kv,
+            'property' => $property,
+            'tableName' => $tableName,
+            'pixieCode' => $pixieCode,
+            'chart' => $this->getChartData($property, $tableName, $kv)
+        ]);
+
     }
 
 
@@ -255,6 +286,17 @@ class PixieController extends AbstractController
 
     }
 
+    private function getCounts(StorageBox $kv, string $tableName=null): array
+    {
+        $counts = [];
+        foreach ($kv->getIndexes($tableName) as $indexName) {
+            $counts[$indexName] = $kv->getCounts($indexName, $tableName);
+        }
+        return $counts;
+
+
+    }
+
     #[Route('/', name: 'pixie_browse_configs')]
 //    #[Template()]
     public function browsePixies(): array|Response
@@ -270,7 +312,6 @@ class PixieController extends AbstractController
                 foreach ($kv->getIndexes($tableName) as $indexName) {
                     $tables[$pixieCode][$tableName]['indexes'][$indexName] = $kv->getCounts($indexName, $tableName);
                 }
-
             }
         }
         return $this->render('@SurvosPixie/pixie/index.html.twig', [
@@ -322,14 +363,65 @@ class PixieController extends AbstractController
         ]);
     }
 
-        #[Route('/table/{pixieCode}/{tableName}', name: 'pixie_table')]
+    private function getChartData(Property $property, string $tableName, StorageBox $kv, int $limit=100): ?array
+    {
+
+        if (!$indexName = $property->getIndex()) {
+            return null;
+        }
+        // primary is required and maybe min/max?
+        if ($indexName === 'PRIMARY') {
+            return null;
+        }
+        $chartBuilder = $this->chartBuilder;
+        $indexName = $property->getCode();
+        $labels = [];
+        $values = [];
+        $counts = $kv->getCounts($indexName, $tableName, $limit);
+        if (count($counts) === 0) {
+            return null;
+        }
+        foreach ($counts as $count) {
+            $labels[] = $count['value']; // the property name
+            $values[] = $count['count'];
+            // @todo: composer require phpcolor/bootstrap-colors
+            $colors[] = sprintf('rgb(%d, %d, %d)',
+                rand(0, 255),
+                rand(0, 255),
+                rand(0, 255)
+            );
+        }
+        $chart = $chartBuilder->createChart(
+            str_contains($indexName, 'year') ? Chart::TYPE_LINE :
+                Chart::TYPE_PIE
+        );
+
+        $chart->setData([
+            'labels' => $labels,
+            'datasets' => [
+                [
+                    'label' => $indexName . "/$tableName",
+                    'backgroundColor' => $colors,
+                    'borderColor' => 'rgb(255, 99, 132)',
+                    'data' => $values,
+                ],
+            ],
+        ]);
+
+        return [
+            'chart' => $chart,
+            'counts' => $counts
+        ];
+
+    }
+
+    #[Route('/table/{pixieCode}/{tableName}', name: 'pixie_table')]
     public function home(
         string                   $pixieCode,
         string                   $tableName,
         #[MapQueryParameter] int $limit = 25
     ): Response
     {
-        $chartBuilder = $this->chartBuilder;
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
         assert(file_exists($pixieFilename));
         $kv = $this->pixieService->getStorageBox($pixieCode);
@@ -344,54 +436,14 @@ class PixieController extends AbstractController
             $charts = [];
             $table = $kv->getTable($tableName);
             foreach ($table->getProperties() as $property) {
-                if (!$indexName = $property->getIndex()) {
-                    continue;
+                $chartData = $this->getChartData($property, $tableName, $kv);
+                if ($chartData) {
+                    $charts[$property->getCode()] = $chartData;
                 }
-                // primary is required and maybe min/max?
-                if ($indexName === 'PRIMARY') {
-                    continue;
-                }
-                $indexName = $property->getCode();
-                $labels = [];
-                $values = [];
-                $counts = $kv->getCounts($indexName, $tableName, $limit);
-                if (count($counts) === 0) {
-                    continue;
-                }
-                foreach ($counts as $count) {
-                    $labels[] = $count['value']; // the property name
-                    $values[] = $count['count'];
-                    // @todo: composer require phpcolor/bootstrap-colors
-                    $colors[] = sprintf('rgb(%d, %d, %d)',
-                        rand(0, 255),
-                        rand(0, 255),
-                        rand(0, 255)
-                    );
-                }
-                $chart = $chartBuilder->createChart(
-                    str_contains($indexName, 'year') ? Chart::TYPE_LINE :
-                        Chart::TYPE_PIE
-                );
-
-                $chart->setData([
-                    'labels' => $labels,
-                    'datasets' => [
-                        [
-                            'label' => $indexName . "/$tableName",
-                            'backgroundColor' => $colors,
-                            'borderColor' => 'rgb(255, 99, 132)',
-                            'data' => $values,
-                        ],
-                    ],
-                ]);
-
-                $charts[$indexName] = [
-                    'chart' => $chart,
-                    'counts' => $counts
-                ];
             }
             $tables[$tableName]['charts'] = $charts;
         }
+//        dd($tables);
 
         return $this->render('@SurvosPixie/pixie/graphs.html.twig', [
             'pixieCode' => $pixieCode,

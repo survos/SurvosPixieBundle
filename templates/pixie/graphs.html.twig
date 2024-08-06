@@ -6,8 +6,6 @@
     <div class="example-wrapper">
 
         <h1>{{ filename }}</h1>
-
-
         {% for tableName, tableData in tables %}
         {% set item = tableData.first %}
             {% if item %}
@@ -47,12 +45,23 @@
                 {{ tableName }} (n={{ tableData.count }})
                 </a>
             </h2>
+
+            <a href="https://apexcharts.com/docs/chart-types/treemap-chart/">
+                Tree chart..
+            </a>
             {% for indexName, chart in tableData.charts %}
+
+                <a href="{{ path('pixie_show_property', {
+                    pixieCode: pixieCode,
+                    tableName: tableName,
+                    propertyCode: indexName
+                }) }}">
+                    SHOW PROPERTY
+                </a>
 
                 <div class="row" id="{{ indexName }}">
                     <div class="col-md-3">
                         <h3>{{ indexName }}</h3>
-
                         <div class="my-chart">
                             {{ render_chart(chart.chart) }}
                         </div>

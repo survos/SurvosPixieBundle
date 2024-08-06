@@ -109,19 +109,22 @@
                                             {{ data[tableName].count }}
                                             {{ tableName }}
                                     </a>
-
+                                    {% set properties = data[tableName].indexes|default([]) %}
+                                    {% if properties|length %}
                                     |
-                                            {% for indexName, index in data[tableName].indexes|default([]) %}
+                                    <br />&nbsp;
+                                            {% for indexName, index in properties %}
                                                 <span xclass="badge badge-info">
-                    <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName, '_fragment': indexName}) }}">
+                    <a href="{{ path('pixie_show_property', {pixieCode: pixieCode, tableName: tableName, 'propertyCode': indexName}) }}">
 
                                                     {{ indexName }}
-                    </a>
                                                     <sup>
                                                         {{ index|length }}
                                                     </sup>
+                    </a>
                                                 </span>
                                             {% endfor %}
+                                    {% endif %}
 
 {#                                    <details>#}
 {#                                        <summary>#}

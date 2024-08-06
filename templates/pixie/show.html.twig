@@ -10,7 +10,7 @@
 
     <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
 
-    {% if workflowEnabled %}
+    {% if workflowEnabled and is_granted('ROLE_ADMIN')%}
         Workflow: {{ workflow }}
 
         {{ include('@SurvosWorkflow/_entity_transitions.html.twig', {

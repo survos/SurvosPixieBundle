@@ -14,6 +14,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Yaml\Yaml;
 use Zenstruck\Console\Attribute\Argument;
 use Zenstruck\Console\Attribute\Option;
@@ -35,6 +36,7 @@ final class PixieExportCommand extends InvokableServiceCommand
         private LoggerInterface       $logger,
         private ParameterBagInterface $bag,
         private readonly PixieService $pixieService,
+        private SerializerInterface $serializer,
     )
     {
 
@@ -68,12 +70,23 @@ final class PixieExportCommand extends InvokableServiceCommand
 
         assert($kv->tableExists($tableName), "Missing table $tableName: \n".join("\n", $kv->getTableNames()));
 
+        $recordsToWrite=[];
+        $key = $key??'key';
         // now iterate
         $table = $config->getTables()[$tableName]; // to get views, key
-        foreach ($kv->iterate($tableName) as $row) {
-            dd($row);
+        $count = 0;
+        foreach ($kv->iterate($tableName) as $idx => $row) {
+
+            $recordsToWrite[$row->{$key}()] = $value ? $row->{$value}() : $row;
+            if ($limit && (++$count >= $limit)) {
+                break;
+            }
         }
 
+        $filename = $pixieCode . '-' . $tableName.'.json';
+
+        file_put_contents($filename, $this->serializer->serialize($recordsToWrite, 'json'));
+        $io->success(count($recordsToWrite) . " records written to $filename");
 
 //        dump($configData, $config->getVersion());
 //        dd($dirOrFilename, $config, $configFilename, $pixieService->getPixieFilename($configCode));

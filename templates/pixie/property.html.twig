@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Property{% endblock %}
+
+{% block body %}
+<div class="row" id="{{ property }}">
+    <div class="col-md-3">
+        <h3>{{ property.code }}</h3>
+
+        <div class="my-chart">
+            {{ render_chart(chart.chart) }}
+        </div>
+    </div>
+    <div class="col-md-6">
+
+        {% set columns = [
+            {name: 'count', title: '#'},
+            {name: 'value', title: property.code}
+        ] %}
+        <twig:simple_datatables
+                perPage="10"
+                :caller="_self"
+                :columns="columns"
+                :data="chart.counts"
+        >
+            <twig:block name="count">
+                <a href="{{ path('pixie_browse', {index: property.code, value: row.value, 'pixieCode': pixieCode, tableName: tableName}) }}">
+                    {# this is the row from chart.counts #}
+                    {{ row.count }}
+                </a>
+            </twig:block>
+
+        </twig:simple_datatables>
+    </div>
+</div>
+
+{% endblock %}
