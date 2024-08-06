@@ -3,6 +3,16 @@
 {% block title %}Property{% endblock %}
 
 {% block body %}
+    {% set _sc = 'apex' %}
+    <div {{ stimulus_controller(_sc, {
+        data: chart.counts,
+        title: property.code,
+        url: ''}) }}>
+        <div {{ stimulus_target(_sc, 'chart') }}>
+            Chart goes here.
+        </div>
+    </div>
+
 <div class="row" id="{{ property }}">
     <div class="col-md-3">
         <h3>{{ property.code }}</h3>
