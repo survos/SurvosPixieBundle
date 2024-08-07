@@ -692,10 +692,11 @@ class StorageBox
         $this->query("DELETE FROM $this->currentTable;");
     }
 
-    public function getSql(string $table, array $where = [], array $order=[], int $startingAt=0, int $max = 0): array
+    public function getSql(string $table, array $where = [], array $order=[], int $startingAt=0, int $max = 0, bool $keyOnly=false): array
     {
+        $pk = $this->getPrimaryKey($table);
         // @todo: only prepare the statement once
-        $sql = "select * from " . ($table ?? $this->currentTable);
+        $sql = "select " . ($keyOnly ? $pk : '*') . " from " . ($table ?? $this->currentTable);
 
         // @todo: prepared statement and bind values.
         $sql .= " where 1=1";
@@ -740,13 +741,14 @@ class StorageBox
         $table = $table ?? $this->currentTable;
         assert($table, "no table configured");
         $pkName = $this->getPrimaryKey($table);
-        [$sql, $params] = $this->getSql($table, $where, $order, max: $max);
+        $keyOnly = true;
+        [$sql, $params] = $this->getSql($table, $where, $order, max: $max, keyOnly: $keyOnly);
 
 
         // https://stackoverflow.com/questions/78623214/using-a-generator-to-loop-through-an-update-a-table-in-pdo
         $sth = $this->query($sql, $params);
         try {
-            dump($sql, $params, $flags);
+//            dump($sql, $params, $flags);
             $all = $sth->fetchAll($flags);
         } catch (\Exception $exception) {
             dd($sql, $params);
@@ -759,7 +761,10 @@ class StorageBox
 //        foreach ($sth as $idx => $row)
 //        while ($row = $sth->fetch(PDO::FETCH_ASSOC))
         {
-//            dd($idx, $row);
+            if ($keyOnly) {
+                $rowQuery = $this->query("select * from $table where " . $pkName . " = :pk;", ["pk" => $row[$pkName]]);
+                $row = $rowQuery->fetch(PDO::FETCH_ASSOC);
+            }
             // can 'value' be configured?  _raw
             // @todo: lax, strict, none (handle _raw, _value, etc. )
             // value is deprecated!

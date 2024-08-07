@@ -11,7 +11,7 @@
         "fetch": "lazy",
         "enabled": true,
         "autoimport": {
-          "@survos/apexcharts/style.css": true
+          "@survos/pixie/style.css": true
         }
 
       }
