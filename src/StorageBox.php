@@ -745,7 +745,12 @@ class StorageBox
 
         // https://stackoverflow.com/questions/78623214/using-a-generator-to-loop-through-an-update-a-table-in-pdo
         $sth = $this->query($sql, $params);
-        $all = $sth->fetchAll($flags);
+        try {
+            dump($sql, $params, $flags);
+            $all = $sth->fetchAll($flags);
+        } catch (\Exception $exception) {
+            dd($sql, $params);
+        }
         if (count($all) === 0) {
             return;
         }

@@ -71,13 +71,13 @@ class PixieController extends AbstractController
         string                       $pixieCode,
         string                       $tableName,
         string                       $propertyCode,
-        #[MapQueryParameter] int     $limit = 500
+        #[MapQueryParameter] int     $limit = 100
     ): Response
     {
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $kv->select($tableName);
         $conf = $this->pixieService->getConfig($pixieCode);
-        $counts = $this->getCounts($kv, $tableName);
+        $counts = $this->getCounts($kv, $tableName, $limit);
         // @hack, we can do better!
         foreach ($kv->getTable($tableName)->getProperties() as $property) {
             if ($propertyCode == $property->getCode()) {
@@ -286,11 +286,11 @@ class PixieController extends AbstractController
 
     }
 
-    private function getCounts(StorageBox $kv, string $tableName=null): array
+    private function getCounts(StorageBox $kv, string $tableName=null, int $limit=0): array
     {
         $counts = [];
         foreach ($kv->getIndexes($tableName) as $indexName) {
-            $counts[$indexName] = $kv->getCounts($indexName, $tableName);
+            $counts[$indexName] = $kv->getCounts($indexName, $tableName, $limit);
         }
         return $counts;
 
@@ -299,7 +299,9 @@ class PixieController extends AbstractController
 
     #[Route('/', name: 'pixie_browse_configs')]
 //    #[Template()]
-    public function browsePixies(): array|Response
+    public function browsePixies(
+        #[MapQueryParameter] int $limit = 50
+    ): array|Response
     {
 
         $configs = $this->pixieService->getConfigFiles();
@@ -308,10 +310,14 @@ class PixieController extends AbstractController
         foreach ($configs as $pixieCode => $config) {
             $kv = $this->pixieService->getStorageBox($pixieCode);
             foreach ($kv->getTables() as $tableName => $table) {
+                // how many items in the table
                 $tables[$pixieCode][$tableName]['count'] = $kv->count($tableName);
-                foreach ($kv->getIndexes($tableName) as $indexName) {
-                    $tables[$pixieCode][$tableName]['indexes'][$indexName] = $kv->getCounts($indexName, $tableName);
-                }
+                // the key indexes
+                $indexCounts = $this->getCounts($kv, $tableName, $limit);
+                $tables[$pixieCode][$tableName]['indexes'] = $indexCounts;
+//                foreach ($kv->getIndexes($tableName) as $indexName) {
+//                    $tables[$pixieCode][$tableName]['indexes'][$indexName] = $kv->getCounts($indexName, $tableName);
+//                }
             }
         }
         return $this->render('@SurvosPixie/pixie/index.html.twig', [
@@ -325,9 +331,10 @@ class PixieController extends AbstractController
     #[Route('/{pixieCode}', name: 'pixie_homepage')]
     public function pixie_overview(
         string                   $pixieCode,
-        #[MapQueryParameter] int $limit = 25
+        #[MapQueryParameter] int $limit = 100
     ): Response
     {
+
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $tables = [];
 
@@ -343,6 +350,7 @@ class PixieController extends AbstractController
                 ];
         }
         return $this->render('@SurvosPixie/pixie/homepage.html.twig', [
+            'limit' => $limit,
             'kv' => $kv,
             'tables' => $tables,
             'pixieCode' => $pixieCode,
