@@ -5,6 +5,7 @@
 namespace Survos\PixieBundle;
 
 use Survos\ApiGrid\Controller\GridController;
+use Survos\CoreBundle\Traits\HasAssetMapperTrait;
 use Survos\PixieBundle\Command\IterateCommand;
 use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
@@ -29,6 +30,7 @@ use Twig\Environment;
 
 class SurvosPixieBundle extends AbstractBundle
 {
+    use HasAssetMapperTrait;
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
 

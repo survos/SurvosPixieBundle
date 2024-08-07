@@ -3,7 +3,7 @@
 {% block title %}Property{% endblock %}
 
 {% block body %}
-    {% set _sc = 'apex' %}
+    {% set _sc = '@survos/pixie-bundle/pixie_apex' %}
     <div {{ stimulus_controller(_sc, {
         data: chart.counts,
         title: property.code,

@@ -5,7 +5,7 @@
   "version": "1.0.4",
   "symfony": {
     "controllers": {
-      "table": {
+      "pixie_apex": {
         "main": "src/controllers/pixie_apex_controller.js",
         "webpackMode": "eager",
         "fetch": "lazy",
