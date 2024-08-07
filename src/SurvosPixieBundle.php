@@ -126,4 +126,12 @@ class SurvosPixieBundle extends AbstractBundle
             ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('config/packages/pixie')->end()
             ->end();
     }
+
+    public function getPaths(): array
+    {
+        $dir = realpath(__DIR__ . '/../assets/');
+        assert(file_exists($dir), 'asset path must exist for the assets in ' . __DIR__);
+        return [$dir => '@survos/pixie'];
+    }
+
 }

@@ -1,0 +1,28 @@
+{
+  "name": "@survos/pixie",
+  "description": "integrate php and javascript helpers pixie",
+  "license": "MIT",
+  "version": "1.0.4",
+  "symfony": {
+    "controllers": {
+      "table": {
+        "main": "src/controllers/pixie_apex_controller.js",
+        "webpackMode": "eager",
+        "fetch": "lazy",
+        "enabled": true,
+        "autoimport": {
+          "@survos/apexcharts/style.css": true
+        }
+
+      }
+    },
+    "importmap": {
+      "@hotwired/stimulus": "^3.1.0",
+      "apexcharts": "^3.52.0"
+    }
+  },
+  "peerDependencies": {
+    "@hotwired/stimulus": "^3.1.0",
+    "apexcharts": "^3.52.0
+  }
+}
