@@ -157,7 +157,7 @@ class PixieService
         $finder = new Finder();
         $configs  = [];
         // this is only the configs in the configDir.
-        foreach ($finder->files()->name('*.yaml')->in($this->getConfigDir()) as $file) {
+        foreach ($finder->files()->name('*.yaml')->in($this->getConfigDir())->sortByName()->reverseSorting() as $file) {
             // we can optimize later...
             $code = $file->getFilenameWithoutExtension();
             $config = $this->getConfig($code);

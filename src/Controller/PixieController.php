@@ -328,7 +328,8 @@ class PixieController extends AbstractController
 //        return $this->render(, );
     }
 
-    #[Route('/{pixieCode}', name: 'pixie_homepage')]
+    #[Route('/{pixieCode}/home', name: 'pixie_homepage')]
+    #[Route('/{pixieCode}', name: 'pixie_overview')]
     public function pixie_overview(
         string                   $pixieCode,
         #[MapQueryParameter] int $limit = 100
@@ -349,7 +350,7 @@ class PixieController extends AbstractController
                     'counts' => $counts
                 ];
         }
-        return $this->render('@SurvosPixie/pixie/homepage.html.twig', [
+        return $this->render('@SurvosPixie/pixie/overview.html.twig', [
             'limit' => $limit,
             'kv' => $kv,
             'tables' => $tables,

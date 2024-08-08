@@ -1,8 +1,17 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ pixieCode }} Tables{% endblock %}
+{% block title %}{{ pixieCode }} Overview{% endblock %}
 
 {% block body %}
+
+    This is the overview page of {{ pixieCode }}
+
+    <p>
+        It should have details but not everything that is in property.  A description, copyright info, etc.
+
+        Fields, not just property.  Language, country, etc.
+    </p>
+
     <h1>Capped at {{ limit }}</h1>
 
     {% for tableName, table in tables %}
@@ -16,11 +25,6 @@
             {% for indexName, values in table.counts %}
                 <li>
                     {{ values|length }} {{ indexName }} Values
-{#                    <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName, '_fragment': indexName}) }}">#}
-{#                    by #}
-{#                    </a>#}
-
-
                     <a class="btn btn-primary" href="{{ path('pixie_show_property', {pixieCode: pixieCode, tableName: tableName, propertyCode: indexName,}) }}">
                         {{ indexName }} Property Page
                     </a>
