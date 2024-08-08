@@ -386,6 +386,7 @@ class PixieController extends AbstractController
         $indexName = $property->getCode();
         $labels = [];
         $values = [];
+
         $counts = $kv->getCounts($indexName, $tableName, $limit);
         if (count($counts) === 0) {
             return null;
@@ -437,20 +438,26 @@ class PixieController extends AbstractController
         {
             $count = $kv->count($tableName);
 //            dd($tableName, $count);
-            $tableDasta = [
+            $tableData = [
                 'first' => $kv->iterate($tableName)->current(),
                 'count' => $kv->count($tableName) // we could cache this someday, like ->closeWithCounts()
             ];
 
             $charts = [];
             $table = $kv->getTable($tableName);
+            $tableSchema = $kv->inspectSchema()[$tableName];
             foreach ($table->getProperties() as $property) {
-                $chartData = $this->getChartData($property, $tableName, $kv);
-                if ($chartData) {
-                    $charts[$property->getCode()] = $chartData;
+//                dd($tableSchema, $property, $table->getProperties());
+                try {
+                    $chartData = $this->getChartData($property, $tableName, $kv);
+                    if ($chartData) {
+                        $charts[$property->getCode()] = $chartData;
+                    }
+                } catch (\Exception $e) {
+                    // probably a migration is needed.
                 }
             }
-            $tableDasta['charts'] = $charts;
+            $tableData['charts'] = $charts;
         }
 //        dd($tables);
 
@@ -458,7 +465,7 @@ class PixieController extends AbstractController
             'pixieCode' => $pixieCode,
             'tableName'=>$tableName,
 //            'kv' => $kv, // avoidable?/
-            'tableData' => $tableDasta
+            'tableData' => $tableData
         ]);
 
     }

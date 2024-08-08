@@ -461,8 +461,8 @@ class StorageBox
         static $preparedStatements = [];
         // cache prepared statements
         if (empty($preparedStatements[$this->filename][$sql])) {
-            try {
                 $preparedStatements[$this->filename][$sql] = $this->db->prepare($sql);;
+            try {
             } catch (\Exception $exception) {
                 dump($exception, $sql, $this->filename, $variables);
                 assert(false, $sql . " " . $exception->getMessage());
