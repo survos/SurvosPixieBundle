@@ -3,17 +3,38 @@
 {% block title %}Pixie {{  pixieCode }}{% endblock %}
 
 {% block page_header %}
-    Pixie {{ pixieCode }}
-    <a href="{{ path('pixie_schema', {pixieCode: pixieCode}) }}">
-        Schema
-    </a>
-    {% for table in kv.tableNames %}
-        <a href="{{ path('pixie_browse', {tableName: table, pixieCode: pixieCode}) }}">
-            {{ table }}
+
+    NAVIGATION:
+
+    Pixie List <a href="{{ path('pixie_browse_configs') }}">{{ 'all'|trans }}</a>
+     /
+    {% if pixieCode|default(false) %}
+        <a href="{{ path('pixie_overview', {pixieCode: pixieCode}) }}">
+            Pixie {{ pixieCode }}
         </a>
 
-    {% endfor %}
+        |
+        @todo: make this a dropdown?
+        {% if kv|default(false) %}
+            {% for table in kv.tableNames %}
+                <a href="{{ path('pixie_browse', {tableName: table, pixieCode: pixieCode}) }}">
+                    {{ table }}
+                </a>
+
+            {% endfor %}
+        {% endif %}
+    {% endif %}
+
+    {% if tableName|default(false) %}
+        <span class="float-end">
+    <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">{{ tableName }}</a>
+
+        </span>
+    {% endif %}
+
 {% endblock %}
+
+
 {% block body %}
 
 

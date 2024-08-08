@@ -1,4 +1,4 @@
-{% extends 'base.html.twig' %}
+{% extends '@SurvosPixie/pixie/layout.html.twig' %}
 
 {% block title %}{{ pixieCode }} Overview{% endblock %}
 
@@ -33,4 +33,9 @@
         </ul>
         </li>
     {% endfor %}
+
+    <a href="{{ path('pixie_schema', {pixieCode: pixieCode}) }}">
+        Schema
+    </a>
+x
 {% endblock %}

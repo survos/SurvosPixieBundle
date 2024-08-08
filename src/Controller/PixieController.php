@@ -437,7 +437,7 @@ class PixieController extends AbstractController
         {
             $count = $kv->count($tableName);
 //            dd($tableName, $count);
-            $tables[$tableName] = [
+            $tableDasta = [
                 'first' => $kv->iterate($tableName)->current(),
                 'count' => $kv->count($tableName) // we could cache this someday, like ->closeWithCounts()
             ];
@@ -450,15 +450,15 @@ class PixieController extends AbstractController
                     $charts[$property->getCode()] = $chartData;
                 }
             }
-            $tables[$tableName]['charts'] = $charts;
+            $tableDasta['charts'] = $charts;
         }
 //        dd($tables);
 
         return $this->render('@SurvosPixie/pixie/graphs.html.twig', [
             'pixieCode' => $pixieCode,
+            'tableName'=>$tableName,
 //            'kv' => $kv, // avoidable?/
-            'tables' => $tables,
-            'filename' => $kv->getFilename()
+            'tableData' => $tableDasta
         ]);
 
     }
