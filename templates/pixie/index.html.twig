@@ -182,7 +182,10 @@
                             {# for development, will be moved to service #}
                             {% set iconMap = {
                                 github: 'mdi:github',
-                                twitter: 'mdi:twitter'
+                                twitter: 'mdi:twitter',
+                                facebook: 'logos:facebook',
+                                flickr: 'logos:flickr-icon'
+
                             } %}
                             {% for key, link in config.source.links %}
                                 {% set icon = iconMap[key]|default('mdi:external-link') %}
