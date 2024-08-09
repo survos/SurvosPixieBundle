@@ -9,6 +9,7 @@ class Source
         public string $locale = 'en',
         public null|string|array $ignore = [],
         public null|string|array $include = [],
+        public array           $links=[],
     )
     {
 

@@ -53,7 +53,9 @@ export default class extends Controller {
             }
         };
 
+        this.chartTarget.innerHTML = 'xxx';
         var chart = new ApexCharts(this.chartTarget, options);
+
         chart.render();
     }
 }

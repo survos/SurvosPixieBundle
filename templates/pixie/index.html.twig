@@ -1,13 +1,8 @@
-{% extends 'base.html.twig' %}
+{% extends '@SurvosPixie/pixie/layout.html.twig' %}
 
 {% block title %}Hello AppController!
 {% endblock %}
 
-{% block stylesheets %}
-    {{ parent() }}
-    <link rel="stylesheet" type="text/css" href="{{ asset('bundles/survospixie/style.css') }}" ></link>
-
-{% endblock %}
 {% block body %}
 
     {#    <p class="mb-1 text-muted">{{ _self }}</p>#}
@@ -76,10 +71,15 @@
                             </div>
                         </div>
                     </div>
+
                     <div
                             class="d-flex mb-2">
+
                         {# <div class="flex-shrink-0 me-3">
 													<div class="avatar-sm">
+													    <twig:ux:icon name="mdi:github" />
+
+
 														<span class="avatar-title bg-soft-success rounded p-2">
 															<img src="{{ asset('/bundles/survosvelzon/images/brands/mail_chimp.png') }}" alt="" class="img-fluid p-1" onerror="this.onerror=null; this.src='/bundles/apiplatform/web.png';">
 														</span>
@@ -91,6 +91,8 @@
                                     {{ config.code }}
                                 </a>
                             </h5>
+
+
                             <p class="mb-3">
                                 {% if config.pixieFilename|file_exists %}
                                 <a href="{{ path('pixie_homepage', {pixieCode: pixieCode}) }}" class="text-decoration-none">Show</a>
@@ -176,6 +178,23 @@
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
                         <div class="avatar-group">
+
+                            {# for development, will be moved to service #}
+                            {% set iconMap = {
+                                github: 'mdi:github',
+                                twitter: 'mdi:twitter'
+                            } %}
+                            {% for key, link in config.source.links %}
+                                {% set icon = iconMap[key]|default('mdi:external-link') %}
+                                <li>
+                                    <a href="{{ link }}" target="_blank">
+                                        <twig:ux:icon name="{{icon }}" />
+                                        {{ key }}
+                                    </a>
+
+                                </li>
+                            {% endfor %}
+
                             <a href="javascript: void(0);" class="avatar-group-item" data-bs-toggle="tooltip" data-bs-trigger="hover" data-bs-placement="top" title="Jeffrey Salazar">
                                 ??
 {#                                <img src="{{ asset('/bundles/survosvelzon/images/users/avatar-5.jpg') }}" alt="" class="rounded-circle avatar-sm" onerror="this.onerror=null; this.src='/bundles/apiplatform/web.png';">#}
