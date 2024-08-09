@@ -5,8 +5,6 @@
 
 .avatar-group {
     padding-left: 12px;
-    display: -webkit-box;
-    display: -ms-flexbox;
     display: flex;
     -ms-flex-wrap: wrap;
     flex-wrap: wrap;
@@ -20,17 +18,27 @@
     transition: all .2s;
 }
 
-.avatar-sm {
+.avatar-xs {
     height: 2rem;
     width: 2rem;
 }
 
+.avatar-sm {
+    height: 3rem;
+    width: 3rem;
+}
+
+.avatar-xxs {
+    height: 1.5rem;
+    width: 1.5rem;
+}
+
 .progress-sm {
-    height: 10px;
+    height: 5px;
 }
 
 :root {
-    --bs-font-family-primary: "IBM Plex Sans", sans-serif;
+    --bs-body-font-family: "IBM Plex Sans", sans-serif;
     --bs-font-family-secondary: "IBM Plex Sans", sans-serif;
     --bs-grid-gutter-width: 1.5rem;
     --bs-body-bg: #fff;
