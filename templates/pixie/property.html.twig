@@ -3,24 +3,24 @@
 {% block title %}Property{% endblock %}
 
 {% block body %}
-    {% if chart|default(false) %}
-    {% set _sc = '@survos/pixie-bundle/pixie_apex' %}
-    <div {{ stimulus_controller(_sc, {
-        data: chart.counts,
-        title: property.code,
-        url: ''}) }}>
-        <div {{ stimulus_target(_sc, 'chart') }}>
-            Chart goes here.
-        </div>
-    </div>
-    {% endif %}
-
 <div class="row" id="{{ property }}">
     <div class="col-md-3">
         <h3>{{ property.code }}</h3>
 
         <div class="my-chart">
-            {{ render_chart(chart.chart) }}
+
+            {% if chart|default(false) %}
+                {% set _sc = '@survos/pixie-bundle/pixie_apex' %}
+                <div {{ stimulus_controller(_sc, {
+                    data: chart.counts,
+                    title: property.code,
+                    url: ''}) }}>
+                    <div {{ stimulus_target(_sc, 'chart') }}>
+                        Chart goes here.
+                    </div>
+                </div>
+                {{ render_chart(chart.chart) }}
+            {% endif %}
         </div>
     </div>
     <div class="col-md-6">
@@ -33,7 +33,7 @@
                 perPage="10"
                 :caller="_self"
                 :columns="columns"
-                :data="chart.counts"
+                :data="chart.counts|default([])"
         >
             <twig:block name="count">
                 <a href="{{ path('pixie_browse', {index: property.code, value: row.value, 'pixieCode': pixieCode, tableName: tableName}) }}">

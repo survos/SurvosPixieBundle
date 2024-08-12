@@ -85,12 +85,14 @@ class PixieController extends AbstractController
             }
         }
 
+        $chart = $this->getChartData($property, $tableName, $kv);
+//        assert($chart, "no chart data for $tableName $property");
         return $this->render('@SurvosPixie/pixie/property.html.twig', [
             'kv' => $kv,
             'property' => $property,
             'tableName' => $tableName,
             'pixieCode' => $pixieCode,
-            'chart' => $this->getChartData($property, $tableName, $kv)
+            'chart' => $chart
         ]);
 
     }
