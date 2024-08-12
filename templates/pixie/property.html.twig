@@ -3,6 +3,7 @@
 {% block title %}Property{% endblock %}
 
 {% block body %}
+    {% if chart|default(false) %}
     {% set _sc = '@survos/pixie-bundle/pixie_apex' %}
     <div {{ stimulus_controller(_sc, {
         data: chart.counts,
@@ -12,6 +13,7 @@
             Chart goes here.
         </div>
     </div>
+    {% endif %}
 
 <div class="row" id="{{ property }}">
     <div class="col-md-3">
