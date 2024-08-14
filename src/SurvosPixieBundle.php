@@ -9,6 +9,7 @@ use Survos\CoreBundle\Traits\HasAssetMapperTrait;
 use Survos\PixieBundle\Command\IterateCommand;
 use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
+use Survos\PixieBundle\Command\PixieIndexCommand;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Controller\PixieTransitionController;
 use Survos\PixieBundle\DataCollector\PixieDataCollector;
@@ -81,6 +82,11 @@ class SurvosPixieBundle extends AbstractBundle
         }
 
         // check https://github.com/zenstruck/console-extra/issues/59
+        $builder->autowire(PixieIndexCommand::class)
+            ->setAutoconfigured(true)
+            ->addTag('console.command')
+        ;
+
         $builder->autowire(PixieImportCommand::class)
             ->setAutoconfigured(true)
             ->addTag('console.command')

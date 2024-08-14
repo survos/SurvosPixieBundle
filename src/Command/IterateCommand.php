@@ -58,6 +58,7 @@ final class IterateCommand extends InvokableServiceCommand
         // marking CAN be null, which is why we should set it when inserting
         #[Option(description: 'workflow marking')] ?string    $marking=null,
         #[Option(description: 'message transport')] ?string   $transport=null,
+        #[Option(description: 'tags (for listeners)')] ?string   $tags=null,
         #[Option] int                                         $limit = 0,
 
     ): int
@@ -120,11 +121,12 @@ final class IterateCommand extends InvokableServiceCommand
                             $key,
                             $idx,
                             $count,
-                            storageBox: $kv,
                             type: RowEvent::LOAD,
                             action: self::class,
+                            storageBox: $kv,
                             context: [
 //                                'storageBox' => $kv,
+                                'tags' => explode(",", $tags),
                                 'transition' => $transition,
                                 'transport' => $transport
                             ])

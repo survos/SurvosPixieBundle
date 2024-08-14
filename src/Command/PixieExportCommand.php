@@ -76,6 +76,7 @@ final class PixieExportCommand extends InvokableServiceCommand
         $table = $config->getTables()[$tableName]; // to get views, key
         $count = 0;
         foreach ($kv->iterate($tableName) as $idx => $row) {
+            // dispatch a export event
 
             $recordsToWrite[$row->{$key}()] = $value ? $row->{$value}() : $row;
             if ($limit && (++$count >= $limit)) {
@@ -103,6 +104,8 @@ final class PixieExportCommand extends InvokableServiceCommand
         $io->success('Pixie:export success ' . $pixieCode);
         return self::SUCCESS;
     }
+
+
 
 
 }
