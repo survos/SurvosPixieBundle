@@ -156,12 +156,11 @@ final class IterateCommand extends InvokableServiceCommand
                 type: RowEvent::POST_LOAD,
                 action: self::class,
                 context: [
+                    'tags' => explode(",", $tags),
                     'transition' => $transition,
                     'transport' => $transport
                 ])
         );
-
-
         $io->success('Pixie:iterate success ' . $kv->getFilename());
         return self::SUCCESS;
     }
