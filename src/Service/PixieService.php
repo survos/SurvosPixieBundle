@@ -5,8 +5,10 @@ namespace Survos\PixieBundle\Service;
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
 use Psr\Log\LoggerInterface;
+use Survos\BootstrapBundle\Event\KnpMenuEvent;
 use Survos\PixieBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
+use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
@@ -15,6 +17,7 @@ use Survos\PixieBundle\Model\Source;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -79,6 +82,14 @@ class PixieService
             }
         }
         return ($filename && file_exists($filename)) ? $filename : null;
+    }
+
+    // fetch via an event, rather than injecting the service
+    #[AsEventListener(event: StorageBoxEvent::class, priority: 50)]
+    public function storageBoxListener(StorageBoxEvent $event): void
+    {
+        $kv = $this->getStorageBox($event->getPixieCode());
+        $event->setStorageBox($kv);
     }
 
     function getStorageBox(string $pixieCode,
