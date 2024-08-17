@@ -539,7 +539,7 @@ class StorageBox
      * @param string $key The key to store the value under.
      * @return    string    The value to store.
      */
-    public function get(string $key, string $tableName = null): ?Item // string|object|array|null
+    public function get(string $key, string $tableName = null, callable $callback=null): ?Item // string|object|array|null
     {
         $tableName = $tableName ?? $this->currentTable;
         $keyName = $this->getPrimaryKey($tableName);
@@ -547,7 +547,6 @@ class StorageBox
             sprintf("SELECT * FROM %s WHERE $keyName = :key;", $tableName),
             ["key" => $key]
         )->fetchObject();
-        assert($results, "\nno record for [$key] in table [$tableName]\n");
         if ($results) {
             $marking = $results->marking??null;
             // hack for workflow, ugh. Could generalize with properties, casting, etc.
@@ -559,6 +558,9 @@ class StorageBox
             }
             return new Item($raw,$key, $tableName, $this->getPixieCode(), marking: $marking);
         } else {
+            if ($callback !== null) {
+                $callback($key, $tableName);
+            }
             return null;
         }
     }

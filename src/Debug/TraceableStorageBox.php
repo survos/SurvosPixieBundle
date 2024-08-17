@@ -47,7 +47,7 @@ final class TraceableStorageBox extends StorageBox
         return $this->innerSearchService(__FUNCTION__, \func_get_args());
     }
 
-    public function get(string $key, string $tableName = null): Item // string|object|array|null
+    public function get(string $key, string $tableName = null, callable $callback=null): ?Item // string|object|array|null
 //    public function get(string $key, string $table = null): string|object|array|null
     {
         return $this->innerSearchService(__FUNCTION__, \func_get_args());
