@@ -279,7 +279,12 @@ To restore, do the opposite
 
 ### S3 example
 
+aws s3 sync . s3://voxitour/data/pixie --acl public-read  --exclude="*" --include="met.zip"
+aws s3 sync s3://voxitour/data/pixie . --acl public-read  --exclude="*" --include="met.zip"
+
 aws s3 sync . s3://voxitour/data/pixie --acl public-read  --exclude="*" --include="x.pixie.db"
 aws s3 sync s3://voxitour/data/pixie . --acl public-read  --exclude="*" --include="x.pixie.db"
+
+aws s3 sync s3://voxitour/data/pixie . --acl public-read  --exclude="*" --include="*.zip"
 
 
