@@ -58,7 +58,6 @@ class PixieImportService
         assert($files->count(), "No files in {$this->pixieService->getDataRoot()} $dirOrFilename");
 
         foreach ($files as $splFile) {
-            $this->eventDispatcher->dispatch(new ImportFileEvent($splFile->getRealPath()));
 //            assert($splFile->getExtension() <> 'csv', json_encode($ignore));
             $map[$splFile->getRealPath()] = u($splFile->getFilenameWithoutExtension())->snake()->toString();
                 foreach ($config->getFileToTableMap() as $rule => $tableNameRule) {
@@ -96,6 +95,8 @@ class PixieImportService
             }
             // we could do a callback here tagging it as a file.  Or some sort of event?
             $this->logger && $this->logger->warning("Importing $fn to $tableName");
+            $this->eventDispatcher->dispatch(new ImportFileEvent($fn));
+
 //            if (!str_contains($pixieDbName, 'moma')) dd($tableName, $pixieDbName, $kv->getFilename());
 //            dd($tableName, $tablesToCreate);
 //            $table = [$tableName]??null;
@@ -186,13 +187,6 @@ class PixieImportService
 //                if ($exists) {
 //                    $existing = $kv->get($row[$pkName]);
 //                }
-                if (!$overwrite && $exists) {
-                    if ($row[$pk] === 114) {
-//                        dd($row, $kv->has($row[$pkName]), ));
-                    }
-                    continue;
-                }
-
                 foreach ($row as $k => $v) {
                     foreach ($dataRules[$k] ?? [] as $dataRegexRule => $substitution) {
                         $match = preg_match($dataRegexRule, $v, $mm);
@@ -213,6 +207,15 @@ class PixieImportService
                     $config->code, $tableName, $row,
                     action: self::class,
                     storageBox: $kv ));
+
+                if (!$overwrite && $exists) {
+                    if ($row[$pk] === 114) {
+//                        dd($row, $kv->has($row[$pkName]), ));
+                    }
+                    continue;
+                }
+
+                dd($event);
                 // seems hackish, better to use discard
                 if (!$event->row) {
                     dd($event);
@@ -232,6 +235,7 @@ class PixieImportService
 //                if ($idx == 1) dump($tableName, $row, $limit, $idx);
                 if ($limit && ($idx >= $limit-1)) break;
                 if ($callback) {
+                    dd($callback);
                     if (!$continue = $callback($row, $idx, $kv)) {
                         dd('stopping!');
                         break;

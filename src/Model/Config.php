@@ -92,6 +92,11 @@ class Config
         return $this->tables;
     }
 
+    public function getTable(string $tableName): ?Table
+    {
+        return $this->tables[$tableName] ?? null;
+    }
+
     public function setTables(array $tables): Config
     {
         foreach ($tables as $table) {

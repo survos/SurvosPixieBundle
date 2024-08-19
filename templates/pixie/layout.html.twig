@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block page_header %}
+
                 {{ component('menu', {
                     caller: _self,
                     type: PAGE_MENU,
@@ -23,6 +24,7 @@
         <div class="card-body d-flex gap-3 align-items-center">
             {% set currentTablename = tableName|default(false) %}
 
+
             {# NAVIGATION: #}
             <h6 class="mb-0">Pixie List</h6>
              <a class="text-decoration-none" href="{{ path('pixie_browse_configs') }}">{{ 'all'|trans }}</a>
@@ -32,12 +34,17 @@
                     Pixie {{ pixieCode }}
                 </a>
 
+                <a href="{{ path('pixie_schema', {pixieCode: pixieCode}) }}">
+                    Schema
+                </a>
+
                 |
                 {# @todo: make this a dropdown? #}
                 {% if kv|default(false) %}
                     {% for table in kv.tableNames %}
                         {# @rk: this is just to show how which is the active table #}
-                        <a class="text-decoration-none text-capitalize {{ table == currentTablename ? 'text-primary' : 'text-dark' }}" href="{{ path('pixie_browse', {tableName: table, pixieCode: pixieCode}) }}">
+                        <a class="text-decoration-none text-capitalize {{ table == currentTablename ? 'text-primary' : 'text-dark' }}"
+                           href="{{ path('pixie_browse', {tableName: table, pixieCode: pixieCode}) }}">
                             {{ table }}
                         </a>
                     {% endfor %}

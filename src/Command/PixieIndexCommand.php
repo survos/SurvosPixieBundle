@@ -5,9 +5,6 @@ namespace Survos\PixieBundle\Command;
 use Meilisearch\Endpoints\Indexes;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Service\MeiliService;
-use Survos\PixieBundle\Event\CsvHeaderEvent;
-use Survos\PixieBundle\Event\ImportFileEvent;
-use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
@@ -51,9 +48,10 @@ final class PixieIndexCommand extends InvokableServiceCommand
         PixieService                                          $pixieService,
         PixieImportService                                    $pixieImportService,
         #[Argument(description: 'config code')] string        $pixieCode,
-        #[Argument(description: 'table name')] string         $tableName,
+        #[Option(description: 'table name(s?), all if not set')] string         $table=null,
         #[Option(description: "reset the meili index")] bool                      $reset = false,
         #[Option(description: "max number of records per table to export")] int                     $limit = 0,
+        #[Option(description: "extra data (YAML), e.g. --extra=[core:obj]")] string                     $extra = '',
         #[Option('batch', description: "max number of records to batch to meili")] int                     $batchSize = 1000,
 
     ): int
@@ -67,21 +65,19 @@ final class PixieIndexCommand extends InvokableServiceCommand
         $kv = $pixieService->getStorageBox($pixieCode);
         $config = $pixieService->getConfig($pixieCode);
 
-        $indexName = $this->meiliService->getPrefixedIndexName('pixie_' . $pixieCode);
+        $indexName = $this->meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode));
 
         $io->title($indexName);
         if ($reset) {
             $this->meiliService->reset($indexName);
         }
+        $index = $this->configureIndex($config, $indexName);
 //            $task = $this->waitForTask($this->getMeiliClient()->createIndex($indexName, ['primaryKey' => Instance::DB_CODE_FIELD]));
 
-        $index = $this->configureIndex($config, $tableName, $indexName);
-        assert($config, $config->getConfigFilename());
-        if (empty($dirOrFilename)) {
-            $dirOrFilename = $pixieService->getSourceFilesDir($pixieCode);
+        // yikes, we need to configure all facets unless we have a different index for each table
+        if ($table) {
+            assert($kv->tableExists($table), "Missing table $table: \n".join("\n", $kv->getTableNames()));
         }
-
-        assert($kv->tableExists($tableName), "Missing table $tableName: \n".join("\n", $kv->getTableNames()));
 
         $recordsToWrite=[];
         $key = $key??'key';
@@ -89,25 +85,29 @@ final class PixieIndexCommand extends InvokableServiceCommand
         $table = $config->getTables()[$tableName]; // to get views, key
         $count = 0;
         $batchCount = 0;
-        foreach ($kv->iterate($tableName) as $idx => $row) {
-            $data = $row->getData();
-            $data->coreId = 'obj'; // hack $tableName;
-            $recordsToWrite[] = $data;
-            if (++$batchCount >= $batchSize) {
-                $batchCount = 0;
-                $index->addDocuments($recordsToWrite);
-                $recordsToWrite = [];
+        foreach ($config->getTables() as $table) {
+
+            $tableName = $table->getName();
+
+            foreach ($kv->iterate($tableName) as $idx => $row) {
+                $data = $row->getData();
+                $data->coreId = 'obj'; // hack $tableName;
+                $recordsToWrite[] = $data;
+                if (++$batchCount >= $batchSize) {
+                    $batchCount = 0;
+                    $index->addDocuments($recordsToWrite);
+                    $recordsToWrite = [];
+                }
+                if ($limit && (++$count >= $limit)) {
+                    break;
+                }
             }
-            if ($limit && (++$count >= $limit)) {
-                break;
-            }
+            $index->addDocuments($recordsToWrite);
+
+//            $filename = $pixieCode . '-' . $tableName.'.json';
+//            file_put_contents($filename, $this->serializer->serialize($recordsToWrite, 'json'));
+            $io->success(count($recordsToWrite) . " records written to meili $indexName");
         }
-        $index->addDocuments($recordsToWrite);
-
-        $filename = $pixieCode . '-' . $tableName.'.json';
-
-        file_put_contents($filename, $this->serializer->serialize($recordsToWrite, 'json'));
-        $io->success(count($recordsToWrite) . " records written to meili $indexName");
 
 //        dump($configData, $config->getVersion());
 //        dd($dirOrFilename, $config, $configFilename, $pixieService->getPixieFilename($configCode));
@@ -125,10 +125,18 @@ final class PixieIndexCommand extends InvokableServiceCommand
         return self::SUCCESS;
     }
 
-    private function configureIndex(Config $config, string $tableName, string $indexName): Indexes
+    private function configureIndex(Config $config, string $indexName): Indexes
     {
-        $primaryKey = $config->getTables()[$tableName]->getPkName();
+
+        $primaryKey = 'pixie_key';
         $index = $this->meiliService->getIndex($indexName, $primaryKey);
+
+        foreach ($config->getTables() as $table) {
+            foreach ($table->getProperties() as $property) {
+                // the table pk is renamed to {tableName}_{pk}
+                dd($property, $table, $config);
+            }
+        }
 
         $filterable = ['country_code', 'coreId', 'expected_language'];
         $sortable = ['country_code', 'coreId'];

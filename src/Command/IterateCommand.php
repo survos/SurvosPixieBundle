@@ -3,8 +3,6 @@
 namespace Survos\PixieBundle\Command;
 
 use Psr\Log\LoggerInterface;
-use Survos\PixieBundle\Event\CsvHeaderEvent;
-use Survos\PixieBundle\Event\ImportFileEvent;
 use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Model\Config;

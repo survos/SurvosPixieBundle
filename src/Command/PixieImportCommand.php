@@ -2,6 +2,7 @@
 
 namespace Survos\PixieBundle\Command;
 
+use JsonMachine\Items;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\Event\ImportFileEvent;
@@ -98,6 +99,8 @@ final class PixieImportCommand extends InvokableServiceCommand
 
         $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite,
             callback: function ($row, $idx, StorageBox $kv) use ($batch) {
+                $this->progressBar->advance();
+                dd($this->progressBar->getProgress());
 //            dd($row);
                 if (($idx % $batch) == 0) {
                     $this->logger->info("Saving $batch, now at $idx");
@@ -112,18 +115,46 @@ final class PixieImportCommand extends InvokableServiceCommand
 
 
     #[AsEventListener(event: ImportFileEvent::class)]
-    public function showFile(ImportFileEvent $event): void
+    public function startImport(ImportFileEvent $event): void
     {
         if (!$this->initialized) {
             return;
         }
         $this->io()->title($event->filename);
-        $this->progressBar = new ProgressBar($this->io()->output());
+        $count = null;
+
+        if ($event->getType() == 'json') {
+//                    halaxa/json-machine
+            $count =  iterator_count(Items::fromFile($event->filename));
+        } else {
+            $count = $this->lineCount($event->filename);
+        }
+        $this->progressBar = new ProgressBar($this->io()->output(), $count);
+//        $this->progressBar->start($count);
     }
+
+    private function lineCount(string $filename)
+    {
+//        return count(file($filename));
+        $lines_command = sprintf('wc -l %s', $filename);
+        $lines = system($lines_command);
+        return (int)$lines;
+    }
+
 
     #[AsEventListener(event: RowEvent::class)]
     public function importRow(RowEvent $event): void
     {
-        $this->initialized && $event->isRowLoad() && $this->progressBar->advance();
+        switch ($event->type) {
+            case $event::PRE_LOAD:
+                break;
+            case $event::LOAD:
+                $this->progressBar->advance();
+                break;
+            case $event::POST_LOAD:
+                $this->progressBar->finish();
+                break;
+        }
+//        $this->initialized && $event->isRowLoad() && $this->progressBar->advance();
     }
 }

@@ -127,6 +127,11 @@
                                                     {{ data[tableName].count }}
                                                     {{ tableName }}
                                                 </a>
+
+                                                <a href="{{ path('pixie_meili_browse', {pixieCode: pixieCode, tableName: tableName}) }}">
+                                                    GRID SEARCH
+                                                </a>
+
                                             </p>
                                             {% set properties = data[tableName].indexes|default([]) %}
                                             {% if properties|length %}

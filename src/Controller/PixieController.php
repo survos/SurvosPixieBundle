@@ -301,7 +301,7 @@ class PixieController extends AbstractController
 
     #[Route('/', name: 'pixie_browse_configs')]
 //    #[Template()]
-    public function browsePixies(
+    public function pixies(
         #[MapQueryParameter] int $limit = 50
     ): array|Response
     {
@@ -332,7 +332,7 @@ class PixieController extends AbstractController
 
     #[Route('/{pixieCode}/home', name: 'pixie_homepage')]
     #[Route('/{pixieCode}', name: 'pixie_overview')]
-    public function pixie_overview(
+    public function overview(
         string                   $pixieCode,
         #[MapQueryParameter] int $limit = 100
     ): Response

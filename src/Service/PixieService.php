@@ -67,6 +67,12 @@ class PixieService
 
     }
 
+    public static function getMeiliIndexName($pixieCode)
+    {
+        return 'pixie_' . $pixieCode;
+
+    }
+
     private function resolveFilename($filename, string $type=null): ?string
     {
 
