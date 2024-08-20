@@ -37,14 +37,14 @@ class SearchController extends AbstractController
         ]);
         $config = $this->pixieService->getConfig($pixieCode);
         $table = $config->getTable($tableName);
-        $gridColumns = ['pixie_key'];
+        $gridColumns = ['pixie_key', 'table','key'];
         foreach ($table->getProperties() as $property) {
             $gridColumns[] = new Column(
                 name: $property->getCode()
             );
         }
 //        https://mus.wip/api/meili/belvedere/object/mus_pixie_belvedere
-        return $this->render('search/index.html.twig', [
+        return $this->render('@SurvosPixie/search/index.html.twig', [
             'apiUrl' => $apiUrl,
             'gridColumns' => $gridColumns,
             'class' => MeiliItem::class,

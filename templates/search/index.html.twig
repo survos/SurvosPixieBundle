@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Hello SearchController!{% endblock %}
+
+{% block body %}
+
+{{ _self }}
+<a href="{{ apiUrl }}" target="_blank">{{ apiUrl }}</a>
+
+    {% set columns = [
+        'table',
+        'label',
+        'description',
+        'key',
+        'country_code',
+        'name',
+        'image_url',
+
+    ] %}
+    {{ dump(filter) }}
+    <twig:api_grid
+            :class="class"
+            :apiGetCollectionUrl="apiUrl"
+            :caller="_self"
+            :filter="filter"
+            :columns="gridColumns"
+    >
+
+        <twig:block name="id">
+            ID: {{ row.id }}
+        </twig:block>
+    </twig:api_grid>
+
+
+{% endblock %}
