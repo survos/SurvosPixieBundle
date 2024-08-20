@@ -82,16 +82,17 @@ final class PixieIndexCommand extends InvokableServiceCommand
         $recordsToWrite=[];
         $key = $key??'key';
         // now iterate
-        $table = $config->getTables()[$tableName]; // to get views, key
-        $count = 0;
-        $batchCount = 0;
-        foreach ($config->getTables() as $table) {
-
-            $tableName = $table->getName();
+        foreach ($kv->getTables() as $tableName => $table) {
+            $progressBar = new ProgressBar($io, $kv->count($tableName));
+            $count = 0;
+            $batchCount = 0;
 
             foreach ($kv->iterate($tableName) as $idx => $row) {
+                $progressBar->advance();
                 $data = $row->getData();
-                $data->coreId = 'obj'; // hack $tableName;
+                $data->pixie_key = sprintf("%s_%s", $tableName, $row->getKey());
+                $data->coreId = $tableName;
+                $data->table = $tableName;
                 $recordsToWrite[] = $data;
                 if (++$batchCount >= $batchSize) {
                     $batchCount = 0;
@@ -102,26 +103,24 @@ final class PixieIndexCommand extends InvokableServiceCommand
                     break;
                 }
             }
+            $progressBar->finish();
+
             $index->addDocuments($recordsToWrite);
 
 //            $filename = $pixieCode . '-' . $tableName.'.json';
 //            file_put_contents($filename, $this->serializer->serialize($recordsToWrite, 'json'));
-            $io->success(count($recordsToWrite) . " records written to meili $indexName");
+//            $io->success(count($recordsToWrite) . " indexed meili $indexName");
         }
 
 //        dump($configData, $config->getVersion());
 //        dd($dirOrFilename, $config, $configFilename, $pixieService->getPixieFilename($configCode));
 
         // Pixie databases go in datadir, not with their source? Or defined in the config
-        if (!is_dir($dirOrFilename)) {
-            $io->error("$dirOrFilename does not exist.  set the directory in config or pass it as the first argument");
-            return self::FAILURE;
-        }
 
 
         // export?
 
-        $io->success($this->getName() . ' success ' . $pixieCode);
+        $io->success(sprintf("%s success %s %s",  $this->getName(), $pixieCode, $indexName));
         return self::SUCCESS;
     }
 
@@ -130,16 +129,20 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
         $primaryKey = 'pixie_key';
         $index = $this->meiliService->getIndex($indexName, $primaryKey);
+        $filterable = ['table'];
+        $sortable = ['id']; // hack
 
         foreach ($config->getTables() as $table) {
             foreach ($table->getProperties() as $property) {
+                $code = $property->getCode();
                 // the table pk is renamed to {tableName}_{pk}
-                dd($property, $table, $config);
+                if ($property->getIndex() === 'PRIMARY') {
+                    // skip for now
+                } elseif ($property->getIndex() == 'INDEX') {
+                    $filterable[] = $code;
+                }
             }
         }
-
-        $filterable = ['country_code', 'coreId', 'expected_language'];
-        $sortable = ['country_code', 'coreId'];
 
         $results = $index->updateSettings($settings = [
             'displayedAttributes' => ['*'],
@@ -151,6 +154,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
     ],
             ]);
 
+//        dd($results, $settings);
         // wait until the index is set up.
         $stats = $this->meiliService->waitUntilFinished($index);
         return $index;

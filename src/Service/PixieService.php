@@ -120,6 +120,7 @@ class PixieService
 //                assert(false, "Pass in config for now.");
                 // filename? Or code???  ugh,
                 $config = $this->getConfig($pixieCode);
+
             }
             // the array! someday the model.
 //            $tables = $config->getTables();
@@ -212,8 +213,9 @@ class PixieService
             dd($configFilename, $exception->getMessage());
         }
         // if the properties are strings, we need to parse them
-        foreach ($config->getTables() as $table) {
+        foreach ($config->getTables() as $tableName=>$table) {
             $properties = [];
+            $table->setName($tableName);
             foreach ($table->getProperties() as $propIndex => $propData) {
                 if (is_string($propData)) {
                     $property = Parser::parseConfigHeader($propData);
