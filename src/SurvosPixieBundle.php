@@ -12,6 +12,7 @@ use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Command\PixieIndexCommand;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Controller\PixieTransitionController;
+use Survos\PixieBundle\Controller\SearchController;
 use Survos\PixieBundle\DataCollector\PixieDataCollector;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
@@ -69,6 +70,12 @@ class SurvosPixieBundle extends AbstractBundle
         $builder->autowire(PixieTransitionController::class)
             ->addTag('container.service_subscriber')
             ->addTag('controller.service_arguments')
+        ;
+
+        $builder->autowire(SearchController::class)
+            ->addTag('container.service_subscriber')
+            ->addTag('controller.service_arguments')
+            ->setAutoconfigured(true)
         ;
 
         $builder->autowire(PixieDataCollector::class)
