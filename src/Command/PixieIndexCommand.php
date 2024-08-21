@@ -119,6 +119,13 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
 
         // export?
+        if ($io->isVerbose()) {
+            $stats = $index->stats();
+            $io->write(json_encode($stats, JSON_PRETTY_PRINT));
+            $io->write(json_encode($index->getSettings(), JSON_PRETTY_PRINT));
+            // now what?
+
+        }
 
         $io->success(sprintf("%s success %s %s",  $this->getName(), $pixieCode, $indexName));
         return self::SUCCESS;
