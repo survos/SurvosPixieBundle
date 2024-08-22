@@ -33,11 +33,16 @@ class SearchController extends AbstractController
         // pass in an object if all the parameters are available in the object,
         //  or pass in the class and the uri_variables.
         $apiUrl = $iriConverter->getIriFromResource(MeiliItem::class, operation:$operation, context: [
-            'uri_variables' => ['indexName' => $indexName, 'pixieCode' => $pixieCode],
+            'uri_variables' => ['indexName' => $indexName, 'tableName' => $tableName, 'pixieCode' => $pixieCode],
         ]);
         $config = $this->pixieService->getConfig($pixieCode);
         $table = $config->getTable($tableName);
-        $gridColumns = ['pixie_key', 'table','key'];
+        $gridColumns = ['pixie_key',
+            new Column(
+                name: 'table',
+                browsable: true
+            ),
+            'key'];
         foreach ($table->getProperties() as $property) {
             $gridColumns[] = new Column(
                 name: $property->getCode(),
@@ -46,13 +51,12 @@ class SearchController extends AbstractController
         }
 //        https://mus.wip/api/meili/belvedere/object/mus_pixie_belvedere
         return $this->render('@SurvosPixie/pixie/grid.html.twig', [
+            'indexName' => $indexName,
             'apiUrl' => $apiUrl,
             'pixieCode' => $pixieCode,
             'columns' => $gridColumns,
             'class' => MeiliItem::class,
-            'filter' => [
-'table' => $tableName
-            ]
+            'filter' => ['table' => $tableName]
         ]);
     }
 }

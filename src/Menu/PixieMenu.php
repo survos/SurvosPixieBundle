@@ -55,7 +55,7 @@ final class PixieMenu implements KnpMenuHelperInterface
             $this->addHeading($menu, '|');
             $kv = $this->pixieService->getStorageBox($pixieCode);
             foreach ($kv->getTableNames() as $tableName) {
-                $this->add($menu, 'pixie_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: $tableName);
+                $this->add($menu, 'pixie_meili_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: $tableName);
             }
         }
 

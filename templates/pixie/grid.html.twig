@@ -5,6 +5,11 @@
 {% block body %}
 <a href="{{ apiUrl }}" target="_blank">{{ apiUrl }}</a>
 
+    {{ indexName }}
+    <a href="{{ path('survos_index_stats', {indexName: indexName}) }}">
+        survos_index_stats
+
+    </a>
 {#    {% set columns = [#}
 {#        'table',#}
 {#        'label',#}
@@ -15,7 +20,6 @@
 {#        'image_url',#}
 
 {#    ] %}#}
-{#    {{ dump(filter, columns) }}#}
     <twig:api_grid
             :class="class"
             :apiGetCollectionUrl="apiUrl"
