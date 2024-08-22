@@ -170,12 +170,13 @@ class PixieService
     /**
      * @return array<Config>
      */
-    public function getConfigFiles(): array
+    public function getConfigFiles(string $q=null, int $limit = 0): array
     {
         $finder = new Finder();
         $configs  = [];
         // this is only the configs in the configDir.
-        foreach ($finder->files()->name('*.yaml')->in($this->getConfigDir())->sortByName()->reverseSorting() as $file) {
+        foreach ($finder->files()->name("*$q*.yaml")
+                     ->in($this->getConfigDir())->sortByName()->reverseSorting() as $file) {
             // we can optimize later...
             $code = $file->getFilenameWithoutExtension();
             $config = $this->getConfig($code);
@@ -197,6 +198,10 @@ class PixieService
     // @todo: add custom dataDir, etc.
     public function getConfig(string $pixieCode): Config
     {
+        static $configs = [];
+        if ($config = $configs[$pixieCode]??false) {
+            return $config;
+        }
         $configFilename = $this->getConfigFilename($pixieCode);
         assert($configFilename, "$configFilename $pixieCode");
         $configData = Yaml::parseFile($configFilename, Yaml::PARSE_CONSTANT); // so we can use php constants!
@@ -249,6 +254,7 @@ class PixieService
             assert($table instanceof Table, "table $idx is not of class Table");
         }
 //        dd($config, $configFilename, $config);
+        $configs[$pixieCode] = $config;
         return $config;
     }
     public function getConfigFilename(string $pixieCode): string

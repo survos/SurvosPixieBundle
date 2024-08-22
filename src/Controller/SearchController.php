@@ -37,16 +37,28 @@ class SearchController extends AbstractController
         ]);
         $config = $this->pixieService->getConfig($pixieCode);
         $table = $config->getTable($tableName);
-        $gridColumns = ['pixie_key',
+        $gridColumns = [
+            'pixie_key',
             new Column(
-                name: 'table',
-                browsable: true
+                name: 'thumbnail',
+                browsable: false
             ),
-            'key'];
+            new Column(
+                name: 'tombstone',
+                className: 'custom-heading',
+                browsable: false
+            ),
+        ];
+//        foreach ($table->getTranslatable() as $field) {
+//            $gridColumns[] = new Column(name: $field, browsable: false,
+//                className: 'custom-heading',
+//                searchable: true, order: 7); // searchable should highlight
+//        }
+        // could also go through indexes
         foreach ($table->getProperties() as $property) {
             $gridColumns[] = new Column(
                 name: $property->getCode(),
-                browsable: $property->getIndex()=='INDEX'
+                browsable: $property->getIndex()=='INDEX',
             );
         }
 //        https://mus.wip/api/meili/belvedere/object/mus_pixie_belvedere

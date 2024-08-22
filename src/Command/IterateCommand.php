@@ -137,7 +137,7 @@ final class IterateCommand extends InvokableServiceCommand
                 // if it's an event that changes the values, like a cleanup, we need to update the row.
                 // if it's just dispatching an event, then we don't.
                 // @todo: update
-                if ($limit && $idx >= $limit) {
+                if ($limit && $idx >= ($limit-1)) {
                     break;
                 }
                 $progressBar->advance();

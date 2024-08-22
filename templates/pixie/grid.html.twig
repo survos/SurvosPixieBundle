@@ -3,33 +3,61 @@
 {% block title %}{{ pixieCode }} Grid{% endblock %}
 
 {% block body %}
-<a href="{{ apiUrl }}" target="_blank">{{ apiUrl }}</a>
-
-    {{ indexName }}
+    <a href="{{ apiUrl }}" target="_blank">{{ apiUrl }}</a>
     <a href="{{ path('survos_index_stats', {indexName: indexName}) }}">
         survos_index_stats
 
     </a>
-{#    {% set columns = [#}
-{#        'table',#}
-{#        'label',#}
-{#        'description',#}
-{#        'key',#}
-{#        'country_code',#}
-{#        'name',#}
-{#        'image_url',#}
+    {#    {% set columns = [ #}
+    {#        'table', #}
+    {#        'label', #}
+    {#        'description', #}
+    {#        'key', #}
+    {#        'country_code', #}
+    {#        'name', #}
+    {#        'image_url', #}
 
-{#    ] %}#}
+    {#    ] %} #}
+    {% set globals = {
+        locale: app.locale,
+        pixieCode: pixieCode
+    } %}
     <twig:api_grid
             :class="class"
             :apiGetCollectionUrl="apiUrl"
             :caller="_self"
             :filter="filter"
             :columns="columns"
+            :globals="globals"
     >
+        <twig:block name="thumbnail">
+            <div class="width-100">
+            <img class="img-thumbnail" src="{{ row.is_shown_by }}" />
+            </div>
+        </twig:block>
 
+        <twig:block name="tombstone">
+            <div class="custom-heading text-truncate-three-line">
+                <b>{{ row.title }}</b>
+                <div class="text-truncate-three-line">
+                    {{ row.description }}
+                </div>
+            </div>
+        </twig:block>
+
+        <twig:block name="pixie_key">
+            <code>{{ row.pixie_key }}</code>
+        </twig:block>
         <twig:block name="id">
-            ID: {{ row.id }}
+            <div style="width: 40px">
+
+                {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}) %}
+                {% set pixieItemUrl = path('pixie_show_record', lrp) %}
+                <a href="{{ pixieItemUrl }}">
+                    {{ row.id }}
+                </a>
+            </div>
+
         </twig:block>
     </twig:api_grid>
 

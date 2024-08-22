@@ -2,6 +2,8 @@
 
 namespace Survos\PixieBundle\Command;
 
+use App\Metadata\PixieInterface;
+use App\Service\TranslationService;
 use Meilisearch\Endpoints\Indexes;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Service\MeiliService;
@@ -87,12 +89,51 @@ final class PixieIndexCommand extends InvokableServiceCommand
             $count = 0;
             $batchCount = 0;
 
+            // first, fetch all the translations
+
+            $transKv = $this->pixieService->getStorageBox(PixieInterface::PIXIE_TRANSLATION);
+            $transKv->select(TranslationService::ENGINE);
+
             foreach ($kv->iterate($tableName) as $idx => $row) {
                 $progressBar->advance();
                 $data = $row->getData();
+
+                $transKv = $this->pixieService->getStorageBox(PixieInterface::PIXIE_TRANSLATION);
+
+//                foreach ($table->getTranslatable() as $translatableProperty) {
+//                    $toTranslate[] = $row->{$translatableProperty}();
+//                }
+//
+                // @todo: optimize fetches
+                foreach ($table->getTranslatable() as $translatableProperty) {
+                    if ($textToTranslate = $row->{$translatableProperty}()) {
+                        $toTranslate[] = $textToTranslate;
+                        $key = TranslationService::calculateHash($textToTranslate);
+                        // @todo: batch keys with "in"
+                        $translations = $transKv->iterate(where: ['hash' => $key]);
+                        foreach ($translations as $translation) {
+                            $data->_translations[$translation->target()][$translatableProperty] = $translation->text();;
+                        }
+                    }
+                }
+                // this is the data we got when inserting the original text
+                unset($data->translations);
+//                dd($data);
+
+//                if (array_key_exists('keyedTranslations', $data)) {
+//                    $data['_translations'] = $data['keyedTranslations'];
+//                    $data['targetLocales'] = array_keys($data['_translations']);
+////                unset($data['keyedTranslations']);
+//                }
+
                 $data->pixie_key = sprintf("%s_%s", $tableName, $row->getKey());
                 $data->coreId = $tableName;
                 $data->table = $tableName;
+                $data->rp = [
+                    'pixieCode' =>  $pixieCode,
+                    'tableName'  =>  $tableName,
+                    'key'       =>  $row->getKey(),
+                ];
                 $recordsToWrite[] = $data;
                 if (++$batchCount >= $batchSize) {
                     $batchCount = 0;
@@ -164,7 +205,6 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //        dd($results, $settings);
         // wait until the index is set up.
         $stats = $this->meiliService->waitUntilFinished($index);
-        dd($filterable, $stats);
         return $index;
 
         dd($results);

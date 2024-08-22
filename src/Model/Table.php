@@ -16,6 +16,7 @@ class Table
          * @var array<Property|string>
          */
         private array $properties=[],
+        private array $translatable =[],
         private ?string $indexes=null, // the super-succint dexie-style index defintion, e.g. "id|int,department"
         private ?string $pkName=null,
         private ?string $workflow=null,
@@ -23,6 +24,11 @@ class Table
     )
     {
 
+    }
+
+    public function getTranslatable(): array
+    {
+        return $this->translatable;
     }
 
     public function getWorkflow(): ?string

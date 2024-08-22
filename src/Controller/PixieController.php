@@ -98,7 +98,7 @@ class PixieController extends AbstractController
     }
 
 
-    #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record', requirements: ['key' => '.+'])]
+    #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record', requirements: ['key' => '.+'], options: ['expose' => true])]
     #[Route('/transition/{pixieCode}/{tableName}/{key}', name: 'pixie_transition', requirements: ['key' => '.+'])]
     public function show_record(
         Request                      $request,
@@ -299,14 +299,14 @@ class PixieController extends AbstractController
 
     }
 
-    #[Route('/', name: 'pixie_browse_configs')]
+    #[Route('/_search', name: 'pixie_config_search')]
 //    #[Template()]
-    public function pixies(
-        #[MapQueryParameter] int $limit = 50
+    public function search_pixies(
+        #[MapQueryParameter] int $limit = 50,
+        #[MapQueryParameter] string $q = ''
     ): array|Response
     {
-
-        $configs = $this->pixieService->getConfigFiles();
+        $configs = $this->pixieService->getConfigFiles($q, $limit);
         // cache candidate!
         $tables = [];
         foreach ($configs as $pixieCode => $config) {
@@ -322,10 +322,26 @@ class PixieController extends AbstractController
 //                }
             }
         }
+
+        return $this->render('@SurvosPixie/pixie/_search_results.html.twig', [
+            'configs' => $configs,
+                'dir' => $this->pixieService->getConfigDir(),
+                'tables' => $tables,
+
+            ]
+        );
+
+    }
+
+    #[Route('/', name: 'pixie_browse_configs')]
+//    #[Template()]
+    public function pixies(
+        #[MapQueryParameter] int $limit = 50
+    ): array|Response
+    {
+
         return $this->render('@SurvosPixie/pixie/index.html.twig', [
             'dir' => $this->pixieService->getConfigDir(),
-            'configs' => $configs,
-            'tables' => $tables,
         ]);
 //        return $this->render(, );
     }
