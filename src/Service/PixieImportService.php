@@ -215,7 +215,6 @@ class PixieImportService
                     continue;
                 }
 
-                dd($event);
                 // seems hackish, better to use discard
                 if (!$event->row) {
                     dd($event);
@@ -235,7 +234,6 @@ class PixieImportService
 //                if ($idx == 1) dump($tableName, $row, $limit, $idx);
                 if ($limit && ($idx >= $limit-1)) break;
                 if ($callback) {
-                    dd($callback);
                     if (!$continue = $callback($row, $idx, $kv)) {
                         dd('stopping!');
                         break;

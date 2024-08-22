@@ -30,7 +30,7 @@ final class PixieImportCommand extends InvokableServiceCommand
     use RunsProcesses;
 
     private bool $initialized = false; // so the event listener can be called from outside the command
-    private ProgressBar $progressBar;
+    private ?ProgressBar $progressBar=null;
 
     public function __construct(
         private LoggerInterface       $logger,
@@ -100,7 +100,6 @@ final class PixieImportCommand extends InvokableServiceCommand
         $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite,
             callback: function ($row, $idx, StorageBox $kv) use ($batch) {
                 $this->progressBar->advance();
-                dd($this->progressBar->getProgress());
 //            dd($row);
                 if (($idx % $batch) == 0) {
                     $this->logger->info("Saving $batch, now at $idx");
@@ -149,10 +148,10 @@ final class PixieImportCommand extends InvokableServiceCommand
             case $event::PRE_LOAD:
                 break;
             case $event::LOAD:
-                $this->progressBar->advance();
+                $this->progressBar?->advance();
                 break;
             case $event::POST_LOAD:
-                $this->progressBar->finish();
+                $this->progressBar?->finish();
                 break;
         }
 //        $this->initialized && $event->isRowLoad() && $this->progressBar->advance();

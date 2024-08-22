@@ -47,6 +47,7 @@ class SearchController extends AbstractController
 //        https://mus.wip/api/meili/belvedere/object/mus_pixie_belvedere
         return $this->render('@SurvosPixie/pixie/grid.html.twig', [
             'apiUrl' => $apiUrl,
+            'pixieCode' => $pixieCode,
             'columns' => $gridColumns,
             'class' => MeiliItem::class,
             'filter' => [

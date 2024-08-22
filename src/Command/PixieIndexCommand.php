@@ -164,6 +164,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //        dd($results, $settings);
         // wait until the index is set up.
         $stats = $this->meiliService->waitUntilFinished($index);
+        dd($filterable, $stats);
         return $index;
 
         dd($results);
