@@ -42,10 +42,10 @@
         "symfony/phpunit-bridge": "^7.1",
         "symfony/stopwatch": "^7.1",
         "spaze/phpstan-disallowed-calls": "^3.4",
-        "survos/workflow-helper-bundle": "^1.5.283",
+        "survos/workflow-helper-bundle": "^1.5.284",
         "symfony/ux-chartjs": "^2.18",
-        "survos/bootstrap-bundle": "^1.5.283",
-        "survos/api-grid-bundle": "^1.5.283"
+        "survos/bootstrap-bundle": "^1.5.284",
+        "survos/api-grid-bundle": "^1.5.284"
     },
     "scripts": {
         "coverage": "php -d xpcov.enabled=1 vendor/bin/phpunit --coverage-html coverage"
