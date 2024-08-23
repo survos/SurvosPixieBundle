@@ -174,6 +174,11 @@ class Property implements \Stringable
         return $this->settings;
     }
 
+    public function getSetting(string $key): ?string
+    {
+        return $this->settings[$key]??null;
+    }
+
     public function getDelim(): ?string
     {
         return $this->getSettings()['delim']??null;

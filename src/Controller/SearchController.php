@@ -13,10 +13,13 @@ use Survos\PixieBundle\Service\PixieService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Bundle\SecurityBundle\Security;
 
 class SearchController extends AbstractController
 {
-    public function __construct(private readonly PixieService $pixieService)
+    public function __construct(
+        private readonly Security $security,
+        private readonly PixieService $pixieService)
     {
     }
 
@@ -38,7 +41,13 @@ class SearchController extends AbstractController
         $config = $this->pixieService->getConfig($pixieCode);
         $table = $config->getTable($tableName);
         $gridColumns = [
-            'pixie_key',
+            '#',
+            new Column(
+                name: 'pixie_key',
+                title: 'id',
+//                sortable: true,
+                browsable: false
+            ),
             new Column(
                 name: 'thumbnail',
                 browsable: false
@@ -61,6 +70,13 @@ class SearchController extends AbstractController
                 name: $property->getCode(),
                 browsable: $property->getIndex()=='INDEX',
             );
+            if ($condition = $property->getSetting('security')) {
+                $column->condition = $this->security->isGranted($condition); // sprintf("isGranted('%s')", $condition);
+            }
+            if ($title = $property->getSetting('title')) {
+                $column->title = $title;
+            }
+
             if (in_array($property->getCode(), $table->getTranslatable())) {
                 // hmm
             } else {

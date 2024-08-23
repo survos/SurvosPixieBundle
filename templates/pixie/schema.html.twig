@@ -13,6 +13,7 @@
                 'code',
                 'type',
                 'index',
+                'settings',
                 'initial'
             ] %}
             <twig:simple_datatables
@@ -20,13 +21,10 @@
                     :data="table.properties"
                     :columns="columns"
             >
+                <twig:block name="settings">
+                    {{ row.settings|length ? row.settings|json_encode }}
+                </twig:block>
             </twig:simple_datatables>
-
-            {% for property in table.properties %}
-                @todo: property json?
-            {% endfor %}
-        <ul>
-        </ul>
         </li>
     {% endfor %}
 {% endblock %}

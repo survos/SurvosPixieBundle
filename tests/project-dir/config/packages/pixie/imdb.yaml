@@ -1,0 +1,44 @@
+version: 1.1
+source:
+    notes: |
+        tsv, with some sed originally
+    dir: data/imdb/
+    locale: en
+    include: /*.tsv/
+    url: https://dl.opensubtitles.org/addons/export/
+    # imdb: https://datasets.imdbws.com/
+
+files:
+    /title.basics/: movie
+tables:
+    movie:
+        # rule could include casting but not property creation?
+        rules:
+            #            /accession_number/: code
+            /tconst/: code
+            /titleType/: type
+            /startYear/: year #year:int or @v:int to create a virtual column
+            /primaryTitle/: title
+            /runtimeMinutes/: minutes # hmm, minutes:int minutes:&int
+            /isAdult/: is_adult
+        properties:
+            - title:string?
+            - type?
+
+            # by default, parse if it starts with [ or {
+            #            /genres,/: genre
+            #            /artists[{}]/: artists
+            #            /dimensions{}/: dimensions
+            # from https://csv.thephpleague.com/9.0/writer/
+        #            $formatter = function (array $row): array {
+        #                return array_map('strtoupper', $row);
+        #    };
+        #        $writer = Writer::createFromFileObject(new SplTempFileObject());
+        #        $writer->addFormatter($formatter);
+        # maybe someday: https://symfony.com/doc/current/components/expression_language.html
+        formatter:
+            //: # match everything
+                /\\N/: ''
+            /is_/:
+                /1/: true
+                /0/: false

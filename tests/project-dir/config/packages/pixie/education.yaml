@@ -10,7 +10,7 @@ files:
   /School/i: school
 tables:
   # SIS ID,School SIS ID,Section Name,Section Number,Term SIS ID,Term Name,Term StartDate,Term EndDate,Course SIS ID,Course Name,Course Number,Course Description,Course Subject,Periods,Status
-  - name: section
+  section:
     indexes: 'id|int,course_subject'
     # column header rules.  Use rulesets?
     rules:

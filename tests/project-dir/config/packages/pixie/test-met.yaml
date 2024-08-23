@@ -1,0 +1,73 @@
+code: met
+version: 1.1
+source:
+  instructions: |
+    cd data && \ 
+    git clone https://github.com/metmuseum/openaccess metmuseum && cd metmuseum && \
+    git lfs pull
+  notes: |
+    CSV only, but also individual json objects available at https://collectionapi.metmuseum.org/public/collection/v1/objects/10000 (https://www.metmuseum.org/art/collection/search/10000)
+    bin/console pixie:import met --limit 10000
+    bin/console pixie:iterate met object --transition load --marking=new
+    
+    
+    bin/console pixie:iterate met image --marking=new --transition=check_url -vv --limit 1000
+    bin/console pixie:iterate met image --marking=url_checked --transition tag -vv --limit 300
+    bin/console pixie:iterate met image --marking=tagged --transition download -vv --limit 100
+    bin/console pixie:iterate met image --marking=processing --transition async_upload -vv --limit 100
+    bin/console pixie:iterate met image --marking=queued --transition publish -vv --limit 1000
+
+  dir: ../data/metmuseum/openaccess
+  include: "*.csv"
+  github: https://github.com/metmuseum/openaccess
+
+files:
+  /MetObjects/: object
+tables:
+  image:
+    #    !php/const App\\Metadata\\PixieInterface::IMAGE_TABLE:
+    #    image:
+    workflow: ImageWorkflow
+    parent: artwork
+    #        flickr_album_id:int # browsable=false
+    properties:
+      - id:int
+      - marking:text#
+      - local # relative to datadir?  Need to download to upload to flickr, but not to s3
+      - status:text#
+      # these are not mapped from the initial fields, but added later
+      - flickr_id:text## # browsable=false
+      - ticket_id:text## # browsable=false
+      - content_hash:text##  # of the actual file
+      - object_id:rel.object
+
+  object:
+    workflow: MetWorkflow
+    rules:
+      /Object ID/: id
+      /Object Number/: code
+      /Is Public Domain/: is_public
+    properties:
+      - id:int
+      - marking:text#
+      - medium:text#
+      - culture:text#
+      - period:text#
+      - gallery_number:text#
+      - department:text#
+      - geography_type:text#
+      - is_highlight:bool#
+      - is_public:bool#
+      - reign:text#
+      - portfolio:text#
+      - constituent_id:int# # should be rel to artist
+      - accession_year:int# # should be rel to artist
+      - dynasty:text#
+      - wikidata_id:text
+      - code:text
+      - is_public:bool
+#        indexes:
+#            - accession_number|text
+#            - license
+#            - technique
+#            - culture

@@ -130,6 +130,7 @@ class Config
 
     public function getVersion(): string|float|int
     {
+        assert($this->version, "Missing version in $this->pixieFilename, $this->code");
         return $this->version;
     }
 

@@ -110,8 +110,9 @@ class ParserTest extends TestCase
 //            ['author:per', new Property('author', Property::TYPE_RELATION, 'per')],
 
 
-            ['header:int', new Property('header', Property::TYPE_ATTRIBUTE,  Property::PROPERTY_INT)],
+            ['header:att.int', new Property('header', Property::TYPE_ATTRIBUTE,  Property::PROPERTY_INT)],
             ['header:int#', new Property('header', Property::PROPERTY_INT, index: 'INDEX')],
+            ['header:int#?max=4', new Property('header', Property::PROPERTY_INT, index: 'INDEX', settings: ['max' => 4])],
             ['header:att.int', new Property('header', Property::TYPE_ATTRIBUTE,  Property::PROPERTY_INT)],
             ['header:att.int?max=4', new Property('header', Property::TYPE_ATTRIBUTE,  Property::PROPERTY_INT, ['max' => 4])],
             ['header:rel.per', new Property('header', Property::TYPE_RELATION, 'per' )],

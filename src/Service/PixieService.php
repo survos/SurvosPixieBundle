@@ -137,7 +137,8 @@ class PixieService
                 $config,
                 pixieCode: $pixieCode,
                 accessor: $this->accessor,
-                logger: $this->logger, stopwatch: $this->stopwatch);
+                logger: $this->logger,
+                stopwatch: $this->stopwatch);
             $this->storageBoxes[$filename] = $kv;
         }
 //        dump($filename, storageBoxes: array_keys($this->storageBoxes));

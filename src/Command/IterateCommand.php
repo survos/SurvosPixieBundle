@@ -36,10 +36,10 @@ final class IterateCommand extends InvokableServiceCommand
     public function __construct(
         private LoggerInterface          $logger,
         private ParameterBagInterface    $bag,
-        private EventDispatcherInterface $eventDispatcher,
-        private MessageBusInterface $bus,
         private readonly PixieService $pixieService,
         private ?WorkflowHelperService   $workflowHelperService=null,
+        private ?EventDispatcherInterface $eventDispatcher=null,
+        private ?MessageBusInterface $bus=null,
     )
     {
 
