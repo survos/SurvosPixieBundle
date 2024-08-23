@@ -105,14 +105,15 @@
                                     <div class="flex-grow-1">
                                         <div>
                                             <p class="mb-2">
+
+                                                <a href="{{ path('pixie_meili_browse', {pixieCode: pixieCode, tableName: tableName}) }}">
+                                                    {{ ux_icon('uiw:table') }}
+                                                </a>
                                                 <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
                                                     {{ data[tableName].count }}
                                                     {{ tableName }}
                                                 </a>
 
-                                                <a href="{{ path('pixie_meili_browse', {pixieCode: pixieCode, tableName: tableName}) }}">
-                                                    {{ tableName }} SEARCH
-                                                </a>
 
                                             </p>
                                             {% set properties = data[tableName].indexes|default([]) %}

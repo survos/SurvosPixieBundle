@@ -31,6 +31,7 @@ final class PixieImportCommand extends InvokableServiceCommand
 
     private bool $initialized = false; // so the event listener can be called from outside the command
     private ?ProgressBar $progressBar=null;
+    private $total = 0; // hack to bypass count for large JSON files, e.g. smk
 
     public function __construct(
         private LoggerInterface       $logger,
@@ -51,10 +52,12 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: "overwrite records if they already exist")] bool                      $overwrite = false,
         #[Option(description: "purge db file first")] bool                                          $reset = false,
         #[Option(description: "Batch size for commit")] int                                         $batch = 500,
+        #[Option(description: "total if known (slow to calc)")] int                                         $total = 0,
 
     ): int
     {
         $this->initialized = true;
+        $this->total = $total;
         // not sure how to auto-wire this in the constructor
         // idea: if conf doesn't exist, require a directory name and create it, a la rector
         if (empty($configCode)) {
@@ -120,14 +123,15 @@ final class PixieImportCommand extends InvokableServiceCommand
             return;
         }
         $this->io()->title($event->filename);
-        $count = null;
-
-        if ($event->getType() == 'json') {
+        if (!$count = $this->total) {
+            if ($event->getType() == 'json') {
 //                    halaxa/json-machine
-            $count =  iterator_count(Items::fromFile($event->filename));
-        } else {
-            $count = $this->lineCount($event->filename);
+                $count =  iterator_count(Items::fromFile($event->filename));
+            } else {
+                $count = $this->lineCount($event->filename);
+            }
         }
+
         $this->progressBar = new ProgressBar($this->io()->output(), $count);
 //        $this->progressBar->start($count);
     }

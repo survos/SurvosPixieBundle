@@ -9,18 +9,19 @@
                 <a href="{{ path('pixie_show_record', item.rp) }}">
                     Open first {{ tableName}} [{{ item}}] and transitions
                 </a>
+
                 <details>
                     <summary>
                         {{ tableName }}
                         {{ item }}
                         Raw Data
                     </summary>
-                </details>
                     <twig:simple_item_grid
                             exclude="_raw,_att,_extra"
                             :data="item.data"
                     >
                     </twig:simple_item_grid>
+                </details>
 
 
 {#            {% if item._att %}#}
@@ -30,26 +31,19 @@
 {#        />#}
 {#            {% endif %}#}
             {% endif %}
-
-{#            <twig:item_grid#}
-{#                    :data="tableData.first:#}
-{#                    >#}
-{#            </twig:item>>#}
-
-
             <h2>
-                <a href="{{ path('pixie_browse', {'pixieCode': pixieCode, tableName: tableName}) }}">
-                {{ tableName }} (n={{ tableData.count }})
+                <a href="{{ path('pixie_browse',
+                    {'pixieCode': pixieCode, tableName: tableName}) }}">
+                Preview {{ tableName }} (n={{ tableData.count }})
                 </a>
             </h2>
 
             These should be horizontal.
             {% for indexName, chart in tableData.charts %}
                 <li>
-                    <div class="my-chart">
+                    <div class="my-chart" style="width: 200px; height: 200px">
                         {{ render_chart(chart.chart) }}
                     </div>
-
 
                 <a href="{{ path('pixie_show_property', {
                     pixieCode: pixieCode,

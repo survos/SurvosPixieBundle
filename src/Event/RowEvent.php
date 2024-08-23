@@ -3,6 +3,7 @@
 
 namespace Survos\PixieBundle\Event;
 
+use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Contracts\EventDispatcher\Event;
@@ -27,6 +28,7 @@ class RowEvent extends Event
         public ?string $type=self::LOAD, // defaults to regular row load
         public ?string $action=null,
         public ?StorageBox $storageBox=null, // so we can update other tables
+        public ?Config $config=null, // to loop through tables and such
         public array $context = []
     )
     {

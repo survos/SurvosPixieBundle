@@ -373,6 +373,7 @@ class PixieController extends AbstractController
             'kv' => $kv,
             'tables' => $tables,
             'pixieCode' => $pixieCode,
+            'config' => $this->pixieService->getConfig($pixieCode)
             ]);
     }
 

@@ -122,6 +122,7 @@ final class IterateCommand extends InvokableServiceCommand
                             type: RowEvent::LOAD,
                             action: self::class,
                             storageBox: $kv,
+                            config: $config,
                             context: [
 //                                'storageBox' => $kv,
                                 'tags' => explode(",", $tags),

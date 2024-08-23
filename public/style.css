@@ -1,3 +1,11 @@
+.tombstone-heading {
+    background-color: green;
+}
+.tombstone {
+    width: 120px;
+    background-color: lightblue;
+}
+
 .my-chart {
     width: 50%;
     height: 30vh;

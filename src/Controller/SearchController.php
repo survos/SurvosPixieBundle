@@ -45,7 +45,7 @@ class SearchController extends AbstractController
             ),
             new Column(
                 name: 'tombstone',
-                className: 'custom-heading',
+                className: 'tombstone-heading',
                 browsable: false
             ),
         ];
