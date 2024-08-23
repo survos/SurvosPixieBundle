@@ -76,6 +76,10 @@ class SurvosPixieBundle extends AbstractBundle
         $builder->autowire(SearchController::class)
             ->addTag('container.service_subscriber')
             ->addTag('controller.service_arguments')
+//            ->setArgument(
+//                '$authorizationChecker',
+//                new Reference('security.authorization_checker', ContainerInterface::NULL_ON_INVALID_REFERENCE)
+//            )
             ->setAutoconfigured(true)
         ;
 

@@ -3,11 +3,13 @@
 {% block title %}{{ pixieCode }} Grid{% endblock %}
 
 {% block body %}
-    <a href="{{ apiUrl }}" target="_blank">{{ apiUrl }}</a>
     <a href="{{ path('survos_index_stats', {indexName: indexName}) }}">
-        survos_index_stats
-
+        stats
+    </a> |
+    <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
+        config
     </a>
+
     {#    {% set columns = [ #}
     {#        'table', #}
     {#        'label', #}
@@ -37,6 +39,9 @@
             </div>
         </twig:block>
 
+        <twig:block name="chevron">
+            &nbsp;
+        </twig:block>
         <twig:block name="tombstone">
             <div class="tombstone custom-headingx text-truncate-three-line">
                 {# really the translatable fields #}
