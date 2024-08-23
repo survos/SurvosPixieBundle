@@ -1,9 +1,21 @@
 .tombstone-heading {
-    background-color: green;
+    background-color: green; !important;
+
 }
 .tombstone {
-    width: 120px;
-    background-color: lightblue;
+    min-width: 120px;
+    max-width: 240px;
+    text-wrap: wrap;
+    /*background-color: lightblue;*/
+
+    /*// hack!*/
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -webkit-line-clamp: 4;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+
 }
 
 .my-chart {

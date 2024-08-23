@@ -56,10 +56,16 @@ class SearchController extends AbstractController
 //        }
         // could also go through indexes
         foreach ($table->getProperties() as $property) {
-            $gridColumns[] = new Column(
+
+            $column = new Column(
                 name: $property->getCode(),
                 browsable: $property->getIndex()=='INDEX',
             );
+            if (in_array($property->getCode(), $table->getTranslatable())) {
+                // hmm
+            } else {
+                $gridColumns[] = $column;
+            }
         }
 //        https://mus.wip/api/meili/belvedere/object/mus_pixie_belvedere
         return $this->render('@SurvosPixie/pixie/grid.html.twig', [

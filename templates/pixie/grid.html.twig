@@ -37,7 +37,8 @@
         </twig:block>
 
         <twig:block name="tombstone">
-            <div class="tombstone custom-heading text-truncate-three-line">
+            <div class="tombstone custom-headingx text-truncate-three-line">
+                {# really the translatable fields #}
                 <b>{{ row.title|default(row.label) }}</b>
                 <div class="text-truncate-three-line">
                     {{ row.description }}
