@@ -32,7 +32,7 @@
     >
         <twig:block name="thumbnail">
             <div class="width-100">
-            <img class="img-thumbnail" src="{{ row.is_shown_by }}" />
+            <img class="img-thumbnail" src="{{ row.is_shown_by|default(row.image_url) }}" />
             </div>
         </twig:block>
 
