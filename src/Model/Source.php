@@ -13,6 +13,7 @@ class Source
         public array           $links=[],
     )
     {
+        $this->instructions = trim($this->instructions);
 
     }
 

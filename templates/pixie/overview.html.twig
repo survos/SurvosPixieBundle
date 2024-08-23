@@ -20,16 +20,18 @@
     })
     }} >
 
-        <pre {{ stimulus_target(_sc, 'source') }}>{{ config.source.instructions }}</pre>
+        <textarea cols="80" rows="{{ config.source.instructions|split("\n")|length}}"
+                {{ stimulus_target(_sc, 'source') }}>
+            {{ config.source.instructions|trim }}</textarea>
 
         <button type="button" {{ stimulus_action(_sc, 'copy') }}
                 {{ stimulus_target(_sc, 'button') }}
         >
             {{ ux_icon('pajamas:copy-to-clipboard') }}
-{#            <twig:ux:icon name="pajamas:copy-to-clipboard" />#}
         </button>
     </div>
 
+    <h3>Individual lines</h3>
     {% for line in config.source.instructions|split("\n") %}
         <li {{ stimulus_controller(_sc, {
         successContent: "copied"
