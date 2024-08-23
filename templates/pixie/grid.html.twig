@@ -38,7 +38,7 @@
 
         <twig:block name="tombstone">
             <div class="tombstone custom-heading text-truncate-three-line">
-                <b>{{ row.title }}</b>
+                <b>{{ row.title|default(row.label) }}</b>
                 <div class="text-truncate-three-line">
                     {{ row.description }}
                 </div>
