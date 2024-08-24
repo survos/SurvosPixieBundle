@@ -3,13 +3,6 @@
     width: 600px;
 }
 
-@media (max-width:500px) {
-    .tombstone-heading {
-        max-width: 100%;
-        width: 100%;
-    }
-}
-
 .tombstone-heading .tombstone {
     min-width: 120px;
     max-width: 100%;
@@ -173,11 +166,26 @@ body {
 
 .customTable td:has(> .size-100) {
     background: transparent;
-    height: 100px;
+    /* height: 100px;
     width: 200px;
+    max-width: 200px; */
 }
 
 .customTable td .size-100 {
     height: 100px;
     width: 100px;
-} 
+    max-width: 100px;
+}
+
+@media (max-width:500px) {
+    .tombstone-heading {
+        max-width: 100%;
+        width: 100%;
+    }
+    .customTable table.dataTable>tbody>tr.child span.dtr-title {
+        min-width: 130px !important;
+    }
+    .customTable ul li span.dtr-data {
+        white-space: normal;
+    }
+}
