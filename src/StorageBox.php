@@ -381,6 +381,9 @@ class StorageBox
             if ($default = $property->getInitial()) {
                 $columns[$name] .= sprintf(' DEFAULT %s ', is_string($default) ? sprintf('"%s"', $default) : $default);
             }
+            if ($property->getType() == 'json') {
+                $property->generated = false; // e.g. translations, ['en','es']
+            }
             if ($property->generated) {
                 $columns[$name] .= " GENERATED ALWAYS AS (json_extract(_raw, '\$.$name')) STORED /* @searchable */";
             }

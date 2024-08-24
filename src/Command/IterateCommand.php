@@ -89,6 +89,10 @@ final class IterateCommand extends InvokableServiceCommand
             }
             $progressBar = new ProgressBar($io, $count = $kv->count(where: $where));
             $idx = 0;
+            $stamps = [];
+            if ($transport) {
+                $stamps[] =  new TransportNamesStamp($transport);
+            }
             foreach ($kv->iterate(where: $where) as $key => $item) {
                 $idx++;
                 // since we have the workflow and transition, we can do a "can" here.
@@ -104,7 +108,7 @@ final class IterateCommand extends InvokableServiceCommand
                             $transition,
                             $workflowName,
                             $transport
-                        ));
+                        ), $stamps);
                     }
                     // if there's a workflow and a transition, dispatch a transition message, otherwise a simple row event
                 } else {
@@ -130,6 +134,7 @@ final class IterateCommand extends InvokableServiceCommand
                                 'transport' => $transport
                             ])
                     );
+                    dd($rowEvent);
 
                 }
 
