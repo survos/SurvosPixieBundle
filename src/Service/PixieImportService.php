@@ -224,7 +224,7 @@ class PixieImportService
             }
             $kv->commit();
             $count = $kv->count();
-            dump($count);
+            $this->logger->info($kv->getSelectedTable()  . " now has " . $count);
         }
 
         $event = $this->eventDispatcher->dispatch(new RowEvent(
