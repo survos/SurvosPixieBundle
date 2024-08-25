@@ -223,8 +223,10 @@ class PixieImportService
                 // dd($row); break;
             }
             $kv->commit();
-//            $count = $kv->count();
+            $count = $kv->count();
+            dump($count);
         }
+
         $event = $this->eventDispatcher->dispatch(new RowEvent(
             $config->code, $tableName, null,
             action: self::class,
