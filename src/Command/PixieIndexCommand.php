@@ -51,6 +51,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
         PixieImportService                                    $pixieImportService,
         #[Argument(description: 'config code')] string        $pixieCode,
         #[Option(description: 'table name(s?), all if not set')] string         $table=null,
+        #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
         #[Option(description: "reset the meili index")] bool                      $reset = false,
         #[Option(description: "max number of records per table to export")] int                     $limit = 0,
         #[Option(description: "extra data (YAML), e.g. --extra=[core:obj]")] string                     $extra = '',
@@ -93,31 +94,29 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
             $transKv = $this->pixieService->getStorageBox(PixieInterface::PIXIE_TRANSLATION);
             $transKv->select(TranslationService::ENGINE);
-
             foreach ($kv->iterate($tableName) as $idx => $row) {
                 $progressBar->advance();
                 $data = $row->getData();
-
-                $transKv = $this->pixieService->getStorageBox(PixieInterface::PIXIE_TRANSLATION);
-
 //                foreach ($table->getTranslatable() as $translatableProperty) {
 //                    $toTranslate[] = $row->{$translatableProperty}();
 //                }
 //
                 // @todo: optimize fetches
-                foreach ($table->getTranslatable() as $translatableProperty) {
-                    if ($textToTranslate = $row->{$translatableProperty}()) {
-                        $toTranslate[] = $textToTranslate;
-                        $key = TranslationService::calculateHash($textToTranslate, $config->source->locale);
-                        // @todo: batch keys with "in"
-                        $translations = $transKv->iterate(where: ['hash' => $key]);
-                        foreach ($translations as $translation) {
-                            $data->_translations[$translation->target()][$translatableProperty] = $translation->text();;
+                if ($addTranslations) {
+                    foreach ($table->getTranslatable() as $translatableProperty) {
+                        if ($textToTranslate = $row->{$translatableProperty}()) {
+                            $toTranslate[] = $textToTranslate;
+                            $key = TranslationService::calculateHash($textToTranslate, $config->source->locale);
+                            // @todo: batch keys with "in"
+                            $translations = $transKv->iterate(where: ['hash' => $key]);
+                            foreach ($translations as $translation) {
+                                $data->_translations[$translation->target()][$translatableProperty] = $translation->text();;
+                            }
                         }
                     }
+                    unset($data->translations);
                 }
                 // this is the data we got when inserting the original text
-                unset($data->translations);
 //                dd($data);
 
 //                if (array_key_exists('keyedTranslations', $data)) {

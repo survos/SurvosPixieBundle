@@ -100,17 +100,17 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
 
         $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite,
-            callback: function ($row, $idx, StorageBox $kv) use ($batch) {
-                $this->progressBar->advance();
-//            dd($row);
-                if (($idx % $batch) == 0) {
+            callback: function ($row, $idx, StorageBox $kv) use ($batch, $limit) {
+//                $this->progressBar->advance();
+                $finished = $idx >= $limit;
+                if ($finished || ($idx % $batch) == 0) {
                     $this->logger->info("Saving $batch, now at $idx");
                     $kv->commit();
                     $kv->beginTransaction();
                 };
-                return true;
+                return !$finished; // break if we've hit the limit
             });
-        $io->success('Pixie:import success ' . $pixieDbName);
+        $io->success($this->getName() . ' success ' . $pixieDbName);
         return self::SUCCESS;
     }
 

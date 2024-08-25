@@ -492,6 +492,7 @@ class StorageBox
             // if this is too big, we can add a preloadWhere and selectively preload, e.g. translated string
             if (empty($keyCache[$table])) {
                 $keyCache[$table] = $this->query("SELECT $pk from $table")->fetchAll(PDO::FETCH_COLUMN);
+                $this->logger->warning(sprintf("Preloaded %d keys in $table", count($keyCache[$table])));
             }
             return in_array($key, $keyCache[$table]);
         }

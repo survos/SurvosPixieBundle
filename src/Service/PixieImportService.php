@@ -124,7 +124,6 @@ class PixieImportService
             // takes a function that will iterate through an object
 //            $kv->addFormatter(function());
 
-            $kv->beginTransaction();
             if (isset($headers))
                 assert(count($headers) == count(array_unique($headers)), json_encode($headers));
             // don't parse the header match each time, store them
@@ -138,6 +137,7 @@ class PixieImportService
                 }
             }
 
+            $kv->beginTransaction();
             $event = $this->eventDispatcher->dispatch(new RowEvent(
                 $config->code, $tableName,
                 null,
@@ -145,48 +145,27 @@ class PixieImportService
                 type: RowEvent::PRE_LOAD,
                 storageBox: $kv ));
 
+            $pk = $kv->getPrimaryKey($tableName);
             // this is the json/csv iterator
             foreach ($iterator as $idx => $row) {
                 // if it's json, remap the keys
                 if ($ext === 'json') {
-                    $origRow = $row; // for debugging
                     $mappedRow = [];
                     foreach ($headers as $header=>$headerOrig) {
                         $mappedRow[$header] = $row->{$headerOrig}??null;
                     }
 //                    dd($row, $mappedRow);
                     $row = $mappedRow;
-
-
-//                    $resolver->setDefault($header, $row[])
-//                    $values = array_values((array)$row);
-//                        dd($idx, $headers, $row, $origRow, $rules);
-//                        // hack, will burn us if fields are in a different order.  need a better solution
-//                        if ($headerCount < $valueCount) {
-//                            $values = array_splice($values, 0, $headerCount);
-//                        } else {
-//                            $values = array_pad($values, $headerCount, null);
-//                        }
-//                        if ( ($headerCount = count($headers)) <> ($valueCount = count($values))) {
-//                            dd($headers, $values);
-//                        }
-//                    if ( ($headerCount = count($headers)) <> ($valueCount = count($values))) {
-//                    }
-//                    $row = array_combine($headers, $values);
-//                    dump(table: $tableName, orig: $origRow, mapped: $mappedHeader, new_row: $row);
-//                    dd($idx, $row, $headers); return $kv;
                 }
-//                dump($ext, $mappedHeader, $row);
-                $pk = $kv->getPrimaryKey($tableName);
-                assert(array_key_exists($pk, $row),
-                    $tableName . " should have $pk  " .
-                    json_encode($row, JSON_PRETTY_PRINT));
 
-                $existing = null;
+                // just check the first row
+                if ($idx == 0) {
+                    assert(array_key_exists($pk, $row),
+                        $tableName . " should have $pk  " .
+                        json_encode($row, JSON_PRETTY_PRINT));
+                }
+
                 $exists = $kv->has($row[$pkName], preloadKeys: true);
-//                if ($exists) {
-//                    $existing = $kv->get($row[$pkName]);
-//                }
                 foreach ($row as $k => $v) {
                     foreach ($dataRules[$k] ?? [] as $dataRegexRule => $substitution) {
                         $match = preg_match($dataRegexRule, $v, $mm);
@@ -204,14 +183,21 @@ class PixieImportService
                 }
 
                 $event = $this->eventDispatcher->dispatch(new RowEvent(
-                    $config->code, $tableName, $row,
+                    $config->code,
+                    $tableName,
+                    row: $row,
+                    index: $idx,
                     action: self::class,
                     storageBox: $kv ));
 
-                if (!$overwrite && $exists) {
-                    if ($row[$pk] === 114) {
-//                        dd($row, $kv->has($row[$pkName]), ));
+                if ($callback) {
+                    // for batching
+                    if (!$continue = $callback($row, $idx, $kv)) {
+                        break;
                     }
+                }
+
+                if (!$overwrite && $exists) {
                     continue;
                 }
 
@@ -233,12 +219,6 @@ class PixieImportService
                 }
 //                if ($idx == 1) dump($tableName, $row, $limit, $idx);
                 if ($limit && ($idx >= $limit-1)) break;
-                if ($callback) {
-                    if (!$continue = $callback($row, $idx, $kv)) {
-                        dd('stopping!');
-                        break;
-                    }
-                }
 //            dd($kv->get($row['id']));
                 // dd($row); break;
             }
