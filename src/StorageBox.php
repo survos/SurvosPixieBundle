@@ -623,7 +623,7 @@ class StorageBox
                 $value = (array)$value;
             }
             if (is_array($value) && !array_key_exists($keyName, $value)) {
-                throw new \LogicException("Missing key $keyName in document " . join("\n", array_keys($value)));
+                throw new \LogicException("Missing key $keyName in $tableName:\n " . join("\n", array_keys($value)));
                 dd($table, $value, $keyName, $tableName);
             }
             $value = (array)$value; // if JSON

@@ -11,7 +11,7 @@
             <li class="breadcrumb-item" aria-current="page">
                 <a class="text-body text-decoration-none" href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
                     config
-                </a>        
+                </a>
             </li>
         </ol>
     </nav>
@@ -43,7 +43,7 @@
         <twig:block name="thumbnail">
             <div class="size-100">
             <img class="img-thumbnail h-100 object-fit-cover"
-                 src="{{ row.is_shown_by|default(row.image_url) }}" />
+                 src="{{ row.is_shown_by|default(row.image_url)|default(row.thumbnail) }}" />
             </div>
         </twig:block>
 

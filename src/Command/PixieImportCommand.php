@@ -99,7 +99,6 @@ final class PixieImportCommand extends InvokableServiceCommand
             $this->pixieService->destroy($pixieDbName);
         }
 
-
         $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite,
             callback: function ($row, $idx, StorageBox $kv) use ($batch) {
                 $this->progressBar->advance();
@@ -126,7 +125,12 @@ final class PixieImportCommand extends InvokableServiceCommand
         if (!$count = $this->total) {
             if ($event->getType() == 'json') {
 //                    halaxa/json-machine
-                $count =  iterator_count(Items::fromFile($event->filename));
+                try {
+                    $count =  iterator_count(Items::fromFile($event->filename));
+                } catch (\Exception $e) {
+                    $this->logger->error($e->getMessage() . "\n" . $event->filename);
+                    throw $e;
+                }
             } else {
                 $count = $this->lineCount($event->filename);
             }
