@@ -108,7 +108,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 foreach ($table->getTranslatable() as $translatableProperty) {
                     if ($textToTranslate = $row->{$translatableProperty}()) {
                         $toTranslate[] = $textToTranslate;
-                        $key = TranslationService::calculateHash($textToTranslate);
+                        $key = TranslationService::calculateHash($textToTranslate, $config->source->locale);
                         // @todo: batch keys with "in"
                         $translations = $transKv->iterate(where: ['hash' => $key]);
                         foreach ($translations as $translation) {

@@ -489,6 +489,7 @@ class StorageBox
         $pk = $this->getPrimaryKey($table);
 
         if ($preloadKeys) {
+            // if this is too big, we can add a preloadWhere and selectively preload, e.g. translated string
             if (empty($keyCache[$table])) {
                 $keyCache[$table] = $this->query("SELECT $pk from $table")->fetchAll(PDO::FETCH_COLUMN);
             }

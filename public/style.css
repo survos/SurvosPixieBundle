@@ -189,3 +189,13 @@ body {
         white-space: normal;
     }
 }
+
+#showCounts {
+    height: 1.25em;
+    width: 1.25em;
+    margin-top: 0;
+}
+.form-control:focus, #showCounts:focus {
+    box-shadow: none;
+    border: 1px solid var(--bs-primary);
+}
