@@ -64,7 +64,7 @@ class SurvosPixieBundle extends AbstractBundle
         $builder->autowire(PixieController::class)
             ->addTag('container.service_subscriber')
             ->addTag('controller.service_arguments')
-            ->setArgument('$bus', new Reference('debug.traced.messenger.bus.default', ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ->setArgument('$bus', new Reference('debug.traced.messenger.bus.default', ContainerInterface::NULL_ON_fALID_REFERENCE))
             ->setArgument('$chartBuilder', new Reference('chartjs.builder', ContainerInterface::NULL_ON_INVALID_REFERENCE))
         ;
 
