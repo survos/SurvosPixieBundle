@@ -2,6 +2,8 @@
 
 namespace Survos\PixieBundle\Controller;
 
+use App\Entity\Core;
+use App\Entity\Instance;
 use League\Csv\Reader;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Model\Config;
@@ -150,10 +152,14 @@ class PixieController extends AbstractController
         }
         $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
 
+        $core = new Core();
+
+        $instance = (new Instance($core, $item->getKey()));
 
 //        dd($workflow, $table);
 //        $item = (array)$item;
-        return $this->render('@SurvosPixie/pixie/show.html.twig', [
+        return $this->render('@SurvosPixie/pixie/item.html.twig', [
+            'instance' => $instance,
             'kv' => $kv,
             'workflowEnabled' => (bool)$workflow, // comes from config
             'workflow' => $workflow,

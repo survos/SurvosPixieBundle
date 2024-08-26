@@ -1,0 +1,127 @@
+{% extends 'instance/layout.html.twig' %}
+
+{% set hide_sidebar = true %}
+
+{% block sidebar_wrapper %}
+    {{ app.current_route }}
+    no sidebar in public view
+{% endblock %}
+{% block body %}
+
+    Label:
+{#    <div class="bg-info-light">#}
+{#        {{ html|raw }}#}
+{#    </div>#}
+    {# reusable twig blocks? #}
+    {% for field in core.fields %}
+        <li>
+            {{ field.code }}: {{ instance.get(field.code)|json_encode }}
+        </li>
+    {% endfor %}
+
+
+    {{ instance.wikiCode }}
+
+    {% if wiki|default(false) %}
+    <h3>{{ wiki.label }}</h3>
+    <div>
+        {{ wiki.description }}
+    </div>
+
+    {% set properties = wiki.properties|default([]) %}
+    {% component grid with {
+        condition: properties|length and is_granted('ROLE_ADMIN'),
+        data: properties,
+        columns: [
+            'id',
+            'label',
+            'values',
+            'aliases',
+        ]
+    } %}
+        {% block values %}
+            {% component grid with {
+                useDatatables: false,
+                data: row.values,
+                columns:[
+                    'id',
+                    'label',
+                    'qualifiers'
+                ]
+            } %}
+                {% block label %}
+                    {{ row.label != row.id ? row.label }}
+                {% endblock %}
+                {% block qualifiers %}
+                    {% if row.qualifiers.get('items')|length %}
+                        {{ component('grid', {useDatatables: false, data: row.qualifiers, columns: ['id','label','value']}) }}
+                    {% endif %}
+                {% endblock %}
+            {% endcomponent %}
+        {% endblock %}
+    {% endcomponent %}
+    {% endif %}
+
+
+    {% component grid with {
+        condition: wikiResults|default([])|length,
+        data: wikiResults|default([]),
+        columns: [
+            'label',
+            'lang',
+            'description',
+            'aliases',
+            'id'
+        ]
+    } %}
+        {% block id %}
+            <a href="{{ path('instance_add_wiki_data', instance.rp({qCode: row.id, lang: row.lang})) }}">
+                Add {{ row.id }} {{ row.lang }}
+            </a>
+        {% endblock %}
+        {% block aliases %}
+            {{ row.aliases|join(',') }}
+        {% endblock %}
+
+        {% block label %}
+            {% if row.wiki_url %}
+                <a href="{{ row.wiki_url }}" target="_blank">
+                    <span class="fab fa-wikipedia-w"></span>
+                    {{ row.label }}
+                </a>
+            {% else %}
+                <i>{{ row.label }}</i>
+            {% endif %}
+        {% endblock %}
+    {% endcomponent %}
+
+    {{ include('/instance/_instance_categories.html.twig') }}
+
+    {% include "instance/_relations.html.twig" with {relations: instance.relations} %}
+
+    <a class="btn btn-danger" href="{{ path('instance_datasheet', instance.iRP) }}">Datasheet</a>
+    <a class="btn btn-danger" href="{{ path('instance_wikify', instance.iRP) }}">Wikifiy</a>
+
+    <h1 title="{{ instance.shortClass }}">{{ instance.idno }} {{ instance.label }}</h1>
+    <div class="row">
+        <div class="col-6">
+        </div>
+        <div class="col-6">
+        </div>
+    </div>
+
+
+    {% set references = instance.references %}
+    <h3>{{ references|length }} References</h3>
+    {% if references|length %}
+        {% include "reference/_table.html.twig" with {references: instance.references, instance: instance} %}
+    {% endif %}
+
+    <h3>Hierarchical Item</h3>
+    (show the tree if this is part of a hierarchy, a "subitem")
+
+    <h3>Import Data</h3>
+    <pre>{{ instance.importData|json_pretty }}</pre>
+
+    {#    {{ include('instance/_delete_form.html.twig') }} #}
+{% endblock %}
