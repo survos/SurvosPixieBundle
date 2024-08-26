@@ -256,6 +256,7 @@ class PixieService
         }
 //        dd($config, $configFilename, $config);
         $configs[$pixieCode] = $config;
+//        dd($config);
         return $config;
     }
     public function getConfigFilename(string $pixieCode): string

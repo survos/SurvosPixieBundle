@@ -137,8 +137,6 @@ class Config
     public function rp()
     {
         return ['pixieCode' => $this->code];
-
     }
-
 
 }
