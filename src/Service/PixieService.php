@@ -205,13 +205,14 @@ class PixieService
         }
         $configFilename = $this->getConfigFilename($pixieCode);
         assert($configFilename, "$configFilename $pixieCode");
+        assert(file_exists($configFilename), "$configFilename does not exist");
+        try {
         $configData = Yaml::parseFile($configFilename, Yaml::PARSE_CONSTANT); // so we can use php constants!
         $yaml = Yaml::dump($configData);
 //        $yaml = file_get_contents($configFilename);
 //        $config = $this->denormalizer->denormalize($configData, Config::class);
 //        dd(config: $config, data: $configData);
 //        $config->setConfigFilename($configFilename);
-        try {
             $config = $this->serializer->deserialize(
                 $yaml,
                 Config::class, 'yaml');

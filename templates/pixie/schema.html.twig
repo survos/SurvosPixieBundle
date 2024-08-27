@@ -3,6 +3,7 @@
 {% block title %}{{ pixieCode }} Tables{% endblock %}
 
 {% block body %}
+    {{ dump(config) }}
     Schema
     {% for tableName, table in config.tables %}
         <li>
