@@ -42,7 +42,7 @@
     >
         <twig:block name="thumbnail">
             <div class="size-100">
-            <img class="img-thumbnail h-100 object-fit-cover"
+            <img class="img-thumbnail h-100 object-fit-cover size-100"
                  src="{{ row.is_shown_by|default(row.image_url)|default(row.thumbnail) }}" />
             </div>
         </twig:block>
