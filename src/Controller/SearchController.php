@@ -30,7 +30,8 @@ class SearchController extends AbstractController
         string $tableName,
                           IriConverterInterface $iriConverter,
                           InspectionService $inspectionService,
-                          MeiliService $meiliService): Response
+                          MeiliService $meiliService // @todo: move to constructor and make optional, throw error if missing and used
+    ): Response
     {
         $indexName = $meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode));
         $operation = (new GetCollection())->withClass(MeiliItem::class);

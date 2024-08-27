@@ -738,11 +738,11 @@ class StorageBox
 
     public function iterate(string $table = null,
                             ?array $where = [],
+                            int    $max = 0,
                             array $order = [],
                             ?bool  $associative = null,
                             int    $depth = 512,
                             int    $flags = PDO::FETCH_ASSOC,
-                            int    $max = 0
     ): \Generator
     {
         $table = $table ?? $this->currentTable;

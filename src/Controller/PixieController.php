@@ -151,9 +151,11 @@ class PixieController extends AbstractController
             return $this->redirectToRoute('pixie_show_record', $item->getRp());
         }
         $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
+        $config = $this->pixieService->getConfig($pixieCode);
+
+        dd($item->getData(), $config->getTable($tableName)->getProperties());
 
         $core = new Core();
-
         $instance = (new Instance($core, $item->getKey()));
 
 //        dd($workflow, $table);
