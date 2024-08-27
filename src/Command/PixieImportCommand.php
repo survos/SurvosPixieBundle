@@ -108,6 +108,7 @@ final class PixieImportCommand extends InvokableServiceCommand
                     $kv->commit();
                     $kv->beginTransaction();
                 };
+                return true;
                 return $limit ?  $finished: true; // break if we've hit the limit
             });
         $io->success($this->getName() . ' success ' . $pixieDbName);
