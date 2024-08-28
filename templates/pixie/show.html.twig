@@ -10,6 +10,17 @@
 
     <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
 
+<div class="row">
+    <div class="col-md-6">
+        IMAGE
+    </div>
+    <div class="col-md-6">
+        {% with {data: row.data} %}
+        {{ block('details') }}
+        {% endwith %}
+    </div>
+</div>
+{{ block('debug') }}
     {% if workflowEnabled and is_granted('ROLE_ADMIN')%}
         Workflow: {{ workflow }}
 
@@ -21,6 +32,40 @@
 
     {% endif %}
 
+{% endblock %}
+
+{% block details %}
+    {% for var in ['id','code','object_number'] %}
+        <div class="primitives">
+        {% set value = attribute(data,var)|default(false) %}
+        {% if value %}
+            <b>{{ var }}</b><i>{{ value }}</i>
+        {% endif %}
+    {% endfor %}
+        </div>
+
+        {% for var in ['label','description'] %}
+            <div class="fields-text">
+                <code>{{ var }}</code>
+                <div class="text-muted">{{ attribute(data,var)|default(false) }}</div>
+            </div>
+        {% endfor %}
+
+    {% for var in ['dynasty','reign','culture','style','medium'] %}
+        {% set value = attribute(data,var)|default(false) %}
+        {% if value %}
+        <div class="fields-text">
+            <code>{{ var }}</code>
+            <span class="text-success">{{ value }}</span>
+        </div>
+        {% endif %}
+    {% endfor %}
+
+
+{% endblock %}
+
+{% block debug %}
+    <h1>Debug information, mostly for checking fields</h1>
     {{ include(["pixie/%s/%s.html.twig"|format(pixieCode, tableName),  "pixie/%s.html.twig"|format(pixieCode)], {
         item: row,
         data: row.data,
