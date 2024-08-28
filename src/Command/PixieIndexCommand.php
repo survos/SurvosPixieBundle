@@ -52,13 +52,16 @@ final class PixieIndexCommand extends InvokableServiceCommand
         #[Argument(description: 'config code')] string        $pixieCode,
         #[Option(description: 'table name(s?), all if not set')] string         $table=null,
         #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
-        #[Option(description: "reset the meili index")] bool                      $reset = false,
+        #[Option(description: "reset the meili index")] ?bool                      $reset,
         #[Option(description: "max number of records per table to export")] int                     $limit = 0,
         #[Option(description: "extra data (YAML), e.g. --extra=[core:obj]")] string                     $extra = '',
         #[Option('batch', description: "max number of records to batch to meili")] int                     $batchSize = 1000,
 
     ): int
     {
+        if (is_null($reset)) {
+            $reset = true;
+        }
         if (!$this->meiliService) {
 
             $io->error("Run composer require survos/api-grid-bundle");
@@ -72,6 +75,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
         $io->title($indexName);
         if ($reset) {
+            $this->io()->warning("resetting $indexName");
             $this->meiliService->reset($indexName);
         }
         $index = $this->configureIndex($config, $indexName);

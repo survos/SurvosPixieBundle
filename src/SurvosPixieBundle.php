@@ -127,6 +127,7 @@ class SurvosPixieBundle extends AbstractBundle
             ->setArgument('$dataRoot', $config['data_root'])
             ->setArgument('$configDir', $config['config_dir'])
             ->setArgument('$dbDir', $config['db_dir'])
+            ->setArgument('$config', $config)
             ->setArgument('$stopwatch', new Reference('debug.stopwatch'))
             ->setArgument('$serializer', new Reference('serializer'))
             ->setArgument('$logger', new Reference('logger'))
@@ -169,6 +170,7 @@ class SurvosPixieBundle extends AbstractBundle
             ->scalarNode('db_dir')->info("where to store the pixie db files")->defaultValue('pixie]')->end()
             ->scalarNode('data_root')->info("root for csv/json data")->defaultValue('data')->end()
             ->booleanNode('purge_before_import')->info("purge db before import")->defaultValue(false)->end()
+            ->integerNode('limit')->info("import, index, translation, etc. limit")->defaultValue(0)->end()
             ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('config/packages/pixie')->end()
             ->end();
         $this->addPixiesSection($rootNode);

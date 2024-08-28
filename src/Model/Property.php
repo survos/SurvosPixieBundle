@@ -36,6 +36,7 @@ class Property implements \Stringable
     public function __construct(
         private ?string $code = null,
         private ?string $type=null, // self::PROPERTY_STRING, // rel, cat, att
+//        private ?string $rt=null, // related table, e.g. rel.per
         private ?string $subType = null, // e.g. type, relatedCore, dbField.  aka subType?
         private ?array $settings=[], // min/max, delimited, etc.
         private string|bool|null $index=null, // 'INDEX', 'UNIQUE' ??

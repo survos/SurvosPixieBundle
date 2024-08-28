@@ -13,6 +13,7 @@ use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Yaml\Yaml;
@@ -48,7 +49,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         PixieImportService                                                                          $pixieImportService,
         #[Argument(description: 'config code')] string                                              $configCode,
         #[Option(description: 'conf filename, default to directory name of first argument')] ?string $dirOrFilename,
-        #[Option(description: "max number of records per table to import")] int                     $limit = 0,
+        #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
         #[Option(description: "overwrite records if they already exist")] bool                      $overwrite = false,
         #[Option(description: "purge db file first")] bool                                          $reset = false,
         #[Option(description: "Batch size for commit")] int                                         $batch = 500,
@@ -99,18 +100,27 @@ final class PixieImportCommand extends InvokableServiceCommand
             $this->pixieService->destroy($pixieDbName);
         }
 
+        $limit = $this->pixieService->getLimit($limit);
         $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite,
             callback: function ($row, $idx, StorageBox $kv) use ($batch, $limit) {
-//                $this->progressBar->advance();
-                $finished = $limit ? $idx >= $limit : false;
+                $finished = $limit ? $idx >= ($limit+1) : false;
+//                dd($limit, $idx, $finished, $batch);
                 if ($finished || (($idx % $batch) == 0) ) {
                     $this->logger->info("Saving $batch, now at $idx of $limit");
                     $kv->commit();
                     $kv->beginTransaction();
                 };
-                return true;
-                return $limit ?  $finished: true; // break if we've hit the limit
+//                return true; // return true to continue
+                return $limit ?  !$finished: true; // break if we've hit the limit
             });
+
+        $kv = $this->pixieService->getStorageBox($configCode);
+        $consoleTable = new Table($io);
+        $consoleTable->setHeaders(['table','count']);
+        foreach ($config->getTables() as $table) {
+            $consoleTable->addRow([$table->getName(), $kv->count($table->getName())]);
+        }
+        $consoleTable->render();
         $io->success($this->getName() . ' success ' . $pixieDbName);
         return self::SUCCESS;
     }

@@ -16,7 +16,15 @@
             <div class="col-md-2">
                 <div class="card shadow-sm">
                     <div class="card-body p-1">
-                        {% if row.images.web|default(false) %}
+                        <div>
+                            {% for imageUrl in row.imageUrls|default([]) %}
+                                {# candidate for gLightbox or a slideshow or something #}
+                                <img src="{{ imageUrl }}" style="max-width: 30px"/>
+                            {% endfor %}
+                        </div>
+                        {% set icon = 'mdi:github' %}
+                        <twig:ux:icon name="{{icon }}" height="15" width="15" />
+                            {% if row.images.web|default(false) %}
                         {% set i = row.images.web %}
                         <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover"/>
                         {% endif %}
@@ -59,10 +67,10 @@
 {% endblock %}
 
 {% block details %}
-{#    {% set map = {#}
-{#        id: 'primative',#}
-{#        code: 'primative',#}
-{#    } %}#}
+    {% set iconMap = {
+        region: 'bi:geo-alt',
+        floor: 'bi:bounding-box'
+    } %}
     {# {% for var in ['id','code','object_number'] %}
         <div class="primitives">
         {% set value = attribute(data,var)|default(false) %}
@@ -95,7 +103,9 @@
             {% for var in ['cul'] %}
                 <h6 class="mb-0">{{ attribute(data,var)|default(false) }}</h6>
             {% endfor %}
+
             {% for var in ['region'] %}
+                {{ ux_icon('bi:geo-alt', {width:"30px"}) }}
                 <h6 class="mb-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi me-1 bi-geo-alt" viewBox="0 0 16 16">
                         <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10"/>
@@ -134,9 +144,12 @@
 
     {% for var in ['dynasty','reign','culture','style','medium','technique'] %}
         {% set value = attribute(data,var)|default(false) %}
+        {% set icon = iconMap[var]|default('ph:empty-light') %}
+
         {% if value %}
         <div class="fields-text">
             <code>{{ var }}</code>
+            {{ ux_icon(icon, {width:"30px"}) }}
             {% if value is iterable %}
                 {% for v in value %}
                     <li>{{ v }}</li>

@@ -21,7 +21,7 @@
             <div class="p-3 bg-info-subtle">
                 <div class="d-flex mb-0 align-items-center">
                         <div class="flex-grow-1">
-                            <p class="mb-0">Updated 2hrs ago</p>
+{#                            <p class="mb-0">Updated 2hrs ago</p>#}
                         </div>
                         <div class="flex-shrink-0">
                             <div class="d-flex gap-2 align-items-center">
@@ -101,17 +101,19 @@
 
                         <div>
                             {% for tableName, table in config.tables %}
+                                {% set rp = {pixieCode: pixieCode, tableName: tableName}  %}
                                 <div class="d-flex mb-3 gap-3">
                                     <div class="flex-grow-1">
                                         <div>
                                             <p class="mb-2">
 
-                                                <a href="{{ path('pixie_meili_browse', {pixieCode: pixieCode, tableName: tableName}) }}">
+                                                <a href="{{ path('pixie_meili_browse', rp) }}">
                                                     {{ ux_icon('uiw:table') }}
-                                                </a>
-                                                <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
                                                     {{ data[tableName].count }}
                                                     {{ tableName }}
+                                                </a>
+                                                <a href="{{ path('pixie_table', rp) }}">
+                                                    {{ ux_icon('material-symbols-light:schema-outline') }}
                                                 </a>
 
 
@@ -146,8 +148,8 @@
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="14" width="14" class="text-muted" fill="currentColor"><path d="M8 4H21V6H8V4ZM3 3.5H6V6.5H3V3.5ZM3 10.5H6V13.5H3V10.5ZM3 17.5H6V20.5H3V17.5ZM8 11H21V13H8V11ZM8 18H21V20H8V18Z"></path></svg>
                                             </button>
                                             <ul class="dropdown-menu">
-                                                <li><a class="dropdown-item" href="#">Action</a></li>
-                                                <li><a class="dropdown-item" href="#">Another action</a></li>
+                                                <li><a class="dropdown-item" href="{{ path('pixie_table', rp) }}">schema</a></li>
+{#                                                <li><a class="dropdown-item" href="#">Another action</a></li>#}
                                             </ul>
                                         </div>
                                     </div>

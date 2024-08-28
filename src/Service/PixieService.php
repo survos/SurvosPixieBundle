@@ -42,6 +42,7 @@ class PixieService
         private string                                      $dbDir='pixie',
         private string                                      $dataRoot='data', //
         private string                                      $configDir='config/packages/pixie',
+        private array $config=[],
         #[Autowire('%kernel.project_dir%')] private ?string $projectDir=null,
         private ?LoggerInterface                            $logger=null,
         private ?Stopwatch                                  $stopwatch=null,
@@ -54,6 +55,18 @@ class PixieService
 //        dd($this->serializer->denormalize($this->data, Config::class));
 //        assert($this->logger);
         $this->denormalizer=$this->serializer; // ->denormalize($this->data, DenormalizerInterface::class);
+    }
+
+    /**
+     * if null, use the value in survos_pixie.yaml, so dev can be less
+     *
+     * @param int|null $limit
+     * @return int|null
+     */
+    public function getLimit(?int $limit = null): ?int
+    {
+        return is_null($limit) ? $this->config['limit'] : $limit;
+
     }
 
     public function getPixieFilename(string $pixieCode): string
