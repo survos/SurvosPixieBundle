@@ -153,15 +153,14 @@ class PixieController extends AbstractController
         $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
         $config = $this->pixieService->getConfig($pixieCode);
 
-        dd($item->getData(), $config->getTable($tableName)->getProperties());
-
-        $core = new Core();
-        $instance = (new Instance($core, $item->getKey()));
+//        dd($item->getData(), $config->getTable($tableName)->getProperties());
+//        $core = new Core();
+//        $instance = (new Instance($core, $item->getKey()));
 
 //        dd($workflow, $table);
 //        $item = (array)$item;
-        return $this->render('@SurvosPixie/pixie/item.html.twig', [
-            'instance' => $instance,
+        return $this->render('@SurvosPixie/pixie/show.html.twig', [
+            'instance' => $instance??null,
             'kv' => $kv,
             'workflowEnabled' => (bool)$workflow, // comes from config
             'workflow' => $workflow,

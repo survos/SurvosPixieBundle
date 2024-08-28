@@ -22,6 +22,7 @@ use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\SqliteService;
 use Survos\PixieBundle\Twig\TwigExtension;
+use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -140,9 +141,29 @@ class SurvosPixieBundle extends AbstractBundle
         ;
     }
 
+    private function addPixiesSection(ArrayNodeDefinition $rootNode): void
+    {
+        $rootNode
+            ->children()
+            ->arrayNode('pixies')
+            ->arrayPrototype()
+            ->children()
+                ->scalarNode('version')->end()
+            ->arrayNode('tables')
+            ->arrayPrototype()
+            ->children()
+            ->end()
+            ->end()
+            ->end()
+            ->end();
+
+    }
+
+
     public function configure(DefinitionConfigurator $definition): void
     {
-        $definition->rootNode()
+        $rootNode = $definition->rootNode();
+        $rootNode
             ->children()
             ->scalarNode('extension')->info("the pixie db extension")->defaultValue('.pixie.db')->end()
             ->scalarNode('db_dir')->info("where to store the pixie db files")->defaultValue('pixie]')->end()
@@ -150,6 +171,7 @@ class SurvosPixieBundle extends AbstractBundle
             ->booleanNode('purge_before_import')->info("purge db before import")->defaultValue(false)->end()
             ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('config/packages/pixie')->end()
             ->end();
+        $this->addPixiesSection($rootNode);
     }
 
     public function getPaths(): array

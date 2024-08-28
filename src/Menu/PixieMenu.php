@@ -45,8 +45,10 @@ final class PixieMenu implements KnpMenuHelperInterface
     {
         // there must be a pixie.  Messy, because this goes in app, need to add it to the config in pixie
         $menu = $event->getMenu();
+        if (!$pixieCode = $event->getOption('pixieCode')) {
+            return; // pixie  browse should be handled outside of this menu.
+        }
         $this->add($menu, 'pixie_browse_configs');
-        if ($pixieCode = $event->getOption('pixieCode')) {
             $this->addHeading($menu, $pixieCode);
             foreach (['pixie_overview','pixie_schema'] as $pixieRoute) {
                 $this->add($menu, $pixieRoute, ['pixieCode' => $pixieCode]);
@@ -54,10 +56,17 @@ final class PixieMenu implements KnpMenuHelperInterface
             // get from config? Or ?
             $this->addHeading($menu, '|');
             $kv = $this->pixieService->getStorageBox($pixieCode);
-            foreach ($kv->getTableNames() as $tableName) {
-                $this->add($menu, 'pixie_meili_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: $tableName);
+
+            if (!$tableName = $event->getOption('tableName')) {
+                foreach ($kv->getTableNames() as $tableName) {
+                    $this->add($menu, 'pixie_meili_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: $tableName);
+                }
+            } else {
+                // we have a table, so display the table name with a link back and the table-specific menu
+                $this->add($menu, 'pixie_meili_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: "Search $pixieCode:$tableName");
+                $this->add($menu, 'pixie_table', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: "Raw Overview");
+                $this->add($menu, 'pixie_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: "Raw Browse");
             }
-        }
 
     }
 

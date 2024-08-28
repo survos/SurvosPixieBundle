@@ -3,24 +3,34 @@
 {% block title %}Pixie!{% endblock %}
 
 {% block body %}
-        <h1>{{ pixieCode }} {{ tableName }} Overview</h1>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="card-title mb-0 text-capitalize">{{ pixieCode }} {{ tableName }} Overview</h4>
+            </div>
+            <div class="card-body">
+
         {% set item = tableData.first %}
             {% if item %}
-                <a href="{{ path('pixie_show_record', item.rp) }}">
+                <a class="lh-lg" href="{{ path('pixie_show_record', item.rp) }}">
                     Open first {{ tableName}} [{{ item}}] and transitions
                 </a>
 
-                <details>
+                <details class="mt-3">
                     <summary>
                         {{ tableName }}
                         {{ item }}
                         Raw Data
                     </summary>
-                    <twig:simple_item_grid
-                            exclude="_raw,_att,_extra"
-                            :data="item.data"
-                    >
-                    </twig:simple_item_grid>
+                    <div class="card">
+                        <div class="card-body border rounded-2 mt-3">
+                            <twig:simple_item_grid
+                                    exclude="_raw,_att,_extra"
+                                    :data="item.data"
+                            >
+                            </twig:simple_item_grid>
+                        </div>
+                    </div>
                 </details>
 
 
@@ -31,30 +41,47 @@
 {#        />#}
 {#            {% endif %}#}
             {% endif %}
-            <h2>
-                <a href="{{ path('pixie_browse',
-                    {'pixieCode': pixieCode, tableName: tableName}) }}">
+             </div>
+        </div>
+        <div>
+
+            <a href="{{ path('pixie_browse',
+                {'pixieCode': pixieCode, tableName: tableName}) }}">
                 Preview {{ tableName }} (n={{ tableData.count }})
-                </a>
-            </h2>
+            </a>
+            
+            <h6 class="my-3">
+                These should be horizontal.
+            </h6>
 
-            These should be horizontal.
-            {% for indexName, chart in tableData.charts %}
-                <li>
-                    <div class="my-chart" style="width: 200px; height: 200px">
-                        {{ render_chart(chart.chart) }}
-                    </div>
+            <ul class="list-inline">
+                <div class="row">
+                    {% for indexName, chart in tableData.charts %}
+                        <li class="col-md-6 col-xl-4">
 
-                <a href="{{ path('pixie_show_property', {
-                    pixieCode: pixieCode,
-                    tableName: tableName,
-                    propertyCode: indexName
-                }) }}">
-                    SHOW Details {{ indexName }}
-                </a>
-                </li>
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <a href="{{ path('pixie_show_property', {
+                                        pixieCode: pixieCode,
+                                        tableName: tableName,
+                                        propertyCode: indexName
+                                    }) }}">
+                                        SHOW Details {{ indexName }}
+                                    </a>
+                                </div>
+                                <div class="card-body pb-4">
+                                    <div class="my-chart mx-auto">
+                                        {{ render_chart(chart.chart) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
 
-            {% endfor %}
+                    {% endfor %}
+                </div>
+            </ul>
+        </div>
+
 {% endblock %}
 
 {% block debug %}

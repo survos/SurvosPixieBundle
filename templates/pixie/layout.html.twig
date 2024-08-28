@@ -20,12 +20,12 @@
 {% block page_header %}
 
     <div>
-
                 {{ component('menu', {
                     caller: _self,
                     type: PAGE_MENU,
                     options: {
-                        pixieCode: pixieCode
+                        pixieCode: pixieCode,
+                        tableName: tableName|default(null)
                     }
                 }) }}
 

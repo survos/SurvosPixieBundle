@@ -20,8 +20,11 @@
 }
 
 .my-chart {
-    width: 50%;
-    height: 30vh;
+    /* width: 50%;
+    height: 30vh; */
+    max-height: 450px;
+    max-width: 450px;
+    /* border: 1px solid red; */
 }
 
 .avatar-group {

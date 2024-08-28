@@ -5,32 +5,39 @@
 {% block body %}
 {#        <h1>{{ filename }}</h1>#}
 {#        <h1>{{ remoteUrl }}</h1>#}
-        <twig:simple_datatables
-                :caller="_self"
-                :remoteUrl="remoteUrl"
-                :columns="columns"
-        >
-                <twig:block name="marking">
-                    {{ row.marking }}
-                </twig:block>
-                <twig:block name="url">
-                    <a href="{{ row.url }}" target="_blank">
-                        {{ row.url }}
-                    </a>
-                </twig:block>
-                <twig:block name="key">
-                    <a href="{{ path('pixie_show_record', {
-                        pixieCode: pixieCode,
-                        tableName: tableName,
-                        key: row[keyName]
-                    }) }}"> {{ row[keyName] }}</a>
-                </twig:block>
-            <twig:block name="value">
-{#                {{ row.value|json_encode }}#}
-{#                <a href="">{{ row.value|default('~~') }}</a>#}
-            </twig:block>
 
-        </twig:simple_datatables>
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive text-nowrap">
+                    <twig:simple_datatables
+                            :caller="_self"
+                            :remoteUrl="remoteUrl"
+                            :columns="columns"
+                    >
+                            <twig:block name="marking">
+                                {{ row.marking }}
+                            </twig:block>
+                            <twig:block name="url">
+                                <a href="{{ row.url }}" target="_blank">
+                                    {{ row.url }}
+                                </a>
+                            </twig:block>
+                            <twig:block name="key">
+                                <a href="{{ path('pixie_show_record', {
+                                    pixieCode: pixieCode,
+                                    tableName: tableName,
+                                    key: row[keyName]
+                                }) }}"> {{ row[keyName] }}</a>
+                            </twig:block>
+                        <twig:block name="value">
+            {#                {{ row.value|json_encode }}#}
+            {#                <a href="">{{ row.value|default('~~') }}</a>#}
+                        </twig:block>
+
+                    </twig:simple_datatables>
+                </div>
+            </div>
+        </div>
 
 
 

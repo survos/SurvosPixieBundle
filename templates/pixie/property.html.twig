@@ -3,46 +3,63 @@
 {% block title %}Property{% endblock %}
 
 {% block body %}
-<div class="row" id="{{ property }}">
-    <div class="col-md-3">
-        <h3>{{ property.code }}</h3>
+<div class="row g-4" id="{{ property }}">
+    <div class="col-md-6 col-lg-8">
 
-        <div class="my-chart">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">{{ property.code }}</h3>
+            </div>
+            <div class="card-body">
 
-            {% if chart|default(false) %}
-                {% set _sc = '@survos/pixie-bundle/pixie_apex' %}
-                <div {{ stimulus_controller(_sc, {
-                    data: chart.counts,
-                    title: property.code,
-                    url: ''}) }}>
-                    <div {{ stimulus_target(_sc, 'chart') }}>
-                        Chart goes here.
+                {% if chart|default(false) %}
+                    {% set _sc = '@survos/pixie-bundle/pixie_apex' %}
+
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <div {{ stimulus_controller(_sc, {
+                                data: chart.counts,
+                                title: property.code,
+                                url: ''}) }}>
+                                <div {{ stimulus_target(_sc, 'chart') }}>
+                                Chart goes here.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            {{ render_chart(chart.chart) }}
+                        </div>
                     </div>
-                </div>
-                {{ render_chart(chart.chart) }}
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6 col-lg-4">
 
-        {% set columns = [
-            {name: 'count', title: '#'},
-            {name: 'value', title: property.code}
-        ] %}
-        <twig:simple_datatables
-                perPage="10"
-                :caller="_self"
-                :columns="columns"
-                :data="chart.counts|default([])"
-        >
-            <twig:block name="count">
-                <a href="{{ path('pixie_browse', {index: property.code, value: row.value, 'pixieCode': pixieCode, tableName: tableName}) }}">
-                    {# this is the row from chart.counts #}
-                    {{ row.count }}
-                </a>
-            </twig:block>
+        <div class="card">
+            <div class="card-body">
 
-        </twig:simple_datatables>
+                {% set columns = [
+                    {name: 'count', title: '#'},
+                    {name: 'value', title: property.code}
+                ] %}
+                <twig:simple_datatables
+                        perPage="10"
+                        :caller="_self"
+                        :columns="columns"
+                        :data="chart.counts|default([])"
+                >
+                    <twig:block name="count">
+                        <a href="{{ path('pixie_browse', {index: property.code, value: row.value, 'pixieCode': pixieCode, tableName: tableName}) }}">
+                            {# this is the row from chart.counts #}
+                            {{ row.count }}
+                        </a>
+                    </twig:block>
+
+                </twig:simple_datatables>
+
+            </div>
+        </div>
     </div>
 </div>
 
