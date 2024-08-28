@@ -12,6 +12,13 @@
 
 <div class="row">
     <div class="col-md-6">
+        {% for imageField in ['thumbnail','is_shown_by'] %}
+            {% set value = attribute(row,imageField) %}
+            {% if value %}
+            <img src="{{ value }}" class="thumbnail" style="max-width: 300px" />
+            <br /><b>{{ value }}</b>
+            {% endif %}
+        {% endfor %}
         IMAGE
     </div>
     <div class="col-md-6">
