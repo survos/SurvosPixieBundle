@@ -4,7 +4,14 @@
 
 {% block body %}
 
-    This is the overview page of {{ pixieCode }}
+    <div
+    hx-get="{{ path('pixie_config_search', {pixieCode: pixieCode}) }}"
+    hx-target="#search-results"
+    hx-trigger="search, submit, load, input changed delay:400ms from:find input[type='search'], input delay:100ms from:find input[type='checkbox']">
+    <div id="search-results">
+
+    </div>
+
 
     <p>
         It should have details but not everything that is in property.  A description, copyright info, etc.

@@ -171,12 +171,13 @@ class PixieService
     /**
      * @return array<Config>
      */
-    public function getConfigFiles(string $q=null, int $limit = 0): array
+    public function getConfigFiles(string $q=null, ?string $pixieCode=null, int $limit = 0): array
     {
         $finder = new Finder();
         $configs  = [];
+        $pattern = $pixieCode ?: ($q?:'*');
         // this is only the configs in the configDir.
-        foreach ($finder->files()->name("*$q*.yaml")
+        foreach ($finder->files()->name("$pattern.yaml")
                      ->in($this->getConfigDir())->sortByName()->reverseSorting() as $file) {
             // we can optimize later...
             $code = $file->getFilenameWithoutExtension();

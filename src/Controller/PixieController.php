@@ -310,12 +310,15 @@ class PixieController extends AbstractController
 //    #[Template()]
     public function search_pixies(
         #[MapQueryParameter] int $limit = 50,
-        #[MapQueryParameter] string $q = ''
+        #[MapQueryParameter] string $q = '',
+        #[MapQueryParameter] string $pixieCode = ''
     ): array|Response
     {
-        $configs = $this->pixieService->getConfigFiles($q, $limit);
+        $configs = $this->pixieService->getConfigFiles($q, limit: $limit, pixieCode: $pixieCode);
         // cache candidate!
         $tables = [];
+        if ($pixieCode) {
+        }
         foreach ($configs as $pixieCode => $config) {
             $kv = $this->pixieService->getStorageBox($pixieCode);
             foreach ($kv->getTables() as $tableName => $table) {
