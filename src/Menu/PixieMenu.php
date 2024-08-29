@@ -57,16 +57,25 @@ final class PixieMenu implements KnpMenuHelperInterface
             $this->addHeading($menu, '|');
             $kv = $this->pixieService->getStorageBox($pixieCode);
 
-            if (!$tableName = $event->getOption('tableName')) {
+            $tableName = $event->getOption('tableName');
+                $subMenu = $this->addSubmenu($menu, $tableName ?: "choose");
                 foreach ($kv->getTableNames() as $tableName) {
-                    $this->add($menu, 'pixie_meili_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: $tableName);
+//                    $this->add($menu, 'pixie_meili_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: $tableName);
+                    $tableRp = ['tableName' => $tableName, 'pixieCode' => $pixieCode];
+                    $this->add($subMenu, 'pixie_meili_browse', $tableRp, label: $tableName);
                 }
-            } else {
-                // we have a table, so display the table name with a link back and the table-specific menu
-                $this->add($menu, 'pixie_meili_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: "Search $pixieCode:$tableName");
+//            } else {
+//                $subMenu = $this->addSubmenu($menu, $tableName);
+//            }
+////                foreach ($kv->getTableNames() as $tableName) {
+//                    assert($tableName);
+//                    $tableRp = ['tableName' => $tableName, 'pixieCode' => $pixieCode];
+//                    $this->add($subMenu, 'pixie_meili_browse', $tableRp, label: $tableName);
+//                    // we have a table, so display the table name with a link back and the table-specific menu
+//                    $this->add($menu, 'pixie_meili_browse', $tableRp, label: "Search $pixieCode:$tableName");
+//                }
                 $this->add($menu, 'pixie_table', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: "Raw Overview");
                 $this->add($menu, 'pixie_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: "Raw Browse");
-            }
 
     }
 
