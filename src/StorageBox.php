@@ -44,6 +44,7 @@ class StorageBox
     private array $schemaTables = []; // from the schema inspection
     private bool $inTransaction = false;
     private ?array                     $regexRules = [];
+    private $keyCache = []; // by table, for has()
 
     /**
      * Initialises a new store connection.
@@ -487,17 +488,16 @@ class StorageBox
      */
     public function has(string $key, string $table = null, bool $preloadKeys = false): bool
     {
-        static $keyCache = [];
         $table = $table ?? $this->currentTable;
         $pk = $this->getPrimaryKey($table);
 
         if ($preloadKeys) {
             // if this is too big, we can add a preloadWhere and selectively preload, e.g. translated string
             if (empty($keyCache[$table])) {
-                $keyCache[$table] = $this->query("SELECT $pk from $table")->fetchAll(PDO::FETCH_COLUMN);
-                $this->logger->warning(sprintf("Preloaded %d keys in $table", count($keyCache[$table])));
+                $this->keyCache[$table] = $this->query("SELECT $pk from $table")->fetchAll(PDO::FETCH_COLUMN);
+                $this->logger->warning(sprintf("Preloaded %d keys in $table", count($this->keyCache[$table])));
             }
-            return in_array($key, $keyCache[$table]);
+            return in_array($key, $this->keyCache[$table]);
         }
 
         //
@@ -685,6 +685,7 @@ class StorageBox
                 dd("Error: " . $statement->errorInfo()[2]);
             }
         }
+        $this->keyCache[$tableName] = $key;
 
         $this->currentTable = $previousTable;
 
