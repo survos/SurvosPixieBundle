@@ -12,62 +12,80 @@
         classification: 'ic:sharp-category',
         floor: 'bi:bounding-box'
     } %}
+    <div class="inner-page">
+        <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
 
-    <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
+        <div class="section-item">
+            <div class="item__image">
+                {% for imageField in ['thumbnail','is_shown_by'] %}
+                    {% set value = attribute(row,imageField) %}
+                    {% if value %}
+                        <img src="{{ value }}" class="w-100 rounded-2 object-fit-contain"/>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        <section class="section-info bg-white">
+            {% with {data: row.data} %}
+                {{ block('details') }}
+            {% endwith %}
+        </section>
 
-    <div class="card mb-4">
-        <div class="card-body p-4">
-            <div class="row g-4">
-                <div class="col-md-2">
-                    <div class="card shadow-sm">
-                        <div class="card-body p-1">
-                            <div>
-                                {% for imageUrl in row.imageUrls|default([]) %}
-                                    {# candidate for gLightbox or a slideshow or something #}
-                                    <img src="{{ imageUrl }}" style="max-width: 30px"/>
-                                {% endfor %}
-                            </div>
-                            {% set icon = 'mdi:github' %}
-                            <twig:ux:icon name="{{ icon }}" height="15" width="15"/>
-                            {% if row.images.web|default(false) %}
-                                {% set i = row.images.web %}
-                                <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover"/>
-                            {% endif %}
-                            {#                        {% for image in row.images.web|default([]) %} #}
-                            {#                            <li> #}
-                            {#                                {{ dump(image) }} #}
-                            {#                            </li> #}
-                            {#                        {% endfor %} #}
-                            {% for imageField in ['thumbnail','is_shown_by'] %}
-                                {% set value = attribute(row,imageField) %}
-                                {% if value %}
-                                    <img src="{{ value }}" class="w-100 rounded-2 object-fit-cover"/>
-                                    {# <br /><b>{{ value }}</b> #}
+
+        <div class="card mb-4 d-none">
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-2">
+                        <div class="card shadow-sm">
+                            <div class="card-body p-1">
+                                <div>
+                                    {% for imageUrl in row.imageUrls|default([]) %}
+                                        {# candidate for gLightbox or a slideshow or something #}
+                                        <img src="{{ imageUrl }}" style="max-width: 30px"/>
+                                    {% endfor %}
+                                </div>
+                                {% set icon = 'mdi:github' %}
+                                <twig:ux:icon name="{{ icon }}" height="15" width="15"/>
+                                {% if row.images.web|default(false) %}
+                                    {% set i = row.images.web %}
+                                    <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover"/>
                                 {% endif %}
-                            {% endfor %}
-                            {# IMAGE #}
+                                {#                        {% for image in row.images.web|default([]) %} #}
+                                {#                            <li> #}
+                                {#                                {{ dump(image) }} #}
+                                {#                            </li> #}
+                                {#                        {% endfor %} #}
+                                {% for imageField in ['thumbnail','is_shown_by'] %}
+                                    {% set value = attribute(row,imageField) %}
+                                    {% if value %}
+                                        <img src="{{ value }}" class="w-100 rounded-2 object-fit-cover"/>
+                                        {# <br /><b>{{ value }}</b> #}
+                                    {% endif %}
+                                {% endfor %}
+                                {# IMAGE #}
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-10">
-                    {% with {data: row.data} %}
-                        {{ block('details') }}
-                    {% endwith %}
+                    <div class="col-md-10">
+                        {% with {data: row.data} %}
+                            {{ block('details') }}
+                        {% endwith %}
+                    </div>
                 </div>
             </div>
         </div>
+        {{ block('debug') }}
+        {% if workflowEnabled and is_granted('ROLE_ADMIN') %}
+            Workflow: {{ workflow }}
+
+            {{ include('@SurvosWorkflow/_entity_transitions.html.twig', {
+                transition_path: 'pixie_transition',
+                flowName: workflow,
+                entity: row
+            }) }}
+
+        {% endif %}
     </div>
-    {{ block('debug') }}
-    {% if workflowEnabled and is_granted('ROLE_ADMIN') %}
-        Workflow: {{ workflow }}
-
-        {{ include('@SurvosWorkflow/_entity_transitions.html.twig', {
-            transition_path: 'pixie_transition',
-            flowName: workflow,
-            entity: row
-        }) }}
-
-    {% endif %}
 
 {% endblock %}
 
@@ -98,7 +116,7 @@
     {% endfor %}
 
 
-    <div class="d-flex align-items-center gap-3 mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
         {% for var in ['marking'] %}
             <h6 class="badge bg-success mb-0 text-white">{{ attribute(data,var)|default(false) }}</h6>
         {% endfor %}
@@ -149,7 +167,7 @@
 {% endblock %}
 {% block dim %}
     {{ ux_icon('mdi:ruler', {width: "30px"}) }}
-    <div class="fields-text d-flex gap-3">
+    <div class="fields-text d-flex gap-3 my-3">
         {% for var in keys %}
             <p class="text-muted mb-0">{{ attribute(data,var)|default(false) }}</p>
         {% endfor %}
@@ -205,106 +223,130 @@
 {% endblock %}
 
 {% block text %}
-    <h3>{{ group }}</h3>
-    {% for var in keys %}
-        {% set value = attribute(data,var)|default(false) %}
-        {% if value %}
-            <div class="fields-text">
-                {# <code>{{ var }}</code> #}
-                {# @todo: add translation #}
-                {#                <h5 class="fw-semibold">{{ var }}</h5> #}
-                <div class="text-{{ var }}">{{ value }}</div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="pb-2">
+                <h4 class="fw-medium mb-3 text-capitalize">{{ group }}</h4>
+                {% for var in keys %}
+                    {% set value = attribute(data,var)|default(false) %}
+                    {% if value %}
+                        <div class="fields-text">
+                            {# <code>{{ var }}</code> #}
+                            {# @todo: add translation #}
+                            {#                <h5 class="fw-semibold">{{ var }}</h5> #}
+                            <p class="text-{{ var }} mb-2">{{ value }}</p>
+                        </div>
+                    {% endif %}
+                {% endfor %}
             </div>
-        {% endif %}
-    {% endfor %}
+        </div>
+    </div>
 {% endblock %}
 
 {% block internal %}
-    <h3>{{ group }}</h3>
-    {% for key in keys %}
-        {% set value = attribute(data,key)|default(false) %}
-        {% if value %}
-            <div class="primitives mb-3 badge bg-dark bg-opacity-10 text-muted">
-                <code>{{ key }}</code>
-                <i> {{ value|json_encode }}</i>
+    <h4 class="fw-medium my-3 text-capitalize">{{ group }}</h4>
+    <div class="row">
+        {% for key in keys %}
+            <div class="col-6">
+                <div class="stats__item">
+                    {% set value = attribute(data,key)|default(false) %}
+                    {% if value %}
+                        <h6 class="fs-10 fw-semibold text-uppercase mb-3">{{ key }}</h6>
+                        <p class="fw-normal"> {{ value|json_encode }}</p>
+                    {% endif %}
+                </div>
             </div>
-        {% endif %}
-    {% endfor %}
+        {% endfor %}
+    </div>
 {% endblock %}
 
 {% block INDEX %}
-    <h3>Lists/Relations</h3>
-    <ul>
+    <div class="my-4">
+        <h4 class="fw-medium">Lists/Relations</h4>
+        <ul class="list-group list-group-flush">
 
-    {% for var in keys %}
-        {% set value = attribute(data,var)|default(false) %}
-        {{ var }}
-{#        {{ dump(var, iconMap) }}#}
-        {% set icon = iconMap[var]|default(false) %}
+        {% for var in keys %}
+            {% set value = attribute(data,var)|default(false) %}
+            <h6 class="px-3 fw-medium pt-3 text-capitalize">{{ var }}</h6>
+    {#        {{ dump(var, iconMap) }}#}
+            {% set icon = iconMap[var]|default(false) %}
 
-        {% if value %}
-            <li>
-            <div class="fields-text">
-                {% if icon %}
-                {{ ux_icon(icon, {width:"30px", title: var}) }}
-                    {% endif %}
-                {% if value is iterable %}
-                    {% for v in value %}
-                        <li>{{ v }}</li>
-                    {% endfor %}
-                {% else %}
-                    <span class="text-success">{{ value }}</span>
-                {% endif %}
-                {% if not icon %}
-                    <code>{{ var }}</code>
-                {% endif %}
+            {% if value %}
+                <li class="list-group-item pt-0">
+                    <div class="fields-text">
+                        <span class="align-middle me-2">
+                            {% if icon %}
+                                {{ ux_icon(icon, {width:"20px", title: var}) }}
+                            {% endif %}
+                        </span>
+                        {% if value is iterable %}
+                            {% for v in value %}
+                                <li>{{ v }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-success">{{ value }}</span>
+                        {% endif %}
+                        {% if not icon %}
+                            <code>{{ var }}</code>
+                        {% endif %}
 
-            </div>
-            </li>
-        {% endif %}
-    {% endfor %}
-    </ul>
-
+                    </div>
+                </li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    </div>
 {% endblock %}
+
 {% block image %}
     (images are handled separately)
 {% endblock %}
+
 {% block global %}
-<h3>Globals</h3>
-universal fields, can be used anywhere in the template with <code>row.var</code>
-{% for var in keys %}
-<li>
-    <code>row.{{ var }}</code>: {{ attribute(data, var) }}
-</li>
-{% endfor %}
+    <div class="mb-4">
+        <h4 class="fw-medium my-3 text-capitalize">Globals</h4>
+        <p>
+            universal fields, can be used anywhere in the template with <code>row.var</code>
+        </p>
+        <ul class="list-group">
+            {% for var in keys %}
+                <li class="list-group-item px-0 py-1 border-0">
+                    <code>row.{{ var }}</code>: <span class="fw-medium">{{ attribute(data, var) }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
 {% endblock %}
 
 {% block date %}
     <div>
-
-    {{ ux_icon('mdi:calendar', {width: "30px"}) }}
-    {% for var in keys %}
-    {{ attribute(data, var) }}
-    {% endfor %}
+        {{ ux_icon('mdi:calendar', {width: "30px"}) }}
+        {% for var in keys %}
+        {{ attribute(data, var) }}
+        {% endfor %}
     </div>
 {% endblock %}
 
 {% block attr %}
-    <h3>Attributes</h3>
-    {% for var in keys %}
-        {% set value = attribute(data,var)|default(false) %}
-        {% set icon = iconMap[var]|default('ph:empty-light') %}
-        {% if value %}
-            <li>
-            <code>{{ var }}</code>
-            {% if value is iterable %}
-                {% for v in value %}
-                    <li>{{ v }}</li>
-                {% endfor %}
-            {% else %}
-                <span class="text-success">{{ value }}</span>
-            {% endif %}
-            </li>
-        {% endif %}
-    {% endfor %}
+    <div class="my-4">
+        <h4 class="fw-medium my-3 text-capitalize">Attributes</h4>
+        <ul class="list-group">
+            {% for var in keys %}
+                {% set value = attribute(data,var)|default(false) %}
+                {% set icon = iconMap[var]|default('ph:empty-light') %}
+                {% if value %}
+                    <li class="list-group-item list-group-item-action">
+                        <code>{{ var }}</code>
+                        {% if value is iterable %}
+                            {% for v in value %}
+                                <li>{{ v }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-success">{{ value }}</span>
+                        {% endif %}
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
 {% endblock %}
