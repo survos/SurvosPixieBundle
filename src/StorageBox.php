@@ -202,7 +202,7 @@ class StorageBox
         }
     }
 
-    public function getPrimaryKey(string $tableName): string
+    public function getPrimaryKey(string $tableName): ?string
     {
         $tableName = $tableName ?? $this->currentTable;
         assert($tableName);
@@ -211,7 +211,10 @@ class StorageBox
         $result = $this->query($sql = "SELECT l.name FROM pragma_table_info('$tableName') 
     as l WHERE l.pk = 1");
         $pk = $result->fetchColumn();
-        assert($pk, $tableName . $sql);
+        if (!$pk) {
+            $this->logger->warning("Missing $tableName");
+        }
+//        assert($pk, $tableName . $sql);
 //dd($result->fetchColumn(), $result);
         return $pk;
 //dd($result->fetchColumn(), $result->fetchAll(), $tableName, $sql);
@@ -504,6 +507,19 @@ class StorageBox
                 "SELECT COUNT($pk) FROM $table WHERE $pk = :key",
                 ["key" => $key]
             )->fetchColumn() > 0;
+    }
+
+    public function getByIndex(int $index, string $table = null): ?Item
+    {
+        if ($index === -1) {
+            $index = rand(0, $this->count($table));
+        }
+        $pk = $this->getPrimaryKey($table);
+        $query = $this->query("select $pk from $table LIMIT 1 OFFSET $index");
+        $result = $query->fetch(PDO::FETCH_COLUMN);
+        return $result ? $this->get($result, $table) : null;
+//        dd($result);
+
     }
 
     public function count(string $table = null, array $where=[]): int

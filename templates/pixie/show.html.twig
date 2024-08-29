@@ -92,7 +92,13 @@
 {% block details %}
     {% for group, keys in groups %}
         {% with {title: group, keys:keys} %}
+            {% if group %}
             {{ block(group) }}
+            {% else %}
+                <text class="bg-danger">
+                    {{ keys|json_encode }}
+                </text>
+            {% endif %}
         {% endwith %}
 
     {% endfor %}
@@ -349,4 +355,12 @@
             {% endfor %}
         </ul>
     </div>
+{% endblock %}
+
+{#{% block '' %}#}
+{#{{ dump(keys) }}#}
+{#{% endblock %}#}
+
+{% block PRIMARY %}
+    The primary key is {{ row.key }}
 {% endblock %}

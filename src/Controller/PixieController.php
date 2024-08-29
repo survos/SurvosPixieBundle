@@ -99,7 +99,6 @@ class PixieController extends AbstractController
 
     }
 
-
     #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record', requirements: ['key' => '.+'], options: ['expose' => true])]
     #[Route('/transition/{pixieCode}/{tableName}/{key}', name: 'pixie_transition', requirements: ['key' => '.+'])]
     public function show_record(
@@ -117,7 +116,13 @@ class PixieController extends AbstractController
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $kv->select($tableName);
         $pk = $kv->getPrimaryKey($tableName);
-        $item = $kv->get($key, $tableName);
+        if (is_numeric($key) && ((int)$key <= 0)) {
+            $item = $kv->getByIndex((int)$key, $tableName);
+            return $this->redirectToRoute('pixie_show_record', ['pixieCode' => $pixieCode, 'tableName' => $tableName, 'key' => $item->getKey()]);
+            // get the first record, we can use this for a thumbnail too.
+        } else {
+            $item = $kv->get($key, $tableName);
+        }
         $conf = $this->pixieService->getConfig($pixieCode);
 
         $this->pixieService->populateRecordWithRelations($item, $conf, $kv);

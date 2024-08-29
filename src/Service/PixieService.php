@@ -350,10 +350,16 @@ class PixieService
             if ($property->getType() === 'rel') {
                 // get the related item from the PK stored in the item, replace it with the actual record, but without the _id?
                 $relatedId = $data[$propertyName];
-                // publish these properties as flickr tags, including label and description
-                $relatedItem = $kv->get($relatedId, $property->getSubType()); // subtype is related table
-                $relatedName = str_replace('_id', '', $propertyName);
-                $data[$relatedName] = $relatedItem;
+                // the subtype table needs to exist!
+                if ($config->getTable($property->getSubType())) {
+                    // publish these properties as flickr tags, including label and description
+                    if ($relatedId) {
+                        $relatedItem = $kv->get($relatedId, $property->getSubType()); // subtype is related table
+                        $relatedName = str_replace('_id', '', $propertyName);
+                        $data[$relatedName] = $relatedItem;
+
+                    }
+                }
             }
         }
         // need to be selective about when we save this.
