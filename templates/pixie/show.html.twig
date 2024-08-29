@@ -15,7 +15,7 @@
     <div class="inner-page">
         <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
 
-        <div class="section-item">
+        {# <div class="section-item">
             <div class="item__image">
                 {% for imageField in ['thumbnail','is_shown_by'] %}
                     {% set value = attribute(row,imageField) %}
@@ -29,15 +29,15 @@
             {% with {data: row.data} %}
                 {{ block('details') }}
             {% endwith %}
-        </section>
+        </section> #}
 
 
-        <div class="card mb-4 d-none">
+        <div class="card mb-4">
             <div class="card-body p-4">
                 <div class="row g-4">
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <div class="card shadow-sm">
-                            <div class="card-body p-1">
+                            <div class="card-body p-1 text-center">
                                 <div>
                                     {% for imageUrl in row.imageUrls|default([]) %}
                                         {# candidate for gLightbox or a slideshow or something #}
@@ -48,7 +48,7 @@
                                 <twig:ux:icon name="{{ icon }}" height="15" width="15"/>
                                 {% if row.images.web|default(false) %}
                                     {% set i = row.images.web %}
-                                    <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover"/>
+                                    <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover" style="max-width: 150px"/>
                                 {% endif %}
                                 {#                        {% for image in row.images.web|default([]) %} #}
                                 {#                            <li> #}
@@ -58,15 +58,18 @@
                                 {% for imageField in ['thumbnail','is_shown_by'] %}
                                     {% set value = attribute(row,imageField) %}
                                     {% if value %}
-                                        <img src="{{ value }}" class="w-100 rounded-2 object-fit-cover"/>
+                                        <img src="{{ value }}" class="w-100 rounded-2 object-fit-cover" style="max-width: 150px"/>
                                         {# <br /><b>{{ value }}</b> #}
                                     {% endif %}
                                 {% endfor %}
                                 {# IMAGE #}
+
+                                <div>001</div>
+
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-10">
+                    <div class="col-md-8">
                         {% with {data: row.data} %}
                             {{ block('details') }}
                         {% endwith %}
@@ -93,6 +96,7 @@
     {% for group, keys in groups %}
         {% with {title: group, keys:keys} %}
             {% if group %}
+{#                {{ dump(row.data) }}#}
             {{ block(group) }}
             {% else %}
                 <text class="bg-danger">
@@ -122,41 +126,43 @@
     {% endfor %}
 
 
-    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-        {% for var in ['marking'] %}
-            <h6 class="badge bg-success mb-0 text-white">{{ attribute(data,var)|default(false) }}</h6>
-        {% endfor %}
-        {% for var in ['cul'] %}
-            <h6 class="mb-0">{{ attribute(data,var)|default(false) }}</h6>
-        {% endfor %}
+    <div class="bg-light rounded-3 py-2 px-3">
+        <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+            {% for var in ['marking'] %}
+                <h6 class="badge bg-success mb-0 text-white">{{ attribute(data,var)|default(false) }}</h6>
+            {% endfor %}
+            {% for var in ['cul'] %}
+                <h6 class="mb-0">{{ attribute(data,var)|default(false) }}</h6>
+            {% endfor %}
 
-        {% for var in ['region'] %}
-            {{ ux_icon('bi:geo-alt', {width:"30px"}) }}
-            <h6 class="mb-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                     class="bi me-1 bi-geo-alt" viewBox="0 0 16 16">
-                    <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10"/>
-                    <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
-                </svg>
-                {{ attribute(data,var)|default(false) }}
-            </h6>
-        {% endfor %}
-        {% for var in ['floor'] %}
-            <h6 class="mb-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                     class="bi me-1 bi-bounding-box" viewBox="0 0 16 16">
-                    <path d="M5 2V0H0v5h2v6H0v5h5v-2h6v2h5v-5h-2V5h2V0h-5v2zm6 1v2h2v6h-2v2H5v-2H3V5h2V3zm1-2h3v3h-3zm3 11v3h-3v-3zM4 15H1v-3h3zM1 4V1h3v3z"/>
-                </svg>
-                {{ attribute(data,var)|default(false) }}
-            </h6>
+            {% for var in ['region'] %}
+                {{ ux_icon('bi:geo-alt', {width:"30px"}) }}
+                <h6 class="mb-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi me-1 bi-geo-alt" viewBox="0 0 16 16">
+                        <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10"/>
+                        <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
+                    </svg>
+                    {{ attribute(data,var)|default(false) }}
+                </h6>
+            {% endfor %}
+            {% for var in ['floor'] %}
+                <h6 class="mb-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi me-1 bi-bounding-box" viewBox="0 0 16 16">
+                        <path d="M5 2V0H0v5h2v6H0v5h5v-2h6v2h5v-5h-2V5h2V0h-5v2zm6 1v2h2v6h-2v2H5v-2H3V5h2V3zm1-2h3v3h-3zm3 11v3h-3v-3zM4 15H1v-3h3zM1 4V1h3v3z"/>
+                    </svg>
+                    {{ attribute(data,var)|default(false) }}
+                </h6>
+            {% endfor %}
+        </div>
+
+        {% for var in ['description','tombstone', 'did_you_know'] %}
+            <div class="fields-text">
+                <p class="text-muted mb-2">{{ attribute(data,var)|default(false) }}</p>
+            </div>
         {% endfor %}
     </div>
-
-    {% for var in ['description','tombstone', 'did_you_know'] %}
-        <div class="fields-text">
-            <p class="text-muted mb-2">{{ attribute(data,var)|default(false) }}</p>
-        </div>
-    {% endfor %}
 
     {% for var in ['cronologia'] %}
         <div class="fields-text">
@@ -229,23 +235,19 @@
 {% endblock %}
 
 {% block text %}
-    <div class="row">
-        <div class="col-md-6">
-            <div class="pb-2">
-                <h4 class="fw-medium mb-3 text-capitalize">{{ group }}</h4>
-                {% for var in keys %}
-                    {% set value = attribute(data,var)|default(false) %}
-                    {% if value %}
-                        <div class="fields-text">
-                            {# <code>{{ var }}</code> #}
-                            {# @todo: add translation #}
-                            {#                <h5 class="fw-semibold">{{ var }}</h5> #}
-                            <p class="text-{{ var }} mb-2">{{ value }}</p>
-                        </div>
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
+    <div class="pb-2">
+        <h3 class="fw-semibold mb-3 text-capitalize">{{ data.title|default(data.label|default(data.name|default("~"))) }}</h3>
+        {% for var in keys %}
+            {% set value = attribute(data,var)|default(false) %}
+            {% if value %}
+                <div class="fields-text">
+{#                     <code>{{ var }}</code>#}
+                    {# @todo: add translation #}
+                    {#                <h5 class="fw-semibold">{{ var }}</h5> #}
+                    <p class="text-{{ var }} mb-2">{{ value }}</p>
+                </div>
+            {% endif %}
+        {% endfor %}
     </div>
 {% endblock %}
 
@@ -257,7 +259,7 @@
                 <div class="stats__item">
                     {% set value = attribute(data,key)|default(false) %}
                     {% if value %}
-                        <h6 class="fs-10 fw-semibold text-uppercase mb-3">{{ key }}</h6>
+                        <h6 class="fs-10 fw-semibold text-uppercase mb-2">{{ key }}</h6>
                         <p class="fw-normal"> {{ value|json_encode }}</p>
                     {% endif %}
                 </div>
@@ -268,17 +270,15 @@
 
 {% block INDEX %}
     <div class="my-4">
-        <h4 class="fw-medium">Lists/Relations</h4>
-        <ul class="list-group list-group-flush">
+        <h4 class="fw-medium mb-3">Lists/Relations</h4>
+        <ul class="list-group list-group-flush bg-light rounded-3 py-2 px-3">
 
         {% for var in keys %}
             {% set value = attribute(data,var)|default(false) %}
-            <h6 class="px-3 fw-medium pt-3 text-capitalize">{{ var }}</h6>
-    {#        {{ dump(var, iconMap) }}#}
-            {% set icon = iconMap[var]|default(false) %}
-
             {% if value %}
-                <li class="list-group-item pt-0">
+{#                <h6 class="px-3 fw-medium pt-3 text-capitalize">{{ var }}</h6>#}
+                {% set icon = iconMap[var]|default(false) %}
+                <li class="list-group-item bg-light pt-0">
                     <div class="fields-text">
                         <span class="align-middle me-2">
                             {% if icon %}
@@ -290,7 +290,7 @@
                                 <li>{{ v }}</li>
                             {% endfor %}
                         {% else %}
-                            <span class="text-success">{{ value }}</span>
+                            <span>{{ value }}</span>
                         {% endif %}
                         {% if not icon %}
                             <code>{{ var }}</code>
@@ -309,24 +309,38 @@
 {% endblock %}
 
 {% block global %}
-    <div class="mb-4">
-        <h4 class="fw-medium my-3 text-capitalize">Globals</h4>
+        {% if data.citation|default(false) %}
+            <div class="mb-4">
+        Citation: <a href="{{ data.citation }}" target="_blank">{{ data.citation }}</a>
+            </div>
+        {% endif %}
+
+    {% if data.credit|default(false) %}
+        <div class="mb-4">
+            Credit: {{ data.credit }}
+        </div>
+    {% endif %}
+
+    <details>
+        <summary>Globals (debug)
+{#            <h4 class="fw-medium my-3 text-capitalize">Globals</h4>#}
+        </summary>
         <p>
             universal fields, can be used anywhere in the template with <code>row.var</code>
         </p>
         <ul class="list-group">
             {% for var in keys %}
                 <li class="list-group-item px-0 py-1 border-0">
-                    <code>row.{{ var }}</code>: <span class="fw-medium">{{ attribute(data, var) }}</span>
+                    <code>data.{{ var }}</code>: <span class="fw-medium">{{ attribute(data, var) }}</span>
                 </li>
             {% endfor %}
         </ul>
-    </div>
+    </details>
 {% endblock %}
 
 {% block date %}
-    <div>
-        {{ ux_icon('mdi:calendar', {width: "30px"}) }}
+    <div class="d-flex align-items-center gap-2">
+        {{ ux_icon('mdi:calendar', {width: "20px"}) }}
         {% for var in keys %}
         {{ attribute(data, var) }}
         {% endfor %}
