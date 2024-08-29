@@ -153,6 +153,31 @@ class PixieController extends AbstractController
         $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
         $config = $this->pixieService->getConfig($pixieCode);
 
+        // quick hack for groups
+        $groups = [];
+        foreach ($table->getTranslatable() as $key) {
+            $groups[$group='text'][] = $key;
+            $reverse[$key] = $group;
+        }
+        foreach ($table->getProperties() as $property) {
+            $settings = $property->getSettings();
+            if (!$group = $settings['g']??null) {
+                $index = $property->getIndex();
+                if ($index) {
+                    $group = $property->getIndex();
+                }
+            }
+            $groups[$group][] = $property->getCode();
+            $reverse[$property->getCode()] = $group;
+        }
+
+        foreach (array_keys($item->getData(true)) as $key) {
+            if (!array_key_exists($key, $reverse)) {
+                $groups['attr'][] = $key;
+            }
+        }
+//        dd($reverse, $groups['attr'], $groups);
+
 //        dd($item->getData(), $config->getTable($tableName)->getProperties());
 //        $core = new Core();
 //        $instance = (new Instance($core, $item->getKey()));
@@ -169,6 +194,7 @@ class PixieController extends AbstractController
             'pixieCode' => $pixieCode,
             'row' => $item,
             'columns' => array_keys((array)$item),
+            'groups' => $groups
         ]);
 
     }

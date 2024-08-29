@@ -4,56 +4,61 @@
 
 {% block body %}
 
-    <details>
-        <summary>Row data</summary>
-    </details>
+    {% set iconMap = {
+        region: 'bi:geo-alt',
+        cul: 'game-icons:luchador',
+        mat: 'et:hazardous',
+        tec: 'material-symbols-light:palette-outline',
+        classification: 'ic:sharp-category',
+        floor: 'bi:bounding-box'
+    } %}
 
     <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
 
-<div class="card mb-4">
-    <div class="card-body p-4">
-        <div class="row g-4">
-            <div class="col-md-2">
-                <div class="card shadow-sm">
-                    <div class="card-body p-1">
-                        <div>
-                            {% for imageUrl in row.imageUrls|default([]) %}
-                                {# candidate for gLightbox or a slideshow or something #}
-                                <img src="{{ imageUrl }}" style="max-width: 30px"/>
-                            {% endfor %}
-                        </div>
-                        {% set icon = 'mdi:github' %}
-                        <twig:ux:icon name="{{icon }}" height="15" width="15" />
+    <div class="card mb-4">
+        <div class="card-body p-4">
+            <div class="row g-4">
+                <div class="col-md-2">
+                    <div class="card shadow-sm">
+                        <div class="card-body p-1">
+                            <div>
+                                {% for imageUrl in row.imageUrls|default([]) %}
+                                    {# candidate for gLightbox or a slideshow or something #}
+                                    <img src="{{ imageUrl }}" style="max-width: 30px"/>
+                                {% endfor %}
+                            </div>
+                            {% set icon = 'mdi:github' %}
+                            <twig:ux:icon name="{{ icon }}" height="15" width="15"/>
                             {% if row.images.web|default(false) %}
-                        {% set i = row.images.web %}
-                        <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover"/>
-                        {% endif %}
-{#                        {% for image in row.images.web|default([]) %}#}
-{#                            <li>#}
-{#                                {{ dump(image) }}#}
-{#                            </li>#}
-{#                        {% endfor %}#}
-                        {% for imageField in ['thumbnail','is_shown_by'] %}
-                            {% set value = attribute(row,imageField) %}
-                            {% if value %}
-                                <img src="{{ value }}" class="w-100 rounded-2 object-fit-cover"/>
-                                {# <br /><b>{{ value }}</b> #}
+                                {% set i = row.images.web %}
+                                <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover"/>
                             {% endif %}
-                        {% endfor %}
-                        {# IMAGE #}
+                            {#                        {% for image in row.images.web|default([]) %} #}
+                            {#                            <li> #}
+                            {#                                {{ dump(image) }} #}
+                            {#                            </li> #}
+                            {#                        {% endfor %} #}
+                            {% for imageField in ['thumbnail','is_shown_by'] %}
+                                {% set value = attribute(row,imageField) %}
+                                {% if value %}
+                                    <img src="{{ value }}" class="w-100 rounded-2 object-fit-cover"/>
+                                    {# <br /><b>{{ value }}</b> #}
+                                {% endif %}
+                            {% endfor %}
+                            {# IMAGE #}
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-10">
-                {% with {data: row.data} %}
-                {{ block('details') }}
-                {% endwith %}
+                <div class="col-md-10">
+                    {% with {data: row.data} %}
+                        {{ block('details') }}
+                    {% endwith %}
+                </div>
             </div>
         </div>
     </div>
-</div>
-{{ block('debug') }}
-    {% if workflowEnabled and is_granted('ROLE_ADMIN')%}
+    {{ block('debug') }}
+    {% if workflowEnabled and is_granted('ROLE_ADMIN') %}
         Workflow: {{ workflow }}
 
         {{ include('@SurvosWorkflow/_entity_transitions.html.twig', {
@@ -67,11 +72,13 @@
 {% endblock %}
 
 {% block details %}
-    {% set iconMap = {
-        region: 'bi:geo-alt',
-        culture: 'game-icons:luchador',
-        floor: 'bi:bounding-box'
-    } %}
+    {% for group, keys in groups %}
+        {% with {title: group, keys:keys} %}
+            {{ block(group) }}
+        {% endwith %}
+
+    {% endfor %}
+
     {# {% for var in ['id','code','object_number'] %}
         <div class="primitives">
         {% set value = attribute(data,var)|default(false) %}
@@ -90,140 +97,214 @@
         {% endif %}
     {% endfor %}
 
-        {% for var in ['label'] %}
+
+    <div class="d-flex align-items-center gap-3 mb-3">
+        {% for var in ['marking'] %}
+            <h6 class="badge bg-success mb-0 text-white">{{ attribute(data,var)|default(false) }}</h6>
+        {% endfor %}
+        {% for var in ['cul'] %}
+            <h6 class="mb-0">{{ attribute(data,var)|default(false) }}</h6>
+        {% endfor %}
+
+        {% for var in ['region'] %}
+            {{ ux_icon('bi:geo-alt', {width:"30px"}) }}
+            <h6 class="mb-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                     class="bi me-1 bi-geo-alt" viewBox="0 0 16 16">
+                    <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10"/>
+                    <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
+                </svg>
+                {{ attribute(data,var)|default(false) }}
+            </h6>
+        {% endfor %}
+        {% for var in ['floor'] %}
+            <h6 class="mb-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                     class="bi me-1 bi-bounding-box" viewBox="0 0 16 16">
+                    <path d="M5 2V0H0v5h2v6H0v5h5v-2h6v2h5v-5h-2V5h2V0h-5v2zm6 1v2h2v6h-2v2H5v-2H3V5h2V3zm1-2h3v3h-3zm3 11v3h-3v-3zM4 15H1v-3h3zM1 4V1h3v3z"/>
+                </svg>
+                {{ attribute(data,var)|default(false) }}
+            </h6>
+        {% endfor %}
+    </div>
+
+    {% for var in ['description','tombstone', 'did_you_know'] %}
+        <div class="fields-text">
+            <p class="text-muted mb-2">{{ attribute(data,var)|default(false) }}</p>
+        </div>
+    {% endfor %}
+
+    {% for var in ['cronologia'] %}
+        <div class="fields-text">
+            <p class="text-muted mb-3">{{ attribute(data,var)|default(false) }}</p>
+        </div>
+    {% endfor %}
+
+
+{% endblock %}
+{% block ignored '' %}
+
+{% block translatable %}
+
+{% endblock %}
+{% block dim %}
+    {{ ux_icon('mdi:ruler', {width: "30px"}) }}
+    <div class="fields-text d-flex gap-3">
+        {% for var in keys %}
+            <p class="text-muted mb-0">{{ attribute(data,var)|default(false) }}</p>
+        {% endfor %}
+    </div>
+
+{% endblock %}
+
+
+
+{% block debug %}
+    <details>
+        <summary>
+            <h1>Debug information, mostly for checking fields</h1>
+
+        </summary>
+
+        {{ include(["pixie/%s/%s.html.twig"|format(pixieCode, tableName),  "pixie/%s.html.twig"|format(pixieCode)], {
+            item: row,
+            data: row.data,
+            kv: kv|default(null)
+        }, ignore_missing=true) }}
+
+        {% if row %}
+            <h3>{{ tableName }} Properties</h3>
+            <twig:simple_item_grid
+                    exclude="_raw,_att,_extra,value"
+                    :data="row.data"
+            >
+
+            </twig:simple_item_grid>
+
+
+            {% if row._att|default(false) %}
+                <h3>._att</h3>
+                <twig:simple_item_grid
+                        :data="row._att|json_decode(true)"
+                />
+            {% endif %}
+            {% if row._raw|default(false) %}
+                <h3>._raw</h3>
+                <twig:simple_item_grid
+                        :data="row._raw|json_decode(true)"
+                />
+            {% endif %}
+            {% if row.value|default(false) %}
+                <h3>.value</h3>
+                <twig:simple_item_grid
+                        :data="row.value|json_decode(true)"
+                />
+            {% endif %}
+        {% endif %}
+    </details>
+{% endblock %}
+
+{% block text %}
+    <h3>{{ group }}</h3>
+    {% for var in keys %}
+        {% set value = attribute(data,var)|default(false) %}
+        {% if value %}
             <div class="fields-text">
                 {# <code>{{ var }}</code> #}
-                <h5 class="fw-semibold">{{ attribute(data,var)|default(false) }}</h5>
+                {# @todo: add translation #}
+                {#                <h5 class="fw-semibold">{{ var }}</h5> #}
+                <div class="text-{{ var }}">{{ value }}</div>
             </div>
-        {% endfor %}
+        {% endif %}
+    {% endfor %}
+{% endblock %}
 
-        <div class="d-flex align-items-center gap-3 mb-3">
-            {% for var in ['marking'] %}
-                <h6 class="badge bg-success mb-0 text-white">{{ attribute(data,var)|default(false) }}</h6>
-            {% endfor %}
-            {% for var in ['cul'] %}
-                <h6 class="mb-0">{{ attribute(data,var)|default(false) }}</h6>
-            {% endfor %}
-
-            {% for var in ['region'] %}
-                {{ ux_icon('bi:geo-alt', {width:"30px"}) }}
-                <h6 class="mb-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi me-1 bi-geo-alt" viewBox="0 0 16 16">
-                        <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10"/>
-                        <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
-                    </svg>
-                    {{ attribute(data,var)|default(false) }}
-                </h6>
-            {% endfor %}
-            {% for var in ['floor'] %}
-                <h6 class="mb-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi me-1 bi-bounding-box" viewBox="0 0 16 16">
-                        <path d="M5 2V0H0v5h2v6H0v5h5v-2h6v2h5v-5h-2V5h2V0h-5v2zm6 1v2h2v6h-2v2H5v-2H3V5h2V3zm1-2h3v3h-3zm3 11v3h-3v-3zM4 15H1v-3h3zM1 4V1h3v3z"/>
-                    </svg>
-                    {{ attribute(data,var)|default(false) }}
-                </h6>
-            {% endfor %}
-        </div>
-
-        {% for var in ['description','tombstone', 'did_you_know'] %}
-            <div class="fields-text">
-                <p class="text-muted mb-2">{{ attribute(data,var)|default(false) }}</p>
+{% block internal %}
+    <h3>{{ group }}</h3>
+    {% for key in keys %}
+        {% set value = attribute(data,key)|default(false) %}
+        {% if value %}
+            <div class="primitives mb-3 badge bg-dark bg-opacity-10 text-muted">
+                <code>{{ key }}</code>
+                <i> {{ value|json_encode }}</i>
             </div>
-        {% endfor %}
+        {% endif %}
+    {% endfor %}
+{% endblock %}
 
-        {% for var in ['cronologia'] %}
-            <div class="fields-text">
-                <p class="text-muted mb-3">{{ attribute(data,var)|default(false) }}</p>
-            </div>
-        {% endfor %}
+{% block INDEX %}
+    <h3>Lists/Relations</h3>
+    <ul>
 
-        <div class="fields-text d-flex gap-3">
-            {% for var in ['alto', 'largo', 'ancho', 'peso'] %}
-                <p class="text-muted mb-0">{{ attribute(data,var)|default(false) }}</p>
-            {% endfor %}
-        </div>
-
-    {% for var in ['dynasty','reign','culture','style','medium','technique'] %}
+    {% for var in keys %}
         {% set value = attribute(data,var)|default(false) %}
-        {% set icon = iconMap[var]|default('ph:empty-light') %}
+        {{ var }}
+{#        {{ dump(var, iconMap) }}#}
+        {% set icon = iconMap[var]|default(false) %}
 
         {% if value %}
-        <div class="fields-text">
+            <li>
+            <div class="fields-text">
+                {% if icon %}
+                {{ ux_icon(icon, {width:"30px", title: var}) }}
+                    {% endif %}
+                {% if value is iterable %}
+                    {% for v in value %}
+                        <li>{{ v }}</li>
+                    {% endfor %}
+                {% else %}
+                    <span class="text-success">{{ value }}</span>
+                {% endif %}
+                {% if not icon %}
+                    <code>{{ var }}</code>
+                {% endif %}
+
+            </div>
+            </li>
+        {% endif %}
+    {% endfor %}
+    </ul>
+
+{% endblock %}
+{% block image %}
+    (images are handled separately)
+{% endblock %}
+{% block global %}
+<h3>Globals</h3>
+universal fields, can be used anywhere in the template with <code>row.var</code>
+{% for var in keys %}
+<li>
+    <code>row.{{ var }}</code>: {{ attribute(data, var) }}
+</li>
+{% endfor %}
+{% endblock %}
+
+{% block date %}
+    <div>
+
+    {{ ux_icon('mdi:calendar', {width: "30px"}) }}
+    {% for var in keys %}
+    {{ attribute(data, var) }}
+    {% endfor %}
+    </div>
+{% endblock %}
+
+{% block attr %}
+    <h3>Attributes</h3>
+    {% for var in keys %}
+        {% set value = attribute(data,var)|default(false) %}
+        {% set icon = iconMap[var]|default('ph:empty-light') %}
+        {% if value %}
+            <li>
             <code>{{ var }}</code>
-            {{ ux_icon(icon, {width:"30px"}) }}
             {% if value is iterable %}
                 {% for v in value %}
                     <li>{{ v }}</li>
                 {% endfor %}
-                {% else %}
-            <span class="text-success">{{ value }}</span>
-                    {% endif %}
-        </div>
+            {% else %}
+                <span class="text-success">{{ value }}</span>
+            {% endif %}
+            </li>
         {% endif %}
     {% endfor %}
-{% endblock %}{% block x %}
-
-
-{% endblock %}
-
-{% block debug %}
-    <h1>Debug information, mostly for checking fields</h1>
-    {{ include(["pixie/%s/%s.html.twig"|format(pixieCode, tableName),  "pixie/%s.html.twig"|format(pixieCode)], {
-        item: row,
-        data: row.data,
-        kv: kv|default(null)
-    }, ignore_missing=true)  }}
-
-    {% if row %}
-        <h3>{{ tableName }} Properties</h3>
-        <twig:simple_item_grid
-                exclude="_raw,_att,_extra,value"
-                :data="row.data"
-        >
-
-        </twig:simple_item_grid>
-
-
-        {% if row._att|default(false) %}
-            <h3>._att</h3>
-            <twig:simple_item_grid
-                    :data="row._att|json_decode(true)"
-            />
-        {% endif %}
-        {% if row._raw|default(false) %}
-            <h3>._raw</h3>
-            <twig:simple_item_grid
-                    :data="row._raw|json_decode(true)"
-            />
-        {% endif %}
-        {% if row.value|default(false) %}
-            <h3>.value</h3>
-            <twig:simple_item_grid
-                    :data="row.value|json_decode(true)"
-            />
-        {% endif %}
-    {% endif %}
-
-
-
-{#        <twig:simple_datatables#}
-{#                :caller="_self"#}
-{#                :columns="columns"#}
-{#                :data="row"#}
-{#        >#}
-{#                <twig:block name="key">#}
-{#                    <a href="{{ path('pixie_show_record', {#}
-{#                        pixieName: pixieName,#}
-{#                        tableName: tableName,#}
-{#                        key: row[keyName]#}
-{#                    }) }}"> {{ row[keyName] }}</a>#}
-{#                </twig:block>#}
-{#            <twig:block name="value">#}
-{#                <a href="">{{ row.value|default('~~') }}</a>#}
-{#            </twig:block>#}
-
-{#        </twig:simple_datatables>#}
-
-
-
 {% endblock %}
