@@ -9,6 +9,7 @@ class Source
         public string $label = '',
         public string $description = 'source description',
         public string $locale = 'en',
+        public string $units = 'cm',
         public string $country = 'us',
         public string $instructions = 'installation insructions',
         public null|string|array $ignore = [],

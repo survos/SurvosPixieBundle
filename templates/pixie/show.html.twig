@@ -356,19 +356,37 @@
     The primary key is {{ row.key }}
 {% endblock %}
 
+{% block xxvalue %}
+{{ dump(value) }}
+    {% if value|fn_is_object %}
+    {{ dump(value) }}
+    {% else %}
+        {{ value }}
+    {% endif %}
+{% endblock %}
 {% block value %}
     {% if value|fn_is_object %}
+        {{ value|json_encode }}
     {% elseif value|fn_is_array %}
         {% if value|fn_array_is_list %}
             <ol>
                 {% for v in value %}
-                    <li>{{ v }}</li>
+                    <li>
+                        {% with {value: v, row:value} only %}
+                            {{ block('value') }}
+                        {% endwith %}
+                    </li>
                 {% endfor %}
             </ol>
         {% else %}
             <ul>
             {% for key,v in value %}
-                <li>{{ key }}: {{ v }}</li>
+                <li>{{ key }}:
+                    {% with {value: v, row:value} only %}
+                        {{ block('value') }}
+                    {% endwith %}
+                    {{ dump(v) }}
+                </li>
             {% endfor %}
             </ul>
         {% endif %}
@@ -378,6 +396,11 @@
     {% endif %}
 {% endblock %}
 
+{% block dimensions %}
+    {% for key in keys %}
+        {{ dump(key) }}
+    {% endfor %}
+{% endblock %}
 {% block admin %}
     {% if is_granted('ROLE_ADMIN') %}
         <h3>{{ title }}</h3>
