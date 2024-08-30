@@ -8,6 +8,7 @@
         region: 'bi:geo-alt',
         cul: 'game-icons:luchador',
         mat: 'et:hazardous',
+        ubi: 'carbon:location',
         tec: 'material-symbols-light:palette-outline',
         classification: 'ic:sharp-category',
         floor: 'bi:bounding-box',
@@ -51,8 +52,6 @@
 
                                     {% endfor %}
                                 </div>
-                                {% set icon = 'mdi:github' %}
-                                <twig:ux:icon name="{{ icon }}" height="15" width="15"/>
                                 {% if row.images.web|default(false) %}
                                     {% set i = row.images.web %}
                                     <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover"
@@ -149,12 +148,45 @@
 
 {% endblock %}
 {% block dim %}
-    {{ ux_icon('mdi:ruler', {width: "30px"}) }}
-    <div class="fields-text d-flex gap-3 my-3">
-        {% for var in keys %}
-            <p class="text-muted mb-0">{{ attribute(data,var)|default(false) }}</p>
+    {% set dimIcons = {
+        depth: 'iconoir:depth',
+        height: 'circum:line-height',
+        width: 'material-symbols:width',
+        weight: 'material-symbols:scale'
+    } %}
+    {% if row.dimensions %}
+        {% for x, dimension in row.dimensions %}
+            <code>{{ dimension.name|default('') }}</code>
+            <p class="text-muted mb-0">
+{#                {{ ux_icon('tabler:ruler-measure', {width: "30px"}) }}#}
+            {% for d in ['height','width','length','depth','radius'] %}
+                {% set dimValue = attribute(dimension, d)|default(false) %}
+                {% if dimValue %}
+{#                    {{ loop.first ? '' : 'x' }}#}
+                    <span title="{{ d }}">
+                    {{ ux_icon(dimIcons[d]) }}
+                        {{ dimValue }}
+                    </span>
+                    {# if large screen #}
+                    {{ dimension.units }}
+                {% endif %}
+            {% endfor %}
+                {# if not enough space to show all above, e.g. mobile #}
+                {{ dimension.units }}
+            </p>
         {% endfor %}
-    </div>
+
+        {% for ww in attribute(row, 'weight')|default([]) %}
+            <p>
+                {{ ux_icon(dimIcons.weight) }}
+                {#                        {% for w in ww %}#}
+                {{ ww.amount }} {{ ww.units }}
+                {#                        {% endfor %}#}
+            </p>
+        {% endfor %}
+{#        {% if attribute(row, 'weight') %}#}
+
+    {% endif %}
 
 {% endblock %}
 
@@ -238,11 +270,14 @@
             </div>
         {% endfor %}
     </div>
+
+    {{ block('dim') }}
+
 {% endblock %}
 
 {% block INDEX %}
     <div class="my-4">
-        <h4 class="fw-medium mb-3">Lists/Relations</h4>
+        <h4 class="fw-medium mb-3">{{ 'relations'|trans }}</h4>
         <ul class="list-group list-group-flush bg-light rounded-3 py-2 px-3">
 
             {% for var in keys %}
@@ -277,7 +312,7 @@
 {% endblock %}
 
 {% block image %}
-    (images are handled separately)
+{#    (images are handled separately)#}
 {% endblock %}
 
 {% block global %}
@@ -327,8 +362,13 @@
         <h4 class="fw-medium my-3 text-capitalize">Attributes</h4>
         <ul class="list-group">
             {% for var in keys %}
+                {#  hack to avoid internals! #}
                 {% set value = attribute(data,var)|default(false) %}
                 {% set icon = iconMap[var]|default('ph:empty-light') %}
+                {% if var in ['marking','thumbnail_urls','image_urls','dimensions','weight'] %}
+                    {% set value = false %}
+                {% endif %}
+
                 {% if value %}
 
                     <li class="list-group-item list-group-item-action">
@@ -353,17 +393,9 @@
 {# {% endblock %} #}
 
 {% block PRIMARY %}
-    The primary key is {{ row.key }}
+{#    The primary key is {{ row.key }}#}
 {% endblock %}
 
-{% block xxvalue %}
-{{ dump(value) }}
-    {% if value|fn_is_object %}
-    {{ dump(value) }}
-    {% else %}
-        {{ value }}
-    {% endif %}
-{% endblock %}
 {% block value %}
     {% if value|fn_is_object %}
         {{ value|json_encode }}
@@ -385,22 +417,15 @@
                     {% with {value: v, row:value} only %}
                         {{ block('value') }}
                     {% endwith %}
-                    {{ dump(v) }}
                 </li>
             {% endfor %}
             </ul>
         {% endif %}
-        {# {{ dump(value) }} #}
     {% else %}
         {{ value }}
     {% endif %}
 {% endblock %}
 
-{% block dimensions %}
-    {% for key in keys %}
-        {{ dump(key) }}
-    {% endfor %}
-{% endblock %}
 {% block admin %}
     {% if is_granted('ROLE_ADMIN') %}
         <h3>{{ title }}</h3>
