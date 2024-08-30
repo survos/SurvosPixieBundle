@@ -181,7 +181,7 @@ class PixieController extends AbstractController
                 $groups['attr'][] = $key;
             }
         }
-//        dd($reverse, $groups['attr'], $groups);
+        dd($reverse, $groups['attr'], $groups);
 
 //        dd($item->getData(), $config->getTable($tableName)->getProperties());
 //        $core = new Core();

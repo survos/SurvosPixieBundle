@@ -243,7 +243,7 @@ class PixieService
                 } else {
                     $property = new Property(
                         index: $propData['index'] ?? null,
-                        code: $propData['name'],
+                        code: $propData['name']??dd($propData),
                         generated: isset($propData['generated']) ? $propData['generated'] : true,
                         initial: $propData['initial'] ?? null,
                         type: $propData['type'] ?? null // maybe default type based on code?

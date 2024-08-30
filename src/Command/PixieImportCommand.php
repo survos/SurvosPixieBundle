@@ -99,6 +99,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         if ($reset) {
             $this->pixieService->destroy($pixieDbName);
         }
+        $this->total = $total; // @togo: get from config
 
         $limit = $this->pixieService->getLimit($limit);
         $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite, pattern: $pattern,
