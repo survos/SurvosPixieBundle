@@ -49,7 +49,6 @@
                                             {# really should change the main image #}
                                             <img src="{{ imageUrl }}" style="max-width: 30px"/>
                                         </a>
-
                                     {% endfor %}
                                 </div>
                                 {% if row.images.web|default(false) %}
@@ -57,11 +56,6 @@
                                     <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover"
                                          style="max-width: 150px"/>
                                 {% endif %}
-                                {#                        {% for image in row.images.web|default([]) %} #}
-                                {#                            <li> #}
-                                {#                                {{ dump(image) }} #}
-                                {#                            </li> #}
-                                {#                        {% endfor %} #}
                                 {% for imageField in ['thumbnail','is_shown_by'] %}
                                     {% set value = attribute(row,imageField) %}
                                     {% if value %}
@@ -85,7 +79,9 @@
                 </div>
             </div>
         </div>
-        {{ block('debug') }}
+        {% if is_granted('ROLE_ADMIN') or (app.environment == 'dev') %}
+            {{ block('debug') }}
+        {% endif %}
         {% if workflowEnabled and is_granted('ROLE_ADMIN') %}
             Workflow: {{ workflow }}
 
@@ -158,19 +154,19 @@
         {% for x, dimension in row.dimensions %}
             <code>{{ dimension.name|default('') }}</code>
             <p class="text-muted mb-0">
-{#                {{ ux_icon('tabler:ruler-measure', {width: "30px"}) }}#}
-            {% for d in ['height','width','length','depth','radius'] %}
-                {% set dimValue = attribute(dimension, d)|default(false) %}
-                {% if dimValue %}
-{#                    {{ loop.first ? '' : 'x' }}#}
-                    <span title="{{ d }}">
+                {#                {{ ux_icon('tabler:ruler-measure', {width: "30px"}) }} #}
+                {% for d in ['height','width','length','depth','radius'] %}
+                    {% set dimValue = attribute(dimension, d)|default(false) %}
+                    {% if dimValue %}
+                        {#                    {{ loop.first ? '' : 'x' }} #}
+                        <span title="{{ d }}">
                     {{ ux_icon(dimIcons[d]) }}
-                        {{ dimValue }}
+                            {{ dimValue }}
                     </span>
-                    {# if large screen #}
-                    {{ dimension.units }}
-                {% endif %}
-            {% endfor %}
+                        {# if large screen #}
+                        {{ dimension.units }}
+                    {% endif %}
+                {% endfor %}
                 {# if not enough space to show all above, e.g. mobile #}
                 {{ dimension.units }}
             </p>
@@ -179,12 +175,12 @@
         {% for ww in attribute(row, 'weight')|default([]) %}
             <p>
                 {{ ux_icon(dimIcons.weight) }}
-                {#                        {% for w in ww %}#}
+                {#                        {% for w in ww %} #}
                 {{ ww.amount }} {{ ww.units }}
-                {#                        {% endfor %}#}
+                {#                        {% endfor %} #}
             </p>
         {% endfor %}
-{#        {% if attribute(row, 'weight') %}#}
+        {#        {% if attribute(row, 'weight') %} #}
 
     {% endif %}
 
@@ -193,6 +189,25 @@
 
 
 {% block debug %}
+    <details>
+        <summary>Globals (debug)
+            {#            <h4 class="fw-medium my-3 text-capitalize">Globals</h4> #}
+        </summary>
+        <p>
+            universal fields, can be used anywhere in the template with <code>row.var</code>
+        </p>
+        <ul class="list-group">
+            {% for var in keys %}
+                <li class="list-group-item px-0 py-1 border-0">
+                    <code>data.{{ var }}</code>: <span class="fw-medium">
+                        {% set value = attribute(data, var) %}
+                        {{ block('value') }}
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    </details>
+
     <details>
         <summary>
             <h1>Debug information, mostly for checking fields</h1>
@@ -312,7 +327,7 @@
 {% endblock %}
 
 {% block image %}
-{#    (images are handled separately)#}
+    {#    (images are handled separately) #}
 {% endblock %}
 
 {% block global %}
@@ -328,24 +343,8 @@
         </div>
     {% endif %}
 
-    <details>
-        <summary>Globals (debug)
-            {#            <h4 class="fw-medium my-3 text-capitalize">Globals</h4> #}
-        </summary>
-        <p>
-            universal fields, can be used anywhere in the template with <code>row.var</code>
-        </p>
-        <ul class="list-group">
-            {% for var in keys %}
-                <li class="list-group-item px-0 py-1 border-0">
-                    <code>data.{{ var }}</code>: <span class="fw-medium">
-                        {% set value = attribute(data, var) %}
-                        {{ block('value') }}
-                    </span>
-                </li>
-            {% endfor %}
-        </ul>
-    </details>
+
+
 {% endblock %}
 
 {% block date %}
@@ -393,7 +392,7 @@
 {# {% endblock %} #}
 
 {% block PRIMARY %}
-{#    The primary key is {{ row.key }}#}
+    {#    The primary key is {{ row.key }} #}
 {% endblock %}
 
 {% block value %}
@@ -412,13 +411,13 @@
             </ol>
         {% else %}
             <ul>
-            {% for key,v in value %}
-                <li>{{ key }}:
-                    {% with {value: v, row:value} only %}
-                        {{ block('value') }}
-                    {% endwith %}
-                </li>
-            {% endfor %}
+                {% for key,v in value %}
+                    <li>{{ key }}:
+                        {% with {value: v, row:value} only %}
+                            {{ block('value') }}
+                        {% endwith %}
+                    </li>
+                {% endfor %}
             </ul>
         {% endif %}
     {% else %}

@@ -42,10 +42,10 @@
         "symfony/phpunit-bridge": "^7.1",
         "symfony/stopwatch": "^7.1",
         "spaze/phpstan-disallowed-calls": "^3.4",
-        "survos/workflow-helper-bundle": "^1.5.302",
+        "survos/workflow-helper-bundle": "^1.6",
         "symfony/ux-chartjs": "^2.18",
-        "survos/bootstrap-bundle": "^1.5.302",
-        "survos/api-grid-bundle": "^1.5.302",
+        "survos/bootstrap-bundle": "^1.6",
+        "survos/api-grid-bundle": "^1.6",
         "symfony/event-dispatcher": "^7.1",
         "symfony/messenger": "^7.1"
     },
