@@ -197,7 +197,7 @@
             universal fields, can be used anywhere in the template with <code>row.var</code>
         </p>
         <ul class="list-group">
-            {% for var in keys %}
+            {% for var in keys|default([]) %}
                 <li class="list-group-item px-0 py-1 border-0">
                     <code>data.{{ var }}</code>: <span class="fw-medium">
                         {% set value = attribute(data, var) %}

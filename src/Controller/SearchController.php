@@ -65,6 +65,7 @@ class SearchController extends AbstractController
                 browsable: false
             ),
         ];
+
 //        foreach ($table->getTranslatable() as $field) {
 //            $gridColumns[] = new Column(name: $field, browsable: false,
 //                className: 'custom-heading',
@@ -72,10 +73,17 @@ class SearchController extends AbstractController
 //        }
         // could also go through indexes
         foreach ($table->getProperties() as $property) {
+            if ($property->getSetting('g') == 'ignored') {
+                continue;
+            }
+            if ($property->getIndex() === 'PRIMARY') {
+                continue;
+            }
 
             $column = new Column(
                 name: $property->getCode(),
                 browsable: $property->getIndex()=='INDEX',
+                sortable: true
             );
             if ($condition = $property->getSetting('security')) {
 //                $column->condition = $this->security->isGranted($condition); // sprintf("isGranted('%s')", $condition);

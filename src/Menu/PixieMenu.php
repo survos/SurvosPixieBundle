@@ -50,7 +50,7 @@ final class PixieMenu implements KnpMenuHelperInterface
         }
         $this->add($menu, 'pixie_browse_configs');
             $this->addHeading($menu, $pixieCode);
-            foreach (['pixie_overview','pixie_schema'] as $pixieRoute) {
+            foreach (['pixie_schema'] as $pixieRoute) {
                 $this->add($menu, $pixieRoute, ['pixieCode' => $pixieCode]);
             }
             // get from config? Or ?
@@ -59,10 +59,11 @@ final class PixieMenu implements KnpMenuHelperInterface
 
             $tableName = $event->getOption('tableName');
                 $subMenu = $this->addSubmenu($menu, $tableName ?: "choose");
-                foreach ($kv->getTableNames() as $tableName) {
+                $this->add($subMenu, 'pixie_overview', ['pixieCode' => $pixieCode]);
+                foreach ($kv->getTableNames() as $tName) {
 //                    $this->add($menu, 'pixie_meili_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: $tableName);
-                    $tableRp = ['tableName' => $tableName, 'pixieCode' => $pixieCode];
-                    $this->add($subMenu, 'pixie_meili_browse', $tableRp, label: $tableName);
+                    $tableRp = ['tableName' => $tName, 'pixieCode' => $pixieCode];
+                    $this->add($subMenu, 'pixie_meili_browse', $tableRp, label: $tName);
                 }
 //            } else {
 //                $subMenu = $this->addSubmenu($menu, $tableName);
@@ -74,8 +75,20 @@ final class PixieMenu implements KnpMenuHelperInterface
 //                    // we have a table, so display the table name with a link back and the table-specific menu
 //                    $this->add($menu, 'pixie_meili_browse', $tableRp, label: "Search $pixieCode:$tableName");
 //                }
+        if ($tableName) {
+            if ($this->isGranted('ROLE_ADMIN')) {
                 $this->add($menu, 'pixie_table', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: "Raw Overview");
                 $this->add($menu, 'pixie_browse', ['tableName' => $tableName, 'pixieCode' => $pixieCode], label: "Raw Browse");
+            }
+                $subMenu  = $this->addSubmenu($menu, 'properties');
+                foreach ($kv->getTable($tableName)->getProperties() as $property) {
+                    $this->add($subMenu, 'pixie_show_property', [
+                        'tableName' => $tableName,
+                        'pixieCode' => $pixieCode,
+                        'propertyCode' => $property->getCode(),
+                    ], label: $property->getCode());
+                }
+        }
 
     }
 
