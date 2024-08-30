@@ -36,6 +36,7 @@ class PixieImportService
                            int    $limit = 0,
                            bool $overwrite = false, // individual records
                            ?StorageBox $kv=null, // if we already created it.
+    ?string $pattern=null,
                            ?callable $callback=null): StorageBox
     {
 
@@ -58,6 +59,9 @@ class PixieImportService
         assert($files->count(), "No files in {$this->pixieService->getDataRoot()} $dirOrFilename");
 
         foreach ($files as $splFile) {
+            if ($pattern && !str_contains($splFile->getFilenameWithoutExtension(), $pattern)) {
+                continue;
+            }
 //            assert($splFile->getExtension() <> 'csv', json_encode($ignore));
             $map[$splFile->getRealPath()] = u($splFile->getFilenameWithoutExtension())->snake()->toString();
                 foreach ($config->getFileToTableMap() as $rule => $tableNameRule) {
@@ -78,9 +82,16 @@ class PixieImportService
         }
         assert(count($kv->getTables()), "no tables in $pixieCode");
         $validTableNames = $config->getTables();
+        // so that they're ordered as they are in the config, and coll and loc are loaded before obj
+        $filesByTablename = array_flip($fileMap);
 
+//        dd($fileMap, $config->getFiles(), $config, $filesByTablename);
+//        foreach ($kv->getFiles())
         // $fn is the csv filename
-        foreach ($fileMap as $fn => $tableName) {
+//        dd($filesByTablename, $fileMap, $config->getFiles());
+        foreach (array_values($config->getFiles()) as $tableName) {
+            $fn = $filesByTablename[$tableName];
+//        foreach ($fileMap as $fn => $tableName) {
             if (empty($tableName)) {
                 $this->logger && $this->logger->warning("Skipping $fn, no map to tables");
                 dd($fn, $tableName);
@@ -212,10 +223,10 @@ class PixieImportService
                     continue;
                 }
 
-                try {
                     $kv->set($row);
+                try {
                 } catch (\Exception $e) {
-                    dd($kv->getFilename(), $kv, $e);
+                    dd($kv->getFilename(), $kv, $e, $kv->getSelectedTable(), row: $row);
                 }
 //                if ($idx == 1) dump($tableName, $row, $limit, $idx);
                 if ($limit && ($idx >= $limit-1)) break;

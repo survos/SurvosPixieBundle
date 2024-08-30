@@ -493,10 +493,11 @@ class StorageBox
 
         if ($preloadKeys) {
             // if this is too big, we can add a preloadWhere and selectively preload, e.g. translated string
-            if (empty($keyCache[$table])) {
+            if (empty($this->keyCache[$table])) {
                 $this->keyCache[$table] = $this->query("SELECT $pk from $table")->fetchAll(PDO::FETCH_COLUMN);
                 $this->logger->warning(sprintf("Preloaded %d keys in $table", count($this->keyCache[$table])));
             }
+            if (!is_array($this->keyCache[$table])) { dd($this->keyCache, $table); }
             return in_array($key, $this->keyCache[$table]);
         }
 
@@ -685,7 +686,7 @@ class StorageBox
                 dd("Error: " . $statement->errorInfo()[2]);
             }
         }
-        $this->keyCache[$tableName] = $key;
+        $this->keyCache[$tableName][] = $key;
 
         $this->currentTable = $previousTable;
 

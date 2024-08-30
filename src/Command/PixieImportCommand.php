@@ -54,11 +54,11 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: "purge db file first")] bool                                          $reset = false,
         #[Option(description: "Batch size for commit")] int                                         $batch = 500,
         #[Option(description: "total if known (slow to calc)")] int                                         $total = 0,
+        #[Option(description: "table search pattern")] string                                         $pattern = '',
 
     ): int
     {
         $this->initialized = true;
-        $this->total = $total;
         // not sure how to auto-wire this in the constructor
         // idea: if conf doesn't exist, require a directory name and create it, a la rector
         if (empty($configCode)) {
@@ -101,7 +101,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
 
         $limit = $this->pixieService->getLimit($limit);
-        $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite,
+        $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite, pattern: $pattern,
             callback: function ($row, $idx, StorageBox $kv) use ($batch, $limit) {
                 $finished = $limit ? $idx >= ($limit+1) : false;
 //                dd($limit, $idx, $finished, $batch);

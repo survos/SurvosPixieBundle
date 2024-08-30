@@ -30,6 +30,11 @@ class Config
 //        }
     }
 
+    public function getFiles(): array
+    {
+        return $this->files;
+    }
+
     public function getSource(): ?Source
     {
         return $this->source;

@@ -20,10 +20,22 @@ class Table
         private ?string $indexes=null, // the super-succint dexie-style index defintion, e.g. "id|int,department"
         private ?string $pkName=null,
         private ?string $workflow=null,
+        private ?int $total=null, // if known, speeds up count, especially JSON
         private ?string $parent=null, // one ManyToOne, e.g. Artwork or Objekt in the 'image' table
     )
     {
 
+    }
+
+    public function getTotal(): ?int
+    {
+        return $this->total;
+    }
+
+    public function setTotal(?int $total): Table
+    {
+        $this->total = $total;
+        return $this;
     }
 
     public function getTranslatable(): array
