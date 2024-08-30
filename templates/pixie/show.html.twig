@@ -1,6 +1,6 @@
 {% extends '@SurvosPixie/pixie/layout.html.twig' %}
 
-{% block title %}Hello !{% endblock %}
+{% block title %}{{ pixieCode}}:{{ row.tableName }}:{{ row.key }}{% endblock %}
 
 {% block body %}
 
@@ -10,10 +10,11 @@
         mat: 'et:hazardous',
         tec: 'material-symbols-light:palette-outline',
         classification: 'ic:sharp-category',
-        floor: 'bi:bounding-box'
+        floor: 'bi:bounding-box',
+        section: 'teenyicons:section-remove-outline',
     } %}
     <div class="inner-page">
-        <h1>{{ pixieCode }}.{{ tableName }} {{ key }}</h1>
+        <h1>{{ pixieCode }}.{{ tableName }} {{ row.key }}</h1>
 
         {# <div class="section-item">
             <div class="item__image">
@@ -278,7 +279,7 @@
             {% if value %}
 {#                <h6 class="px-3 fw-medium pt-3 text-capitalize">{{ var }}</h6>#}
                 {% set icon = iconMap[var]|default(false) %}
-                <li class="list-group-item bg-light pt-0">
+                <li class="list-group-item bg-light pt-0" title="{{ var|trans }}">
                     <div class="fields-text">
                         <span class="align-middle me-2">
                             {% if icon %}
