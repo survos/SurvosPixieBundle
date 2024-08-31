@@ -16,6 +16,8 @@ use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\String\Slugger\AsciiSlugger;
+use Symfony\Component\String\Slugger\SluggerInterface;
 use Symfony\Component\Yaml\Yaml;
 use Zenstruck\Console\Attribute\Argument;
 use Zenstruck\Console\Attribute\Option;
@@ -39,6 +41,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
         private readonly PixieService $pixieService,
         private SerializerInterface $serializer,
         private ?MeiliService $meiliService = null,
+        private SluggerInterface $asciiSlugger,
     )
     {
 
@@ -91,6 +94,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
         // now iterate
         foreach ($kv->getTables() as $tableName => $table) {
             $progressBar = new ProgressBar($io, $kv->count($tableName));
+            $primaryKey = 'pixie_key'; // $kv->getPrimaryKey($tableName); // ??
             $count = 0;
             $batchCount = 0;
 
@@ -99,7 +103,6 @@ final class PixieIndexCommand extends InvokableServiceCommand
             $transKv = $this->pixieService->getStorageBox(PixieInterface::PIXIE_TRANSLATION);
             $transKv->select(TranslationService::ENGINE);
             foreach ($kv->iterate($tableName) as $idx => $row) {
-                $progressBar->advance();
                 $data = $row->getData();
 //                foreach ($table->getTranslatable() as $translatableProperty) {
 //                    $toTranslate[] = $row->{$translatableProperty}();
@@ -129,7 +132,8 @@ final class PixieIndexCommand extends InvokableServiceCommand
 ////                unset($data['keyedTranslations']);
 //                }
 
-                $data->pixie_key = sprintf("%s_%s", $tableName, $row->getKey());
+                // or slugify?  Key can't have
+                $data->pixie_key = $this->asciiSlugger->slug(sprintf("%s_%s", $tableName, $row->getKey()));
                 $data->coreId = $tableName;
                 $data->table = $tableName;
                 $data->rp = [
@@ -138,18 +142,35 @@ final class PixieIndexCommand extends InvokableServiceCommand
                     'key'       =>  $row->getKey(),
                 ];
                 $recordsToWrite[] = $data;
-                if (++$batchCount >= $batchSize) {
-                    $batchCount = 0;
-                    $index->addDocuments($recordsToWrite);
+//                if (++$batchCount >= $batchSize) {
+//                    $batchCount = 0;
+//                    $index->addDocuments($recordsToWrite);
+//                    dd($recordsToWrite);
+//                    $recordsToWrite = [];
+//                }
+
+                if ($batchSize && (($progress = $progressBar->getProgress()) % $batchSize) === 0) {
+
+                    $task = $index->addDocuments($recordsToWrite, $primaryKey);
+                    // wait for the first record, so we fail early and catch the error, e.g. meili down, no index, etc.
+                    if (!$progress) {
+      //                $this->io->writeln("Flushing " . count($records));
+                        $results = $this->meiliService->waitForTask($task);
+                    } else {
+//                        dump($task, count($recordsToWrite), $primaryKey);
+                    }
                     $recordsToWrite = [];
                 }
+                $progressBar->advance();
                 if ($limit && (++$count >= $limit)) {
                     break;
                 }
             }
             $progressBar->finish();
 
-            $index->addDocuments($recordsToWrite);
+            $task = $index->addDocuments($recordsToWrite, $primaryKey);
+            $this->meiliService->waitForTask($task);
+
 
 //            $filename = $pixieCode . '-' . $tableName.'.json';
 //            file_put_contents($filename, $this->serializer->serialize($recordsToWrite, 'json'));
