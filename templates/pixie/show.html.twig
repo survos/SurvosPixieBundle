@@ -13,6 +13,9 @@
         year: 'bi:calendar',
         time: 'bi:calendar',
         key: 'bi:key',
+        rights: 'ph:copyright-light',
+        license: 'ph:copyright-light',
+        type: 'game-icons:painted-pottery',
         tec: 'material-symbols-light:palette-outline',
         classification: 'ic:sharp-category',
         floor: 'bi:bounding-box',
@@ -55,12 +58,7 @@
                                         </a>
                                     {% endfor %}
                                 </div>
-                                {% if row.images.web|default(false) %}
-                                    {% set i = row.images.web %}
-                                    <img src="{{ i.url }}" class="w-100 rounded-2 object-fit-cover"
-                                         style="max-width: 150px"/>
-                                {% endif %}
-                                {% for imageField in ['thumbnail','is_shown_by'] %}
+                                {% for imageField in ['thumbnail'] %}
                                     {% set value = attribute(row,imageField) %}
                                     {% if value %}
                                         <img src="{{ value }}" class="w-100 rounded-2 object-fit-cover"
@@ -69,8 +67,6 @@
                                     {% endif %}
                                 {% endfor %}
                                 {# IMAGE #}
-
-                                <div>001</div>
 
                             </div>
                         </div>
@@ -368,7 +364,7 @@
                 {#  hack to avoid internals! #}
                 {% set value = attribute(data,var)|default(false) %}
                 {% set icon = iconMap[var]|default('ph:empty-light') %}
-                {% if var in ['marking','thumbnail_urls','image_urls','dimensions','weight'] %}
+                {% if var in ['marking','thumbnail_urls','image_urls','dimensions','weight','thumbnail'] %}
                     {% set value = false %}
                 {% endif %}
 
