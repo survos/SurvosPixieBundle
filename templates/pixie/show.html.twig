@@ -66,9 +66,18 @@
                                         {# <br /><b>{{ value }}</b> #}
                                     {% endif %}
                                 {% endfor %}
-                                {# IMAGE #}
 
+                                {# if printable or qr requested #}
+                                <div class="d-print-block d-none">
+
+                                {% set url = url('pixie_show_record', item.rp) %}
+                                <a href="{{ url }}" target="_blank">
+                                    <img {{ stimulus_controller('qr', {text: url}) }} />
+                                </a>
+                                </div>
                             </div>
+
+                        </div>
                         </div>
                     </div>
                     <div class="col-md-8">
