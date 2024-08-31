@@ -9,6 +9,10 @@
         cul: 'game-icons:luchador',
         mat: 'et:hazardous',
         ubi: 'carbon:location',
+        loc: 'bi:bounding-box',
+        year: 'bi:calendar',
+        time: 'bi:calendar',
+        key: 'bi:key',
         tec: 'material-symbols-light:palette-outline',
         classification: 'ic:sharp-category',
         floor: 'bi:bounding-box',
@@ -100,7 +104,6 @@
     {% for group, keys in groups %}
         {% with {title: group, keys:keys} %}
             {% if group %}
-                {#                {{ dump(row.data) }} #}
                 {{ block(group) }}
             {% else %}
                 <text class="bg-danger">
@@ -286,6 +289,7 @@
         {% endfor %}
     </div>
 
+    {# ugh, requires internal, what a hack!  need to rethink group design #}
     {{ block('dim') }}
 
 {% endblock %}

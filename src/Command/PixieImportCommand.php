@@ -51,6 +51,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: 'conf filename, default to directory name of first argument')] ?string $dirOrFilename,
         #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
         #[Option(description: "overwrite records if they already exist")] bool                      $overwrite = false,
+        #[Option(description: "index after import")] ?bool                      $index = null,
         #[Option(description: "purge db file first")] bool                                          $reset = false,
         #[Option(description: "Batch size for commit")] int                                         $batch = 500,
         #[Option(description: "total if known (slow to calc)")] int                                         $total = 0,
@@ -64,6 +65,8 @@ final class PixieImportCommand extends InvokableServiceCommand
         if (empty($configCode)) {
             $configCode = pathinfo($dirOrFilename, PATHINFO_BASENAME);
         }
+
+        $index = is_null($index) ? true: $index;
 
         $config = $pixieService->getConfig($configCode);
         assert($config, $config->getConfigFilename());
@@ -123,6 +126,10 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
         $consoleTable->render();
         $io->success($this->getName() . ' success ' . $pixieDbName);
+
+        if ($index) {
+            $this->runIndex($configCode);
+        }
         return self::SUCCESS;
     }
 
@@ -176,4 +183,12 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
 //        $this->initialized && $event->isRowLoad() && $this->progressBar->advance();
     }
+
+    public function runIndex(string $pixieCode)
+    {
+        $cli = 'pixie:index ' . $pixieCode;
+        $this->io()->warning('bin/console ' . $cli);
+        $this->runCommand($cli);
+    }
+
 }

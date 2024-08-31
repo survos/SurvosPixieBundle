@@ -198,6 +198,7 @@ class PixieController extends AbstractController
             'tableName' => $tableName,
             'pixieCode' => $pixieCode,
             'row' => $item,
+            'item' => $item, // redundant! use row for data!
             'columns' => array_keys((array)$item),
             'groups' => $groups
         ]);
