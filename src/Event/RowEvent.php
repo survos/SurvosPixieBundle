@@ -23,7 +23,7 @@ class RowEvent extends Event
         public ?array $row=null, // return null to not add to database
         public ?Item $item=null, // perhaps it should evolve to this!
         public int|string|null $key=null,
-        public ?int $index=null,
+        public ?int $index=null, // numeric index so callback can stop after a limit or show progress
         public ?int $total=null, // so we can act on the first or last row, add a progressBar, etc.
         public ?string $type=self::LOAD, // defaults to regular row load
         public ?string $action=null,

@@ -12,6 +12,7 @@ use Survos\PixieBundle\StorageBox;
 use Survos\WorkflowBundle\Service\WorkflowHelperService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -58,6 +59,7 @@ final class IterateCommand extends InvokableServiceCommand
         #[Option(description: 'message transport')] ?string   $transport=null,
         #[Option(description: 'tags (for listeners)')] ?string   $tags=null,
         #[Option] int                                         $limit = 0,
+        #[Option] string                                         $dump = '',
 
     ): int
     {
@@ -87,20 +89,40 @@ final class IterateCommand extends InvokableServiceCommand
             if ($marking) {
                 $where = ['marking' => $marking];
             }
-            $progressBar = new ProgressBar($io, $count = $kv->count(where: $where));
+            $count = $kv->count(where: $where);
+            if (!$count) {
+                $this->io()->warning("No items found for " . json_encode($where));
+                return self::SUCCESS;
+            }
+            $progressBar = new ProgressBar($io, $count);
             $idx = 0;
             $stamps = [];
             if ($transport) {
                 $stamps[] =  new TransportNamesStamp($transport);
             }
+            if ($dump) {
+                $headers = explode(',', $dump);
+                if (!in_array('key', $headers)) {
+                    $headers[] = 'key';
+                }
+                $table = new Table($io);
+                $table->setHeaders($headers);
+                $table->render();
+            }
             foreach ($kv->iterate(where: $where) as $key => $item) {
                 $idx++;
+                if ($dump) {
+                    $values = array_map(fn($key) => substr($item->{$key}(), 0, 40),$headers);
+                    $table->addRow($values);
+                    $table->render();
+                }
                 // since we have the workflow and transition, we can do a "can" here.
                 if ($workflow && $transition) {
                     if (!$workflow->can($item, $transition)) {
-//                        dump("$item cannot transition to $transition");
+                        dd("$item cannot transition from {$item->getMarking()} to $transition");
                         continue;
                     } else {
+                        // if there's a workflow and a transition, dispatch a transition message, otherwise a simple row event
                         $envelope = $this->bus->dispatch($message = new PixieTransitionMessage(
                             $pixieCode,
                             $key,
@@ -110,7 +132,6 @@ final class IterateCommand extends InvokableServiceCommand
                             $transport
                         ), $stamps);
                     }
-                    // if there's a workflow and a transition, dispatch a transition message, otherwise a simple row event
                 } else {
                     // no workflow, so dispatch the row event and let the listeners handle it.
                     $this->eventDispatcher->dispatch(

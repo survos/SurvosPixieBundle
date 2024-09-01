@@ -13,9 +13,21 @@ class StorageBoxEvent extends Event
 
     public function __construct(
         private string $pixieCode,
+        private ?string $filename=null,
+        private bool $isTranslation=false,
         private array $tags=[]
     ) {
 
+    }
+
+    public function isTranslation(): bool
+    {
+        return $this->isTranslation;
+    }
+
+    public function getFilename(): ?string
+    {
+        return $this->filename;
     }
 
     public function getPixieCode(): string

@@ -33,7 +33,7 @@ class SearchController extends AbstractController
                           MeiliService $meiliService // @todo: move to constructor and make optional, throw error if missing and used
     ): Response
     {
-        $indexName = $meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode));
+        $indexName = $meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode, $tableName));
         $operation = (new GetCollection())->withClass(MeiliItem::class);
         // pass in an object if all the parameters are available in the object,
         //  or pass in the class and the uri_variables.

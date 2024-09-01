@@ -9,11 +9,23 @@ class Item implements \Stringable
         public ?string $key=null,
         private ?string $table=null,
         public ?string $pixieCode=null,// for workflow?
-        private ?string $marking=null
+        private ?string $marking=null,
+        private ?array $currentPlaces=[] // if not singleState
     )
     {
 
 
+    }
+
+    public function getCurrentPlaces(): ?array
+    {
+        return $this->currentPlaces;
+    }
+
+    public function setCurrentPlaces(?array $currentPlaces): Item
+    {
+        $this->currentPlaces = $currentPlaces;
+        return $this;
     }
 
     public function getTableName(): ?string
@@ -42,7 +54,8 @@ class Item implements \Stringable
 
     public function getMarking(): ?string
     {
-        return $this->data->marking??null; // default to null or throw error?
+        // hmm, why not $this->marking? messy, it's not derived from the json. If we know the workflow, we can only generate the correct column
+        return $this->data->marking??$this->marking??null; // default to null or throw error?
 //        return $this->data['marking'] ?? null;
     }
 
