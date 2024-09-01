@@ -41,7 +41,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
         private readonly PixieService $pixieService,
         private SerializerInterface $serializer,
         private ?MeiliService $meiliService = null,
-        private SluggerInterface $asciiSlugger,
+        private ?SluggerInterface $asciiSlugger = null,
     )
     {
 
