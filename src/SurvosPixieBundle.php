@@ -17,6 +17,7 @@ use Survos\PixieBundle\DataCollector\PixieDataCollector;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\EventListener\CsvHeaderEventListener;
+use Survos\PixieBundle\EventListener\TranslationRowEventListener;
 use Survos\PixieBundle\Menu\PixieMenu;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
@@ -134,12 +135,17 @@ class SurvosPixieBundle extends AbstractBundle
         ;
 
         // register our listener.  We could disable or set priority in the config
-        $builder->register(CsvHeaderEventListener::class)
-            ->addTag('kernel.event_listener', [
-                'method' => 'onCsvHeaderEvent',
-                'event' => CsvHeaderEvent::class])
-            ->setAutowired(true)
-        ;
+        foreach ([TranslationRowEventListener::class, CsvHeaderEventListener::class] as $listenerClass) {
+            $builder->register($listenerClass)
+//            ->addTag('kernel.event_listener', [
+//                'method' => 'onCsvHeaderEvent',
+//                'event' => CsvHeaderEvent::class])
+                ->setAutowired(true)
+                ->setAutoconfigured(true)
+                ->setPublic(true)
+            ;
+
+        }
     }
 
     private function addPixiesSection(ArrayNodeDefinition $rootNode): void

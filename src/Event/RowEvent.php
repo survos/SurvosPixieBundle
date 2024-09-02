@@ -3,8 +3,10 @@
 
 namespace Survos\PixieBundle\Event;
 
+use Survos\PixieBundle\Command\IterateCommand;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
+use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Contracts\EventDispatcher\Event;
 
@@ -51,5 +53,14 @@ class RowEvent extends Event
     public function isPostLoad(): bool
     {
         return $this->type === self::POST_LOAD;
+    }
+
+    public function isImport(): bool
+    {
+        return $this->action === PixieImportService::class;
+    }
+    public function isIterate(): bool
+    {
+        return $this->action === IterateCommand::class;
     }
 }

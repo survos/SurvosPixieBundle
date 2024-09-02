@@ -152,6 +152,7 @@ class PixieImportService
             $event = $this->eventDispatcher->dispatch(new RowEvent(
                 $config->code, $tableName,
                 null,
+                config: $config,
                 action: self::class,
                 type: RowEvent::PRE_LOAD,
                 storageBox: $kv ));
@@ -196,6 +197,7 @@ class PixieImportService
                 $event = $this->eventDispatcher->dispatch(new RowEvent(
                     $config->code,
                     $tableName,
+                    key: $row[$pk],
                     row: $row,
                     index: $idx,
                     action: self::class,
