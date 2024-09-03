@@ -18,11 +18,11 @@
 {% endblock %}
 
 {% block page_header %}
-
     <div>
                 {{ component('menu', {
                     caller: _self,
                     type: PAGE_MENU,
+                    wrapperClass: 'fw-bold py-3 mb-4 text-primary d-print-none',
                     options: {
                         pixieCode: pixieCode,
                         tableName: tableName|default(null),

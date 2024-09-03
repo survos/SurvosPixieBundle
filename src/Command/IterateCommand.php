@@ -155,6 +155,7 @@ final class IterateCommand extends InvokableServiceCommand
                                 'transport' => $transport
                             ])
                     );
+
 //                    dd($rowEvent);
                 }
 
