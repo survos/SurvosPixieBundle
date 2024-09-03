@@ -230,6 +230,7 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int     $offset = 0,
     ): Response
     {
+        // see SearchController for meili and the public-facing browse
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $where = [];
         if ($index) {

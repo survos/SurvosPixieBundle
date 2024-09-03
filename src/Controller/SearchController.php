@@ -83,7 +83,7 @@ class SearchController extends AbstractController
             $column = new Column(
                 name: $property->getCode(),
                 browsable: $property->getIndex()=='INDEX',
-                sortable: true
+                sortable: $property->getIndex()=='INDEX',
             );
             if ($condition = $property->getSetting('security')) {
 //                $column->condition = $this->security->isGranted($condition); // sprintf("isGranted('%s')", $condition);
@@ -96,7 +96,9 @@ class SearchController extends AbstractController
             if (in_array($property->getCode(), $table->getTranslatable())) {
                 // hmm
             } else {
-                $gridColumns[] = $column;
+                if ($column->sortable) {
+                    $gridColumns[] = $column;
+                }
             }
         }
 //        https://mus.wip/api/meili/belvedere/object/mus_pixie_belvedere

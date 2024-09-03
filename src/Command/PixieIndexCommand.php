@@ -248,6 +248,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
                     // skip for now
                 } elseif ($property->getIndex() == 'INDEX') {
                     $filterable[] = $code;
+                    $sortable[] = $code;
                 }
             }
         }
