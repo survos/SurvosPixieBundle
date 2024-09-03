@@ -14,8 +14,8 @@ final class TranslationRowEventListener
 
     public function __construct(
         // ugh, this is from app!!
-        private ?TranslationService $translationService = null,
         private EventDispatcherInterface $eventDispatcher,
+        private ?TranslationService $translationService = null,
     )
     {
     }
