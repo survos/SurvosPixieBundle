@@ -120,7 +120,11 @@ class StorageBox
         if ($this->db->inTransaction()) {
             $this->db->commit();
         }
-        $sth = $this->db->query($sql = "SELECT name FROM sqlite_master where type='table'");
+        try {
+            $sth = $this->db->query($sql = "SELECT name FROM sqlite_master where type='table'");
+        } catch (\Exception $e) {
+            throw new \Exception("Unable to create/use : " . $config->code . "\n" . $e->getMessage());
+        }
         $this->schemaTables = $sth->fetchAll(PDO::FETCH_COLUMN); // load the existing tables
 
         $this->beginTransaction();
