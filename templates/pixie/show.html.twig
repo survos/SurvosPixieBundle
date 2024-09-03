@@ -2,6 +2,9 @@
 
 {% block title %}{{ pixieCode }}:{{ row.tableName }}:{{ row.key }}{% endblock %}
 
+{% block breadcrumbs %}
+<h1>{{ pixieCode }}.{{ tableName }} {{ row.key }}</h1>
+{% endblock %}
 {% block body %}
 
     {% set iconMap = {
@@ -22,7 +25,6 @@
         section: 'teenyicons:section-remove-outline',
     } %}
     <div class="inner-page">
-        <h1>{{ pixieCode }}.{{ tableName }} {{ row.key }}</h1>
 
         {# <div class="section-item">
             <div class="item__image">
@@ -266,17 +268,39 @@
     </details>
 {% endblock %}
 
+
+{# these are for the translatable text fields only #}
+{% block text_title %}
+    <h3 class="fw-semibold mb-3 text-capitalize">{{ value }}</h3>
+{% endblock %}
+{% block text_label %}
+    <h4>{{ value }}</h4>
+{% endblock %}
+{% block text_description %}
+    <p class="mb-2 bg-info">{{ value }}</p>
+{% endblock %}
+
+
 {% block text %}
     <div class="pb-2">
-        <h3 class="fw-semibold mb-3 text-capitalize">{{ data.title|default(data.label|default(data.name|default("~"))) }}</h3>
-        {% set _translation = attribute(data, '_translations') %}
-        {% set _fields = attribute(_translation, app.locale)|default('!!') %}
+{#        {% set _translation = attribute(data, '_translations')|default({}) %}#}
+
+{#        {% set _fields = attribute(_translation, app.locale)|default('!!') %}#}
         {% for var in keys %}
-            {% set translatedValue = attribute(_fields, var)|default('x') %}
-            <h3>{{ translatedValue }}</h3>
+            {% set value = data|t(var) %}
+
+            {% if block('text_' ~ var)  is defined %}
+                {{ block('text_' ~ var) }}
+                {% else %}
+                <code>{{ var }}</code>
+                    <i>{{ value }}</i>
+            {% endif %}
+
+{#            {% set translatedValue = attribute(_fields, var)|default('x') %}#}
+{#            <h3>{{ translatedValue }}</h3>#}
 {#            {{ data['_translations'][app.locale][key] }}#}
-            {% set value = attribute(data,var)|default(false) %}
-            {{ block('value') }}
+{#            {% set value = attribute(data,var)|default(false) %}#}
+{#            {{ block('value') }}#}
             {#            {% if value %} #}
             {#                <div class="fields-text"> #}
             {#                     <code>{{ var }}</code> #}
@@ -383,7 +407,7 @@
                 {#  hack to avoid internals! #}
                 {% set value = attribute(data,var)|default(false) %}
                 {% set icon = iconMap[var]|default('ph:empty-light') %}
-                {% if var in ['marking','thumbnail_urls','image_urls','dimensions','weight','thumbnail'] %}
+                {% if var in ['marking','thumbnail_urls','image_urls','dimensions','weight','thumbnail','_translations','sourceKeys'] %}
                     {% set value = false %}
                 {% endif %}
 

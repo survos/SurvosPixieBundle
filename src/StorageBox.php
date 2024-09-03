@@ -543,7 +543,6 @@ class StorageBox
             }
         }
         $count = $this->query($sql, $where)->fetchColumn();
-        $this->log("$table has $count " . json_encode($where));
         return $count;
         try {
         } catch (\Exception $exception) {

@@ -49,7 +49,9 @@ class SurvosPixieBundle extends AbstractBundle
             $builder
                 ->setDefinition('survos.pixie_bundle', new Definition(TwigExtension::class))
                 ->setArgument('$config', $config)
+                ->setArgument('$requestStack', new Reference('request_stack', ContainerInterface::NULL_ON_INVALID_REFERENCE))
                 ->addTag('twig.extension')
+                ->setAutoconfigured(true)
                 ->setPublic(false);
         }
 
