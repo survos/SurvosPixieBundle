@@ -59,7 +59,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
         PixieImportService                                    $pixieImportService,
         #[Argument(description: 'config code')] string        $pixieCode,
         #[Option('table', description: 'table name(s?), all if not set')] string         $tableFilter=null,
-        #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
+//        #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
         #[Option(description: "reset the meili index")] ?bool                      $reset=null,
         #[Option(description: "max number of records per table to export")] int                     $limit = 0,
         #[Option(description: "extra data (YAML), e.g. --extra=[core:obj]")] string                     $extra = '',
@@ -137,23 +137,24 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //                }
 //
                 // @todo: optimize fetches
-                if ($addTranslations) {
-                    foreach ($table->getTranslatable() as $translatableProperty) {
-                        $data->_translations=[];
-                        if ($textToTranslate = $row->{$translatableProperty}()) {
-                            $toTranslate[] = $textToTranslate;
-                            $key = TranslationService::calculateHash($textToTranslate, $lang);
-                            // @todo: batch keys with "in"
-                            $translations = $transKv->iterate(where: ['hash' => $key]);
-//                            dd(iterator_to_array($translations), $textToTranslate,  $key, $transKv->getFilename());
-                            foreach ($translations as $translation) {
-                                $data->_translations[$translation->target()][$translatableProperty] = $translation->text();;
-                            }
-                        }
-                    }
-//                    dd($data, $data->_translations);
-                    unset($data->translations);
-                }
+                // moved to pixie:translation, add it in the pixie itself
+//                if ($addTranslations) {
+//                    foreach ($table->getTranslatable() as $translatableProperty) {
+//                        $data->_translations=[];
+//                        if ($textToTranslate = $row->{$translatableProperty}()) {
+//                            $toTranslate[] = $textToTranslate;
+//                            $key = TranslationService::calculateHash($textToTranslate, $lang);
+//                            // @todo: batch keys with "in"
+//                            $translations = $transKv->iterate(where: ['hash' => $key]);
+////                            dd(iterator_to_array($translations), $textToTranslate,  $key, $transKv->getFilename());
+//                            foreach ($translations as $translation) {
+//                                $data->_translations[$translation->target()][$translatableProperty] = $translation->text();;
+//                            }
+//                        }
+//                    }
+////                    dd($data, $data->_translations);
+//                    unset($data->translations);
+//                }
                 // this is the data we got when inserting the original text
 //                dd($data);
 

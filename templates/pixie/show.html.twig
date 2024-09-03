@@ -283,9 +283,6 @@
 
 {% block text %}
     <div class="pb-2">
-{#        {% set _translation = attribute(data, '_translations')|default({}) %}#}
-
-{#        {% set _fields = attribute(_translation, app.locale)|default('!!') %}#}
         {% for var in keys %}
             {% set value = data|t(var) %}
 
@@ -464,7 +461,7 @@
             </ul>
         {% endif %}
     {% else %}
-        {{ value }}
+        {{ value|urlize }}
     {% endif %}
 {% endblock %}
 
