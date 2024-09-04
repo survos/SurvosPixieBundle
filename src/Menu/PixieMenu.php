@@ -40,8 +40,8 @@ final class PixieMenu implements KnpMenuHelperInterface
         $this->menuService->addAuthMenu($menu);
     }
 
-    #[AsEventListener(event: KnpMenuEvent::PAGE_MENU)]
-//    #[AsEventListener(event: KnpMenuEvent::SIDEBAR_MENU)]
+//    #[AsEventListener(event: KnpMenuEvent::PAGE_MENU)]
+    #[AsEventListener(event: KnpMenuEvent::SIDEBAR_MENU)]
     public function pixiePageMenu(KnpMenuEvent $event): void
     {
         // there must be a pixie.  Messy, because this goes in app, need to add it to the config in pixie
