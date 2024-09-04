@@ -18,6 +18,7 @@ use Survos\PixieBundle\Debug\TraceableStorageBox;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\EventListener\CsvHeaderEventListener;
 use Survos\PixieBundle\EventListener\TranslationRowEventListener;
+use Survos\PixieBundle\Menu\PixieItemMenu;
 use Survos\PixieBundle\Menu\PixieMenu;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
@@ -56,11 +57,14 @@ class SurvosPixieBundle extends AbstractBundle
         }
 
         // @todo: get the bootstrap bundle configuration and add pixieCode
-        $builder->autowire(PixieMenu::class)
-            ->setAutowired(true)
-            ->setAutoconfigured(true)
-            ->setPublic(true);
+        foreach ([PixieMenu::class, PixieItemMenu::class] as $class) {
+            $builder->autowire($class)
+                ->setAutowired(true)
+                ->setAutoconfigured(true)
+                ->setPublic(true);
 
+
+        }
         $builder->autowire(SqliteService::class)
             ->setAutowired(true)
             ->setPublic(true);

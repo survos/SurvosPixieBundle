@@ -1,0 +1,16 @@
+{% extends '@SurvosPixie/pixie/layout.html.twig' %}
+
+{% block title %}{{ pixieCode }}:{{ item.tableName }}:{{ item.key }}{% endblock %}
+
+{% block breadcrumbs %}
+<h1>Share {{ pixieCode }}.{{ tableName }} {{ item.key }}</h1>
+{% endblock %}
+
+{% block body %}
+    <textarea>
+        Look at this! {{ item.key }}
+
+    </textarea>
+
+    x, Facebook, etc.
+{% endblock %}

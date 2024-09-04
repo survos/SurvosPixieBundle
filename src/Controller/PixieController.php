@@ -99,6 +99,25 @@ class PixieController extends AbstractController
 
     }
 
+    #[Route('/share/{pixieCode}/{tableName}/{key}', name: 'pixie_share_item', requirements: ['key' => '.+'], options: ['expose' => true])]
+    public function share(Request $request,
+                          string                       $pixieCode,
+                          string                       $tableName,
+                          string                       $key,
+    ): Response
+    {
+        $kv = $this->pixieService->getStorageBox($pixieCode);
+        $item =  $kv->get($key, $tableName);
+        return $this->render('@SurvosPixie/pixie/share.html.twig', [
+            'key' => $key,
+            'tableName' => $tableName,
+            'pixieCode' => $pixieCode,
+            'row' => $item,
+            'item' => $item, // redundant! use row for data!
+
+        ]);
+    }
+
     #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record', requirements: ['key' => '.+'], options: ['expose' => true])]
     #[Route('/transition/{pixieCode}/{tableName}/{key}', name: 'pixie_transition', requirements: ['key' => '.+'])]
     public function show_record(
