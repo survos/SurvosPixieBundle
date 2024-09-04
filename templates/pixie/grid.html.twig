@@ -58,12 +58,18 @@
             &nbsp;
         </twig:block>
         <twig:block name="tombstone">
-            <div class="tombstone custom-heading text-truncate-three-line">
+            <div class="tombstone custom-heading text-truncate-four-lines">
                 {# really the translatable fields #}
                 <b>{{ row.title|default(row.label) }}</b>
                 <div class="text-truncate-three-line">
                     {{ row.description }}
                 </div>
+                {% if row.citation %}
+                    <a href="{{ row.citation }}" target="_blank">
+                        {{ row.credit }}
+                    </a>
+                {% endif %}
+
 {#                @tombstone links#}
             </div>
         </twig:block>

@@ -35,6 +35,7 @@ class PixieImportService
                            ?Config $config=null,
                            int    $limit = 0,
                            bool $overwrite = false, // individual records
+                            array $context = [], // for passing extra context, like addTranslationstrings
                            ?StorageBox $kv=null, // if we already created it.
     ?string $pattern=null,
                            ?callable $callback=null): StorageBox
@@ -155,7 +156,7 @@ class PixieImportService
                 config: $config,
                 action: self::class,
                 type: RowEvent::PRE_LOAD,
-                storageBox: $kv ));
+                storageBox: $kv, context: $context ));
 
             $pk = $kv->getPrimaryKey($tableName);
             // this is the json/csv iterator
@@ -201,7 +202,8 @@ class PixieImportService
                     row: $row,
                     index: $idx,
                     action: self::class,
-                    storageBox: $kv ));
+                    storageBox: $kv,
+                    context: $context));
 
                 if ($callback) {
                     // for batching

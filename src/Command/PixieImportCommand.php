@@ -51,11 +51,12 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: 'conf filename, default to directory name of first argument')] ?string $dirOrFilename,
         #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
         #[Option(description: "overwrite records if they already exist")] bool                      $overwrite = false,
-        #[Option(description: "index after import")] ?bool                      $index = null,
+        #[Option(description: "index after import (default: true)")] ?bool                      $index = null,
         #[Option(description: "purge db file first")] bool                                          $reset = false,
         #[Option(description: "Batch size for commit")] int                                         $batch = 500,
         #[Option(description: "total if known (slow to calc)")] int                                         $total = 0,
         #[Option(description: "table search pattern")] string                                         $pattern = '',
+        #[Option(description: 'tags (for listeners)')] ?string   $tags=null,
 
     ): int
     {
@@ -105,7 +106,11 @@ final class PixieImportCommand extends InvokableServiceCommand
         $this->total = $total; // @togo: get from config
 
         $limit = $this->pixieService->getLimit($limit);
-        $pixieImportService->import($configCode, $config, limit: $limit, overwrite: $overwrite, pattern: $pattern,
+        $pixieImportService->import($configCode, $config, limit: $limit,
+            context: [
+                'tags' => explode(",", $tags),
+            ],
+            overwrite: $overwrite, pattern: $pattern,
             callback: function ($row, $idx, StorageBox $kv) use ($batch, $limit) {
                 $finished = $limit ? $idx >= ($limit+1) : false;
 //                dd($limit, $idx, $finished, $batch);

@@ -6,6 +6,9 @@ use Symfony\Component\Yaml\Yaml;
 
 class Config
 {
+    const string TYPE_SYSTEM = 'system';
+    const string TYPE_MUSEUM = 'museum';
+    const string TYPE_AGGREGATOR = 'agg';
     public function __construct(
         private string|float|null $version=null,
         public ?string $code=null,
@@ -16,6 +19,7 @@ class Config
          */
         private array $tables=[],
         private ?string $configFilename=null,
+        private string $type=self::TYPE_MUSEUM,
         private array           $data=[],
         public ?string $dataDir = null, // set in service, kinda hacky
         public ?string $pixieFilename = null // set in service, kinda hacky, the sqlite file
@@ -28,6 +32,11 @@ class Config
 //
 //            $this->data = Yaml::parseFile($this->filename);
 //        }
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
     }
 
     public function getFiles(): array
@@ -142,6 +151,15 @@ class Config
     public function rp()
     {
         return ['pixieCode' => $this->code];
+    }
+
+    public function isSystem(): bool
+    {
+        return $this->type === self::TYPE_SYSTEM;
+    }
+    public function isMuseum(): bool
+    {
+        return $this->type === self::TYPE_MUSEUM;
     }
 
 }

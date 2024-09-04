@@ -24,7 +24,7 @@ class SearchController extends AbstractController
     {
     }
 
-    #[Route('/meili/{pixieCode}/{tableName}', name: 'pixie_meili_browse')]
+    #[Route('/meili/{pixieCode}/{tableName}', name: 'pixie_meili_browse', options: ['expose' => true])]
     public function meili(
         string $pixieCode,
         string $tableName,
