@@ -73,7 +73,7 @@ class PixieController extends AbstractController
         string                       $pixieCode,
         string                       $tableName,
         string                       $propertyCode,
-        #[MapQueryParameter] int     $limit = 100
+        #[MapQueryParameter] int     $limit = 50
     ): Response
     {
         $kv = $this->pixieService->getStorageBox($pixieCode);
@@ -87,7 +87,7 @@ class PixieController extends AbstractController
             }
         }
 
-        $chart = $this->getChartData($property, $tableName, $kv);
+        $chart = $this->getChartData($property, $tableName, $kv, limit:  $limit);
 //        assert($chart, "no chart data for $tableName $property");
         return $this->render('@SurvosPixie/pixie/property.html.twig', [
             'kv' => $kv,
@@ -530,7 +530,7 @@ class PixieController extends AbstractController
             foreach ($table->getProperties() as $property) {
 //                dd($tableSchema, $property, $table->getProperties());
                 try {
-                    $chartData = $this->getChartData($property, $tableName, $kv);
+                    $chartData = $this->getChartData($property, $tableName, $kv, limit: $limit);
                     if ($chartData) {
                         $charts[$property->getCode()] = $chartData;
                     }

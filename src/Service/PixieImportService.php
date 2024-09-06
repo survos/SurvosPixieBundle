@@ -177,6 +177,7 @@ class PixieImportService
                         $tableName . " should have $pk  " .
                         json_encode($row, JSON_PRETTY_PRINT));
                 }
+                dd($row, $tableNamehi   );
 
                 $exists = $kv->has($row[$pkName], preloadKeys: true);
                 foreach ($row as $k => $v) {
@@ -227,8 +228,9 @@ class PixieImportService
                     continue;
                 }
 
-                    $kv->set($row);
+
                 try {
+                    $kv->set($row);
                 } catch (\Exception $e) {
                     dd($kv->getFilename(), $kv, $e, $kv->getSelectedTable(), row: $row);
                 }

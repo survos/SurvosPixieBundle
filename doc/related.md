@@ -18,5 +18,7 @@ We need a schema to define the output csv database, which we can create by namin
 $Pixie = new Pixie('movie_and_genre');
 $grid = (new \Survos\PixieBundle\Model\Grid('movie'));
 $grid->addRow()
+```
+
 
 
