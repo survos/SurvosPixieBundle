@@ -72,9 +72,14 @@ final class IterateCommand extends InvokableServiceCommand
         $workflow = null;
         if ($workflowName = $table->getWorkflow()) {
             $workflow = $this->workflowHelperService->getWorkflowByCode($table->getWorkflow());
+            if ($marking) {
+                $places=array_values($workflow->getDefinition()->getPlaces());
+                dump($places);
+                assert(in_array($marking, $places), "invalid marking:\n\n$marking: use\n\n" . join("\n", $places));
+            }
 
             /* eh, nice idea, maybe someday
-            dd($workflow, $workflowName);
+//            dd($workflow, $workflowName);
             if ($transition) {
                 if (!constant($workflow::class . "::$transition")) {
                     $io->error("Invalid transition $transition in workflow $workflowName " . $workflow::class);
@@ -109,6 +114,13 @@ final class IterateCommand extends InvokableServiceCommand
                 $table->setHeaders($headers);
                 $table->render();
             }
+
+            // validate marking
+            if ($workflow) {
+                dd($workflow, $marking);
+                //
+            }
+
             foreach ($kv->iterate(where: $where) as $key => $item) {
                 $idx++;
                 if ($dump) {
@@ -116,6 +128,7 @@ final class IterateCommand extends InvokableServiceCommand
                     $table->addRow($values);
                     $table->render();
                 }
+
                 // since we have the workflow and transition, we can do a "can" here.
                 if ($workflow && $transition) {
                     if (!$workflow->can($item, $transition)) {
