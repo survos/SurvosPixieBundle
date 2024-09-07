@@ -224,7 +224,7 @@ class PixieService
     }
 
     // @todo: add custom dataDir, etc.
-    public function getConfig(string $pixieCode): Config
+    public function getConfig(string $pixieCode): ?Config
     {
         static $configs = [];
         if ($config = $configs[$pixieCode]??false) {
@@ -232,6 +232,9 @@ class PixieService
         }
         $configFilename = $this->getConfigFilename($pixieCode);
         assert($configFilename, "$configFilename $pixieCode");
+        if (!file_exists($configFilename)) {
+            return null;
+        }
         assert(file_exists($configFilename), "$configFilename does not exist");
         try {
         $configData = Yaml::parseFile($configFilename, Yaml::PARSE_CONSTANT); // so we can use php constants!
