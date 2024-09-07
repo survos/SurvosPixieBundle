@@ -12,6 +12,7 @@ class Property implements \Stringable
     final public const TYPE_DATABASE = 'db'; // fixed properties, we need to pass it valid subtypes
     final public const TYPE_RELATION = 'rel'; // related to another grid
     final public const TYPE_CLASSIFICATION = 'cat'; // single relation within this grid, pass in valid subtypes
+    final public const TYPE_LIST = 'list'; // single relation within this grid
     final public const TYPE_ATTRIBUTE = 'att';
     final public const TYPE_REFERENCE = 'ref'; // @todo: handle images and media.  Maybe json?
 
@@ -141,6 +142,25 @@ class Property implements \Stringable
     public function isId(): bool
     {
         return $this->code == $this->schema->getIdName();
+    }
+
+    public function getRelatedTable(): ?Table
+    {
+        // https://github.com/simonw/til/blob/main/sqlite/related-rows-single-query.md
+        if ($this->type == self::TYPE_RELATION) {
+            dd($this);
+            return $this->code == $this->schema->getIdName();
+        }
+        return null;
+    }
+
+    public function getListTableName(): ?string
+    {
+        // https://github.com/simonw/til/blob/main/sqlite/related-rows-single-query.md
+        if ($this->type == self::TYPE_LIST) {
+            return $this->getSubType() ?? $this->getCode();
+        }
+        return null;
     }
 
     // this should probably be at the field, not property, level, but this way we can translate before having fields.

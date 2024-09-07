@@ -26,8 +26,10 @@ class PixieImportService
         private PixieService                      $pixieService,
         private LoggerInterface                   $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
-        public bool $purgeBeforeImport = false
-    )
+        public bool $purgeBeforeImport = false,
+        private array $listsByLabel = []
+
+)
     {
     }
 
@@ -149,7 +151,7 @@ class PixieImportService
                 }
             }
 
-            $kv->beginTransaction();
+            $kv->beginTransaction(); // so that events that populate related tables are persisted.  Meh.
             $event = $this->eventDispatcher->dispatch(new RowEvent(
                 $config->code, $tableName,
                 null,
@@ -177,7 +179,6 @@ class PixieImportService
                         $tableName . " should have $pk  " .
                         json_encode($row, JSON_PRETTY_PRINT));
                 }
-                dd($row, $tableNamehi   );
 
                 $exists = $kv->has($row[$pkName], preloadKeys: true);
                 foreach ($row as $k => $v) {
@@ -189,8 +190,6 @@ class PixieImportService
                         }
                     }
                 }
-                assert(count($kv->getTables()), "no tables in $pixieCode");
-
                 if (!$row) {
                     dd($row, $idx, $tableName);
                     continue;
@@ -205,6 +204,10 @@ class PixieImportService
                     action: self::class,
                     storageBox: $kv,
                     context: $context));
+
+                // handling relations could be its own RowEvent too, for now it's here
+                $this->handleRelations($kv, $pixieCode, $table, $row);
+
 
                 if ($callback) {
                     // for batching
@@ -228,7 +231,6 @@ class PixieImportService
                     continue;
                 }
 
-
                 try {
                     $kv->set($row);
                 } catch (\Exception $e) {
@@ -242,6 +244,9 @@ class PixieImportService
             $kv->commit();
             $count = $kv->count();
             $this->logger->info($kv->getSelectedTable()  . " now has " . $count);
+        }
+        if ($kv->inTransaction()) {
+            $kv->commit();
         }
 
         $event = $this->eventDispatcher->dispatch(new RowEvent(
@@ -322,12 +327,14 @@ class PixieImportService
         }
 
         $rules = $config->getTableRules($tableName);
+        $table = $config->getTable($tableName);
         $mappedHeader = $kv->mapHeader($headers, regexRules: $rules);
 //            dd($rules, $configData, $tableName, filename: $splFile->getFilename(), mappedHeader: $mappedHeader);
         // keep for replacing the key names later
 //                dd($headers, mapped: $mappedHeader, rules: $rules);
         $this->eventDispatcher->dispatch(
-            $headerEvent = new CsvHeaderEvent($mappedHeader, $fn));
+            $headerEvent = new CsvHeaderEvent($mappedHeader, $fn)
+        );
         $headers = $headerEvent->header;
 //
 //                dump($headerEvent->header);
@@ -346,6 +353,47 @@ class PixieImportService
         }
 
         return [$ext, $iterator, $headers];
+    }
+
+    /**
+     * @param StorageBox|null $kv
+     * @param string $pixieCode
+     * @param Table $table
+     * @return void
+     */
+    public function handleRelations(?StorageBox $kv, string $pixieCode, Table $table, array $row): void
+    {
+        assert(count($kv->getTables()), "no tables in $pixieCode");
+        foreach ($table->getProperties() as $property) {
+            if ($relatedTable = $property->getListTableName()) {
+                $propertyCode = $property->getCode();
+                if (!array_key_exists($relatedTable, $this->listsByLabel)) {
+                    foreach ($kv->iterate($relatedTable) as $relatedRow) {
+                        dd($relatedRow);
+                    }
+                    $listsByLabel[$relatedTable] = [];
+                    $label = $row[$propertyCode];
+                    if (!array_key_exists($label, $listsByLabel[$relatedTable])) {
+                        // it must not be in the table, so add it
+//                        $kv->beginTransaction();
+                        $kv->set([
+                            'id' => $relatedId = count($listsByLabel[$relatedTable])+1, // manual auto-create
+                            'label' => $label
+                        ], $relatedTable);
+//                        $kv->commit();
+                        $this->listsByLabel[$relatedTable][$label] = $relatedId;
+                    }
+                    $relatedId = $this->listsByLabel[$relatedTable][$label];
+                    $row[$propertyCode] = $relatedId; // if this is a string, this could instead be the translation source key?
+                }
+                // fetch the key by label?  Or keep it in memory?
+                // create the relation.  unlike the old system, we can have relations in the sql
+            }
+            if ($relatedTable = $property->getRelatedTable()) {
+                dd($relatedTable);
+                // create the relation.  unlike the old system, we can have relations in the sql
+            }
+        }
     }
 
 }
