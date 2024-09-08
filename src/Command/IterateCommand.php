@@ -18,6 +18,7 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
+use Symfony\Component\Workflow\Transition;
 use Symfony\Component\Yaml\Yaml;
 use Zenstruck\Console\Attribute\Argument;
 use Zenstruck\Console\Attribute\Option;
@@ -74,8 +75,11 @@ final class IterateCommand extends InvokableServiceCommand
             $workflow = $this->workflowHelperService->getWorkflowByCode($table->getWorkflow());
             if ($marking) {
                 $places=array_values($workflow->getDefinition()->getPlaces());
-                dump($places);
                 assert(in_array($marking, $places), "invalid marking:\n\n$marking: use\n\n" . join("\n", $places));
+            }
+            if ($transition) {
+                $transitions  = array_unique(array_map(fn(Transition $transition) => $transition->getName(), $workflow->getDefinition()->getTransitions()));
+                assert(in_array($transition, $transitions), "invalid transition:\n\n$transition: use\n\n" . join("\n", $transitions));
             }
 
             /* eh, nice idea, maybe someday

@@ -144,6 +144,8 @@ class PixieController extends AbstractController
         }
         $conf = $this->pixieService->getConfig($pixieCode);
 
+        assert($item, "no item in $pixieCode.$tableName in for $key");
+
         $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
         // what a pain, we need to store this somewhere else!
 

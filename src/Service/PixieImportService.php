@@ -4,6 +4,7 @@ namespace Survos\PixieBundle\Service;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
+use App\Service\AppService;
 use League\Csv\Info;
 use League\Csv\Reader;
 use League\Csv\SyntaxError;
@@ -61,10 +62,8 @@ class PixieImportService
         }
         assert($files->count(), "No files in {$this->pixieService->getDataRoot()} $dirOrFilename");
 
+        $fileMap = [];
         foreach ($files as $splFile) {
-            if ($pattern && !str_contains($splFile->getFilenameWithoutExtension(), $pattern)) {
-                continue;
-            }
 //            assert($splFile->getExtension() <> 'csv', json_encode($ignore));
             $map[$splFile->getRealPath()] = u($splFile->getFilenameWithoutExtension())->snake()->toString();
                 foreach ($config->getFileToTableMap() as $rule => $tableNameRule) {
@@ -91,8 +90,12 @@ class PixieImportService
 //        dd($fileMap, $config->getFiles(), $config, $filesByTablename);
 //        foreach ($kv->getFiles())
         // $fn is the csv filename
-//        dd($filesByTablename, $fileMap, $config->getFiles());
         foreach (array_values($config->getFiles()) as $tableName) {
+
+            if ($pattern && !str_contains($tableName, $pattern)) {
+                continue;
+            }
+//            AppService::assertKeyExists($tableName, $filesByTablename, "Missing table $tableName look for filename, not table");
             $fn = $filesByTablename[$tableName];
 //        foreach ($fileMap as $fn => $tableName) {
             if (empty($tableName)) {
