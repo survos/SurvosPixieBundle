@@ -26,7 +26,7 @@ final class PixieMenu implements KnpMenuHelperInterface
     use KnpMenuHelperTrait;
 
     public function __construct(
-        #[Autowire('%kernel.environment%')] private string $env,
+        #[Autowire('%kernel.environment%')] protected string $env,
         private PixieService $pixieService,
         private ?MenuService $menuService=null,
         private ?Security $security=null,
