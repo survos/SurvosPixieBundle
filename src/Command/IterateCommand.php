@@ -119,12 +119,6 @@ final class IterateCommand extends InvokableServiceCommand
                 $table->render();
             }
 
-            // validate marking
-            if ($workflow) {
-                dd($workflow, $marking);
-                //
-            }
-
             foreach ($kv->iterate(where: $where) as $key => $item) {
                 $idx++;
                 if ($dump) {
