@@ -10,6 +10,7 @@ use Survos\ApiGrid\Model\Column;
 use Survos\ApiGrid\Service\MeiliService;
 use Survos\InspectionBundle\Services\InspectionService;
 use Survos\PixieBundle\Service\PixieService;
+use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,25 +20,30 @@ class SearchController extends AbstractController
 {
     public function __construct(
         private readonly PixieService $pixieService,
+        private IriConverterInterface $iriConverter,
+        private InspectionService $inspectionService,
+        private ?MeiliService $meiliService=null
+
 //        private ?AuthorizationCheckerInterface $authorizationChecker=null
     )
     {
     }
 
     #[Route('/meili/{pixieCode}/{tableName}', name: 'pixie_meili_browse', options: ['expose' => true])]
+    #[Template('@SurvosPixie/pixie/grid.html.twig')]
     public function meili(
         string $pixieCode,
         string $tableName,
-                          IriConverterInterface $iriConverter,
-                          InspectionService $inspectionService,
-                          MeiliService $meiliService // @todo: move to constructor and make optional, throw error if missing and used
-    ): Response
+    ): array
     {
-        $indexName = $meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode, $tableName));
+        if (!$this->meiliService) {
+            throw new \RuntimeException('Meili service not available, run composer req ...?');
+        }
+        $indexName = $this->meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode, $tableName));
         $operation = (new GetCollection())->withClass(MeiliItem::class);
         // pass in an object if all the parameters are available in the object,
         //  or pass in the class and the uri_variables.
-        $apiUrl = $iriConverter->getIriFromResource(MeiliItem::class, operation:$operation, context: [
+        $apiUrl = $this->iriConverter->getIriFromResource(MeiliItem::class, operation:$operation, context: [
             'uri_variables' => ['indexName' => $indexName, 'tableName' => $tableName, 'pixieCode' => $pixieCode],
         ]);
         $config = $this->pixieService->getConfig($pixieCode);
@@ -102,7 +108,10 @@ class SearchController extends AbstractController
             }
         }
 //        https://mus.wip/api/meili/belvedere/object/mus_pixie_belvedere
-        return $this->render('@SurvosPixie/pixie/grid.html.twig', [
+//        return $this->render('@SurvosPixie/pixie/grid.html.twig',
+        // return an array so it can be called outside of PixieController, e.g. OwnerController
+        return
+            [
             'indexName' => $indexName,
             'apiUrl' => $apiUrl,
             'pixieCode' => $pixieCode,
@@ -110,7 +119,7 @@ class SearchController extends AbstractController
             'class' => MeiliItem::class,
             'tableName' => $tableName,
             'filter' => ['table' => $tableName]
-        ]);
+        ];
     }
 
 //    private function isGranted($attribute, $subject = null): bool
