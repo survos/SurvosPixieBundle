@@ -118,7 +118,7 @@ class SearchController extends AbstractController
             'columns' => $gridColumns,
             'class' => MeiliItem::class,
             'tableName' => $tableName,
-            'filter' => ['table' => $tableName]
+            'filter' => [], // only if we are able to merge the meili indexes ['table' => $tableName]
         ];
     }
 

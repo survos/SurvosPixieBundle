@@ -68,18 +68,18 @@ class PixieController extends AbstractController
     }
 
     #[Route('/property/{pixieCode}/{tableName}/{propertyCode}', name: 'pixie_show_property', requirements: ['key' => '.+'])]
-    public function show_property(
-        Request                      $request,
+    #[Template('@SurvosPixie/pixie/property.html.twig')]
+    public function schema_property(
         string                       $pixieCode,
         string                       $tableName,
         string                       $propertyCode,
         #[MapQueryParameter] int     $limit = 50
-    ): Response
+    ): array
     {
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $kv->select($tableName);
-        $conf = $this->pixieService->getConfig($pixieCode);
-        $counts = $this->getCounts($kv, $tableName, $limit);
+//        $conf = $this->pixieService->getConfig($pixieCode);
+//        $counts = $this->getCounts($kv, $tableName, $limit);
         // @hack, we can do better!
         foreach ($kv->getTable($tableName)->getProperties() as $property) {
             if ($propertyCode == $property->getCode()) {
@@ -88,14 +88,14 @@ class PixieController extends AbstractController
         }
 
         $chart = $this->getChartData($property, $tableName, $kv, limit:  $limit);
-//        assert($chart, "no chart data for $tableName $property");
-        return $this->render('@SurvosPixie/pixie/property.html.twig', [
+        return
+            [
             'kv' => $kv,
             'property' => $property,
             'tableName' => $tableName,
             'pixieCode' => $pixieCode,
             'chart' => $chart
-        ]);
+        ];
 
     }
 
@@ -443,16 +443,17 @@ class PixieController extends AbstractController
 
 
     #[Route('/schema/{pixieCode}', name: 'pixie_schema')]
+    #[Template('@SurvosPixie/pixie/schema.html.twig')]
     public function schema(
         string                   $pixieCode,
-    ): Response
+    ): array
     {
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
-        return $this->render('@SurvosPixie/pixie/schema.html.twig', [
+            return [
             'kv' => $this->pixieService->getStorageBox($pixieCode),
             'config' => $this->pixieService->getConfig($pixieCode),
             'pixieCode' => $pixieCode,
-        ]);
+        ];
     }
 
     private function getChartData(Property $property, string $tableName, StorageBox $kv, int $limit=100): ?array
@@ -509,17 +510,18 @@ class PixieController extends AbstractController
     }
 
     #[Route('/table/{pixieCode}/{tableName}', name: 'pixie_table')]
-    public function home(
+    #[Template('@SurvosPixie/pixie/graphs.html.twig')]
+    public function tableCharts(
         string                   $pixieCode,
         string                   $tableName,
         #[MapQueryParameter] int $limit = 25
-    ): Response
+    ): array
     {
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
         assert(file_exists($pixieFilename));
         $kv = $this->pixieService->getStorageBox($pixieCode);
         {
-            $count = $kv->count($tableName);
+//            $count = $kv->count($tableName);
 //            dd($tableName, $count);
             $tableData = [
                 'first' => $kv->iterate($tableName)->current(),
@@ -530,6 +532,13 @@ class PixieController extends AbstractController
             $table = $kv->getTable($tableName);
             $tableSchema = $kv->inspectSchema()[$tableName];
             foreach ($table->getProperties() as $property) {
+                if ($condition = $property->getSetting('security')) {
+                    if (!$this->isGranted($condition)) {
+                        continue;
+                    }
+                }
+
+                // @todo: hide admin properties
 //                dd($tableSchema, $property, $table->getProperties());
                 try {
                     $chartData = $this->getChartData($property, $tableName, $kv, limit: $limit);
@@ -544,12 +553,12 @@ class PixieController extends AbstractController
         }
 //        dd($tables);
 
-        return $this->render('@SurvosPixie/pixie/graphs.html.twig', [
+        return [
             'pixieCode' => $pixieCode,
             'tableName'=>$tableName,
 //            'kv' => $kv, // avoidable?/
             'tableData' => $tableData
-        ]);
+        ];
 
     }
 

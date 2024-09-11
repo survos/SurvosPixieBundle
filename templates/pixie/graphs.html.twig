@@ -32,14 +32,6 @@
                         </div>
                     </div>
                 </details>
-
-
-{#            {% if item._att %}#}
-{#                <h3>Attributes</h3>#}
-{#        <twig:simple_item_grid#}
-{#                :data="row._raw|json_decode(true)"#}
-{#        />#}
-{#            {% endif %}#}
             {% endif %}
              </div>
         </div>
@@ -49,10 +41,6 @@
                 {'pixieCode': pixieCode, tableName: tableName}) }}">
                 Preview {{ tableName }} (n={{ tableData.count }})
             </a>
-            
-            <h6 class="my-3">
-                These should be horizontal.
-            </h6>
 
             <ul class="list-inline">
                 <div class="row">
@@ -61,6 +49,7 @@
 
                             <div class="card mb-4">
                                 <div class="card-header">
+                                    {% block property_link %}
                                     <a href="{{ path('pixie_show_property', {
                                         pixieCode: pixieCode,
                                         tableName: tableName,
@@ -68,6 +57,7 @@
                                     }) }}">
                                         SHOW Details {{ indexName }}
                                     </a>
+                                    {% endblock %}
                                 </div>
                                 <div class="card-body pb-4">
                                     <div class="my-chart mx-auto">
