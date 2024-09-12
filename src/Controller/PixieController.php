@@ -120,17 +120,18 @@ class PixieController extends AbstractController
 
     #[Route('/show/{pixieCode}/{tableName}/{key}', name: 'pixie_show_record', requirements: ['key' => '.+'], options: ['expose' => true])]
     #[Route('/transition/{pixieCode}/{tableName}/{key}', name: 'pixie_transition', requirements: ['key' => '.+'])]
+    #[Template('@SurvosPixie/pixie/show.html.twig')]
     public function show_record(
-        Request                      $request,
         string                       $pixieCode,
         string                       $tableName,
         string                       $key,
+        ?Request                      $request=null,
         #[MapQueryParameter] ?string $transition = null,
         #[MapQueryParameter] ?string $flowName = null,
         #[MapQueryParameter] ?string $index = null,
         #[MapQueryParameter] ?string $value = null,
         #[MapQueryParameter] int     $limit = 5
-    ): Response
+    ): array
     {
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $kv->select($tableName);
@@ -156,7 +157,7 @@ class PixieController extends AbstractController
             throw new NotFoundHttpException("No item $key in $tableName / $pixieCode");
         }
 
-        if ($request->get('_route') == 'pixie_transition') {
+        if ($request?->get('_route') == 'pixie_transition') {
             if ($transition == self::TRANSITION_RESET) {
                 $kv->beginTransaction();
                 $kv->set(
@@ -210,7 +211,7 @@ class PixieController extends AbstractController
 
 //        dd($workflow, $table);
 //        $item = (array)$item;
-        return $this->render('@SurvosPixie/pixie/show.html.twig', [
+            return [
             'instance' => $instance??null,
             'kv' => $kv,
             'workflowEnabled' => (bool)$workflow, // comes from config
@@ -222,7 +223,7 @@ class PixieController extends AbstractController
             'item' => $item, // redundant! use row for data!
             'columns' => array_keys((array)$item),
             'groups' => $groups
-        ]);
+        ];
 
     }
 

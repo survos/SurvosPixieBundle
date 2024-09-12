@@ -26,9 +26,12 @@
     {#        'image_url', #}
 
     {#    ] %} #}
+    {% set show_path = show_route??'pixie_show_record' %}
     {% set globals = {
         locale: app.locale,
         pixieCode: pixieCode,
+        showPath: show_path,
+        showParams: show_params??{locale: app.locale},
         icons: {
             bug : 'fas fa-bug'
         }
@@ -85,8 +88,8 @@
         <twig:block name="id">
             <div style="width: 40px">
 
-                {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}) %}
-                {% set pixieItemUrl = path('pixie_show_record', lrp) %}
+                {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}, globals.showParams) %}
+                {% set pixieItemUrl = path(globals.showPath, lrp) %}
                 <a href="{{ pixieItemUrl }}">
                     {{ row.id }}
                 </a>
