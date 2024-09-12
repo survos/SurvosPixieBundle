@@ -131,7 +131,7 @@ class PixieController extends AbstractController
         #[MapQueryParameter] ?string $index = null,
         #[MapQueryParameter] ?string $value = null,
         #[MapQueryParameter] int     $limit = 5
-    ): array
+    ): array|Response
     {
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $kv->select($tableName);

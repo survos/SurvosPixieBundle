@@ -249,9 +249,11 @@ class Property implements \Stringable
         }
 
         $x .= match($this->index) {
+            'PRIMARY' => '#',
             'INDEX' => '#',
             'UNIQUE' => '##',
-            null => ''
+            null => '',
+            default => dd($this->index)
         };
         if ( $settings && !empty($settings)) {
             $x .= '?' . http_build_query($settings);
