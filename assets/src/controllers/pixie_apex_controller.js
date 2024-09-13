@@ -46,7 +46,13 @@ export default class extends Controller {
             },
             chart: {
                 height: 450,
-                type: 'treemap'
+                type: 'treemap',
+                events: {
+                    dataPointSelection: function(event, chartContext, config) {
+                        // Get the clicked data point's details
+                        console.log('Data Point Clicked:', config.dataPointIndex, config.w.config.series[config.seriesIndex].data[config.dataPointIndex]);
+                    }
+                }
             },
             title: {
                 text: this.titleValue
