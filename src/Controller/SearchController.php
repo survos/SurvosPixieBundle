@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/pixie-search/{pixieCode}/{tableName}')]
 class SearchController extends AbstractController
@@ -51,6 +52,7 @@ class SearchController extends AbstractController
      * @return Response
      */
     #[Route(path: '/stats/{indexName}.{_format}', name: 'pixie_meili_stats', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function stats(
         string  $indexName,
         Request $request,
@@ -67,7 +69,7 @@ class SearchController extends AbstractController
         ];
         return $_format == 'json'
             ? $this->json($data)
-            : $this->render('@SurvosPixie/pixie/_search_results.html.twig', $data);
+            : $this->render('@SurvosApiGrid/stats.html.twig', $data);
     }
 
 

@@ -39,6 +39,7 @@
         <div class="card">
             <div class="card-body">
 
+                {% block pixie_stats %}
                 {% set columns = [
                     {name: 'count', title: '#'},
                     {name: 'value', title: property.code}
@@ -57,6 +58,7 @@
                     </twig:block>
 
                 </twig:simple_datatables>
+                {% endblock %}
 
             </div>
         </div>
