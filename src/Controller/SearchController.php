@@ -2,6 +2,8 @@
 
 namespace Survos\PixieBundle\Controller;
 
+// this is more MeiliController, it depends on the MeiliService.  Wrapper for meili index
+
 use ApiPlatform\Api\IriConverterInterface;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Symfony\Routing\IriConverter;
@@ -12,10 +14,12 @@ use Survos\InspectionBundle\Services\InspectionService;
 use Survos\PixieBundle\Service\PixieService;
 use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bundle\SecurityBundle\Security;
 
+#[Route('/pixie-search/{pixieCode}/{tableName}')]
 class SearchController extends AbstractController
 {
     public function __construct(
@@ -29,7 +33,45 @@ class SearchController extends AbstractController
     {
     }
 
-    #[Route('/meili/{pixieCode}/{tableName}', name: 'pixie_meili_browse', options: ['expose' => true])]
+    private function getMeiliService(): MeiliService
+    {
+        if (!$this->meiliService) {
+            throw new \Exception("install meilisearch to use this controller");
+        }
+        return $this->meiliService;
+
+    }
+
+    /**
+     * this handles both pixie properties and the meili index,
+     *
+     * @param string $indexName
+     * @param Request $request
+     * @param string $_format
+     * @return Response
+     */
+    #[Route(path: '/stats/{indexName}.{_format}', name: 'pixie_meili_stats', methods: ['GET'])]
+    public function stats(
+        string  $indexName,
+        Request $request,
+        string $_format='html'
+    ): Response
+    {
+        $index = $this->getMeiliService()->getIndex($indexName);
+        $stats = $index->stats();
+        // idea: meiliStats as a component?
+        $data = [
+            'indexName' => $indexName,
+            'settings' => $index->getSettings(),
+            'stats' => $stats
+        ];
+        return $_format == 'json'
+            ? $this->json($data)
+            : $this->render('@SurvosPixie/pixie/_search_results.html.twig', $data);
+    }
+
+
+    #[Route('/grid', name: 'pixie_meili_browse', options: ['expose' => true])]
     #[Template('@SurvosPixie/pixie/grid.html.twig')]
     public function meili(
         string $pixieCode,

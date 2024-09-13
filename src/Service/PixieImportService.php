@@ -234,6 +234,7 @@ class PixieImportService
                     continue;
                 }
 
+                assert($row['license']??'' <> 'Copyrighted', "invalid license");
                 try {
                     $kv->set($row);
                 } catch (\Exception $e) {

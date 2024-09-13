@@ -44,19 +44,19 @@ final class PixieImportCommand extends InvokableServiceCommand
     }
 
     public function __invoke(
-        IO                                                                                          $io,
-        PixieService                                                                                $pixieService,
-        PixieImportService                                                                          $pixieImportService,
-        #[Argument(description: 'config code')] string                                              $configCode,
-        #[Option(description: 'conf filename, default to directory name of first argument')] ?string $dirOrFilename,
+        IO                                                                                           $io,
+        PixieService                                                                                 $pixieService,
+        PixieImportService                                                                           $pixieImportService,
+        #[Argument(description: 'config code')] string                                               $configCode,
+        #[Option(description: 'conf filename, default to directory name of first argument')] ?string $dir,
         #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
-        #[Option(description: "overwrite records if they already exist")] bool                      $overwrite = false,
-        #[Option(description: "index after import (default: true)")] ?bool                      $index = null,
-        #[Option(description: "purge db file first")] bool                                          $reset = false,
-        #[Option(description: "Batch size for commit")] int                                         $batch = 500,
-        #[Option(description: "total if known (slow to calc)")] int                                         $total = 0,
-        #[Option(description: "table search pattern")] string                                         $pattern = '',
-        #[Option(description: 'tags (for listeners)')] ?string   $tags=null,
+        #[Option(description: "overwrite records if they already exist")] bool                       $overwrite = false,
+        #[Option(description: "index after import (default: true)")] ?bool                           $index = null,
+        #[Option(description: "purge db file first")] bool                                           $reset = false,
+        #[Option(description: "Batch size for commit")] int                                          $batch = 500,
+        #[Option(description: "total if known (slow to calc)")] int                                  $total = 0,
+        #[Option(description: "table search pattern")] string                                        $pattern = '',
+        #[Option(description: 'tags (for listeners)')] ?string                                       $tags=null,
 
     ): int
     {
@@ -64,23 +64,21 @@ final class PixieImportCommand extends InvokableServiceCommand
         // not sure how to auto-wire this in the constructor
         // idea: if conf doesn't exist, require a directory name and create it, a la rector
         if (empty($configCode)) {
-            $configCode = pathinfo($dirOrFilename, PATHINFO_BASENAME);
+            $configCode = pathinfo($dir, PATHINFO_BASENAME);
         }
 
         $index = is_null($index) ? true: $index;
 
         $config = $pixieService->getConfig($configCode);
         assert($config, $config->getConfigFilename());
-        if (empty($dirOrFilename)) {
-            $dirOrFilename = $pixieService->getSourceFilesDir($configCode);
-        }
+        $dir = $pixieService->getSourceFilesDir($configCode, dir: $dir);
 
 //        dump($configData, $config->getVersion());
 //        dd($dirOrFilename, $config, $configFilename, $pixieService->getPixieFilename($configCode));
 
         // Pixie databases go in datadir, not with their source? Or defined in the config
-        if (!is_dir($dirOrFilename)) {
-            $io->error("$dirOrFilename does not exist.  set the directory in config or pass it as the first argument");
+        if (!is_dir($dir)) {
+            $io->error("$dir does not exist.  set the directory in config or pass it as the first argument");
             return self::FAILURE;
         }
 
@@ -104,6 +102,9 @@ final class PixieImportCommand extends InvokableServiceCommand
             $this->pixieService->destroy($pixieDbName);
         }
         $this->total = $total; // @togo: get from config
+        if ($limit && !$this->total) {
+            $this->total = $limit;
+        }
 
         $limit = $this->pixieService->getLimit($limit);
         $pixieImportService->import($configCode, $config, limit: $limit,

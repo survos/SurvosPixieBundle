@@ -334,14 +334,19 @@ class PixieService
 
 
     public function getSourceFilesDir(?string $pixieCode=null, ?Config $config=null,
-                                      bool $autoCreate=false, bool $throwErrorIfMissing=true): ?string
+                                      bool $autoCreate=false,
+                                      bool $throwErrorIfMissing=true,
+    string $dir=null
+    ): ?string
     {
         if (!$config) {
             $config = $this->getConfig($pixieCode);
         }
 
-        if (!$dir = $config->getSourceFilesDir()) {
-            $dir = $this->dataRoot . "/$pixieCode";
+        if (!$dir) {
+            if (!$dir = $config->getSourceFilesDir()) {
+                $dir = $this->dataRoot . "/$pixieCode";
+            }
         }
 
         $dir = $this->addProjectDir($dir);
