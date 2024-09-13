@@ -216,7 +216,7 @@ class PixieController extends AbstractController
             'kv' => $kv,
             'workflowEnabled' => (bool)$workflow, // comes from config
             'workflow' => $workflow,
-            'key' => $key,
+            'key' => $item->getKey(),
             'tableName' => $tableName,
             'pixieCode' => $pixieCode,
             'row' => $item,

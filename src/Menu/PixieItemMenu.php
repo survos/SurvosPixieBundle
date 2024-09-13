@@ -40,11 +40,13 @@ final class PixieItemMenu implements KnpMenuHelperInterface
         }
 //        return;
         $kv = $this->pixieService->getStorageBox($pixieCode);
-        $this->addHeading($menu, 'key is ' . $itemKey);
+
+        $this->addHeading($menu, $itemKey,
+            translationDomain: false);
 
         if ($item = $kv->get($itemKey, $tableName)) {
             $this->addHeading($menu, $item->getKey());
-            $this->add($menu, 'pixie_show_record', $item->getRp(), 'show');
+            $this->add($menu, 'pixie_show_record', $item->getRp());
             $this->add($menu, 'pixie_share_item', $item->getRp());
         }
     }

@@ -6,6 +6,7 @@
 <h1>{{ pixieCode }}.{{ tableName }} {{ row.key }}</h1>
 {% endblock %}
 {% block body %}
+    <h1>{{ pixieCode }}.{{ tableName }} {{ row.key }} {{ row.name|default(row.label) }}</h1>
 
     {% set iconMap = {
         region: 'bi:geo-alt',
