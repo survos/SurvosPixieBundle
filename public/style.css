@@ -214,7 +214,7 @@ body {
 }
 
 .inner-page .stats__item {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2.5rem;
 }
 
 .inner-page .stats__item h6 {
@@ -242,19 +242,4 @@ body {
     padding-right: 2.5rem;
     margin: auto;
     width: 100%;
-}
-
-.thumb-main .thumb_items {
-    border: 1px solid #e9ebec;
-    border-radius: .25rem;
-    padding: .35rem;
-    cursor: pointer;
-}
-
-.walters .stats__item {
-    margin-bottom: 1.5rem;
-    background-color: #f4f7f9;
-    padding: 10px;
-    border-radius: 4px;
-    height: calc(100% - 1.5rem);
 }
