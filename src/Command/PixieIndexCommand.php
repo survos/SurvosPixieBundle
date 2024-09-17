@@ -284,7 +284,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
         $results = $index->updateSettings($settings = [
             'displayedAttributes' => ['*'],
             'searchableAttributes' => $searchableAttrs,
-            'localizedAttributes' => $localizedAttributes,
+//            'localizedAttributes' => $localizedAttributes,
             'filterableAttributes' => $filterable, //  $this->datatableService->getFieldsWithAttribute($settings, 'browsable'),
             'sortableAttributes' => $sortable, // this->datatableService->getFieldsWithAttribute($settings, 'sortable'),
                 "faceting" => [
