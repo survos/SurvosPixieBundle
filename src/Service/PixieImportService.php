@@ -4,6 +4,8 @@ namespace Survos\PixieBundle\Service;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
+use App\Event\FetchTranslationEvent;
+use App\Event\FetchTranslationObjectEvent;
 use App\Service\AppService;
 use League\Csv\Info;
 use League\Csv\Reader;
@@ -232,6 +234,23 @@ class PixieImportService
                 // don't set if discard
                 if ($event->type == RowEvent::DISCARD) {
                     continue;
+                }
+
+                // add the source strings
+//                $event = new FetchTranslationObjectEvent($row, )
+//                    $sourceString = $row[$tKey];
+                if (count($table->getTranslatable())) {
+                    $event = $this->eventDispatcher->dispatch(
+                        new FetchTranslationObjectEvent(
+                            $row, // or $item?
+                            pixieCode: $pixieCode,
+                            sourceLanguage: $config->getSource()->locale,
+                            targetLanguage: $config->getSource()->locale,
+                            table: $tableName, // for debugging,
+                            key: $row[$table->getPkName()],
+                            keys: $table->getTranslatable()
+                        ));
+                    $row = $event->getNormalizedData();
                 }
 
                 assert($row['license']??'' <> 'Copyrighted', "invalid license");

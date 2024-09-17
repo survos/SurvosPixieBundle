@@ -14,6 +14,7 @@ use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -182,7 +183,6 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //                }
 
                 if ($batchSize && (($progress = $progressBar->getProgress()) % $batchSize) === 0) {
-
                     $task = $index->addDocuments($recordsToWrite, $primaryKey);
                     // wait for the first record, so we fail early and catch the error, e.g. meili down, no index, etc.
                     if (!$progress) {
@@ -204,6 +204,22 @@ final class PixieIndexCommand extends InvokableServiceCommand
             $recordsToWrite = [];
             $this->meiliService->waitForTask($task);
 
+            // export?
+            $stats = $index->stats();
+//            dd($stats, $index->getSettings());
+            $io->success($stats['numberOfDocuments'] . " documents");
+            $table = new Table($this->io());
+            $table->setHeaders(['attributes', 'value']);
+//            $io->write(json_encode($stats, JSON_PRETTY_PRINT));
+            foreach ($index->getSettings() as $var=>$value) {
+                if (str_contains($var, 'Attributes')) {
+                    $table->addRow([$var, json_encode($value)]);
+                }
+            }
+            $table->render();
+            if ($io->isVerbose()) {
+//                $io->write(json_encode($index->getSettings(), JSON_PRETTY_PRINT));
+            }
 
 //            $filename = $pixieCode . '-' . $tableName.'.json';
 //            file_put_contents($filename, $this->serializer->serialize($recordsToWrite, 'json'));
@@ -216,14 +232,6 @@ final class PixieIndexCommand extends InvokableServiceCommand
         // Pixie databases go in datadir, not with their source? Or defined in the config
 
 
-        // export?
-        if ($io->isVerbose()) {
-            $stats = $index->stats();
-            $io->write(json_encode($stats, JSON_PRETTY_PRINT));
-            $io->write(json_encode($index->getSettings(), JSON_PRETTY_PRINT));
-            // now what?
-
-        }
 
         $io->success(sprintf("%s success %s %s",  $this->getName(), $pixieCode, $indexName));
         return self::SUCCESS;

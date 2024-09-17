@@ -71,7 +71,7 @@ class Item implements \Stringable
     // this is more like the raw row.  Or value...
     public function getData(bool $asArray=false): object|array
     {
-        return $asArray ? (array)$this->data : $this->data;
+        return $asArray ? json_decode(json_encode($this->data), true) : $this->data;
     }
 
     public function getRp(array $addl=[])
