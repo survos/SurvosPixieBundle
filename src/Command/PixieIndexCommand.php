@@ -15,10 +15,12 @@ use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Intl\Locales;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\String\Slugger\SluggerInterface;
@@ -48,6 +50,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
         private EventDispatcherInterface $eventDispatcher,
         private ?MeiliService $meiliService = null,
         private ?SluggerInterface $asciiSlugger = null,
+        #[Autowire('%kernel.enabled_locales%')] private array $enabledLocales=[],
     )
     {
 
@@ -260,9 +263,28 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 }
             }
         }
+        $map = [
+            'es' => 'spa',
+            'en' => 'eng',
+            'de' => 'deu',
+            'hi' => 'hin',
+            'fr' => 'fra',
+        ];
+        $searchableAttrs = [];
+        foreach ($this->enabledLocales as $locale) {
+            $locale3 = $map[$locale];
+            $localizedAttributes[] = ['locales' => [$locale3],
+                'attributePatterns' => [sprintf('_translations.%s.*',$locale)]];
+            foreach ($table->getTranslatable() as $property) {
+                $searchableAttrs[] = '_translations.' . $locale . ".$property";
+            }
+        }
+        $localizedAttributes[] = ['locales' => [], 'attributePatterns' => ['*']];
 
         $results = $index->updateSettings($settings = [
             'displayedAttributes' => ['*'],
+            'searchableAttributes' => $searchableAttrs,
+            'localizedAttributes' => $localizedAttributes,
             'filterableAttributes' => $filterable, //  $this->datatableService->getFieldsWithAttribute($settings, 'browsable'),
             'sortableAttributes' => $sortable, // this->datatableService->getFieldsWithAttribute($settings, 'sortable'),
                 "faceting" => [
@@ -271,53 +293,8 @@ final class PixieIndexCommand extends InvokableServiceCommand
     ],
             ]);
 //        dd($results, $settings);
-
-//        dd($results, $settings);
         // wait until the index is set up.
-        $stats = $this->meiliService->waitUntilFinished($index);
-        return $index;
-
-        dd($results);
-
-//        $reflection = new \ReflectionClass($class);
-//        $classAttributes = $reflection->getAttributes();
-//        $filterAttributes = [];
-//        $sortableAttributes = [];
-        $settings = $this->datatableService->getSettingsFromAttributes($class);
-        $primaryKey = 'id'; // default, check for is_primary));
-        $idFields = $this->datatableService->getFieldsWithAttribute($settings, 'is_primary');
-        if (count($idFields)) $primaryKey = $idFields[0];
-//        dd($settings, $filterAttributes);
-//
-//        foreach ($settings as $fieldname=>$classAttributes) {
-//            if ($classAttributes['browsable']) {
-//                $filterAttributes[] = $fieldname;
-//            }
-//            if ($classAttributes['sortable']) {
-//                $sortableAttributes[] = $fieldname;
-//            }
-//            if ($classAttributes['searchable']) {
-////                $searchAttributes[] = $fieldname;
-//            }
-//            if ($classAttributes['is_primary']??null) {
-//                $primaryKey = $fieldname;
-//            }
-//        }
-
-//        $index->updateSortableAttributes($this->datatableService->getFieldsWithAttribute($settings, 'sortable'));
-//        $index->updateSettings(); // could do this in one call
-
-        $results = $index->updateSettings($settings = [
-            'displayedAttributes' => ['*'],
-            'filterableAttributes' => $this->datatableService->getFieldsWithAttribute($settings, 'browsable'),
-            'sortableAttributes' => $this->datatableService->getFieldsWithAttribute($settings, 'sortable'),
-            "faceting" => [
-                "sortFacetValuesBy" => ["*" => "count"],
-                "maxValuesPerFacet" => $this->meiliService->getConfig()['maxValuesPerFacet']
-            ],
-        ]);
-
-        $stats = $this->meiliService->waitUntilFinished($index);
+//        $stats = $this->meiliService->waitUntilFinished($index);
         return $index;
     }
 
