@@ -146,12 +146,14 @@ class PixieImportService
             if (isset($headers))
                 assert(count($headers) == count(array_unique($headers)), json_encode($headers));
             // don't parse the header match each time, store them
-            $regexRules = $configData['tables'][$tableName]['formatter'] ?? [];
+//            $regexRules = $configData['tables'][$tableName]['formatter'] ?? [];
             // why not mapped headers?
-            foreach ($headers as $headerOrig=>$header) {
-                foreach ($regexRules as $variableRegexRule => $dataRegexRules) {
-                    if (preg_match($variableRegexRule, $header)) {
-                        $dataRules[$header] = $dataRegexRules;
+            $dataRules = [];
+            foreach ($headers as $header => $origHeader) {
+                foreach ($table->getPatches() as $headerRegex => $regexRules) {
+                    if (preg_match($headerRegex, $header, $mm)) {
+                        $dataRules[$header]??= [];
+                        $dataRules[$header] += $regexRules;
                     }
                 }
             }
@@ -190,8 +192,14 @@ class PixieImportService
                     foreach ($dataRules[$k] ?? [] as $dataRegexRule => $substitution) {
                         $match = preg_match($dataRegexRule, $v, $mm);
                         if ($match) {
-                            // @todo: a preg_replace?
-                            $row[$k] = $substitution === '' ? null : $substitution;
+                            if ($substitution === '') {
+                                $row[$k] = null;
+                            } else {
+//                                dump($row[$k]);
+                                // or a preg_replace?
+                                $row[$k] = str_replace($mm[0], $substitution, $row[$k]);
+//                                dd($row[$k]);
+                            }
                         }
                     }
                 }

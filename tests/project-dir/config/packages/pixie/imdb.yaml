@@ -36,7 +36,7 @@ tables:
         #        $writer = Writer::createFromFileObject(new SplTempFileObject());
         #        $writer->addFormatter($formatter);
         # maybe someday: https://symfony.com/doc/current/components/expression_language.html
-        formatter:
+        patches:
             //: # match everything
                 /\\N/: ''
             /is_/:

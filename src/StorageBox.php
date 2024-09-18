@@ -575,9 +575,9 @@ catch
     $pk = $this->getPrimaryKey($table);
     $sql = "SELECT COUNT($pk) FROM $table";
     if (count($where) > 0) {
-        $sql .= " WHERE ";
+        $sql .= " WHERE 1  ";
         foreach ($where as $key => $value) {
-            $sql .= " $key = :$key";
+            $sql .= " and ($key = :$key)";
         }
     }
     $count = $this->query($sql, $where)->fetchColumn();

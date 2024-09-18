@@ -16,6 +16,7 @@ class Table
          * @var array<Property|string>
          */
         private array $properties=[],
+        private array $patches=[],
         private array $translatable =[],
         private ?string $indexes=null, // the super-succint dexie-style index defintion, e.g. "id|int,department"
         private ?string $pkName=null,
@@ -25,6 +26,11 @@ class Table
     )
     {
 
+    }
+
+    public function getPatches(): array
+    {
+        return $this->patches;
     }
 
     public function getTotal(): ?int

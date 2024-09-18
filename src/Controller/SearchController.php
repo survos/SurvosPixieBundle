@@ -92,6 +92,7 @@ class SearchController extends AbstractController
         ]);
         $config = $this->pixieService->getConfig($pixieCode);
         $table = $config->getTable($tableName);
+        assert($table, "Missing $tableName in $pixieCode");
         $gridColumns = [
             new Column(
                 name: 'chevron',
@@ -111,6 +112,11 @@ class SearchController extends AbstractController
             ),
             new Column(
                 name: 'tombstone',
+                className: 'tombstone-heading',
+                browsable: false
+            ),
+            new Column(
+                name: 'attrs',
                 className: 'tombstone-heading',
                 browsable: false
             ),
