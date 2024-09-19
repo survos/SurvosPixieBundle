@@ -21,9 +21,11 @@
         showPath: show_path,
         showParams: show_params??{locale: app.locale},
         icons: {
-            bug : 'fas fa-bug'
+            bug : ux_icon("tabler:bug"),
+            github: ux_icon("tabler:brand-github")
         }
     } %}
+    {{ dump(globals) }}
 
     <div class="search_builder">
     <twig:api_grid
@@ -62,7 +64,25 @@
                         {{ row.credit }}
                     </a>
                 {% endif %}
-                <i>@footer</i>
+{#                {{ globals.icons|json_encode|raw }}#}
+                <div class='d-flex justify-content-between align-items-center gap-2'>
+                {% for x in ['url','github','api','wiki'] %}
+                    {% if row[x]??false %}
+                    <a class="d-flex align-items-center flex-row-reverse gap-2" href="{{ row[x] }}" target="_blank">
+{#                        {{ globals|json_encode }}#}
+                        {% if x in globals.icons|keys %}
+                            {{ x }}
+                            {{ globals.icons[x] }}
+                            {% else %}
+                                {{ x }}:
+                            {% endif %}
+                        {% set label = row[x]|replace({'https://':'', 'http://':'', 'www.':''}) %}
+
+                        {{ label }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+                </div>
 
 {#                @tombstone links#}
             </div>
