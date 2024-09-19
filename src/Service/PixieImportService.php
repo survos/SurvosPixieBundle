@@ -243,7 +243,6 @@ class PixieImportService
                 if ($event->type == RowEvent::DISCARD) {
                     continue;
                 }
-
                 // add the source strings
 //                $event = new FetchTranslationObjectEvent($row, )
 //                    $sourceString = $row[$tKey];
@@ -360,7 +359,7 @@ class PixieImportService
         $rules = $config->getTableRules($tableName);
         $table = $config->getTable($tableName);
         $mappedHeader = $kv->mapHeader($headers, regexRules: $rules);
-//            dd($rules, $configData, $tableName, filename: $splFile->getFilename(), mappedHeader: $mappedHeader);
+//            dump($rules, $tableName, headers: $headers, mappedHeader: $mappedHeader);
         // keep for replacing the key names later
 //                dd($headers, mapped: $mappedHeader, rules: $rules);
         $this->eventDispatcher->dispatch(
