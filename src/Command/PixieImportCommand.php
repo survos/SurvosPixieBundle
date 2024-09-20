@@ -101,9 +101,12 @@ final class PixieImportCommand extends InvokableServiceCommand
         if ($reset) {
             $this->pixieService->destroy($pixieDbName);
         }
-        $this->total = $total; // @togo: get from config
+        $this->total = $total;
         if ($limit && !$this->total) {
             $this->total = $limit;
+        }
+        if ($config->getSource()->total) {
+            $this->total = $config->getSource()->total;
         }
 
         $limit = $this->pixieService->getLimit($limit);
@@ -149,13 +152,23 @@ final class PixieImportCommand extends InvokableServiceCommand
         $this->io()->title($event->filename);
         if (!$count = $this->total) {
             if ($event->getType() == 'json') {
+                // faster to get the first record and filesize and divide, for a rough estimate.
+                $iterator = Items::fromFile($event->filename);
+                $first = $iterator->getIterator()->current();
+                $pointer = $iterator->getCurrentJsonPointer();
+                $size = filesize($event->filename);
+                $guess = (int)($size / strlen(json_encode($first, JSON_PRETTY_PRINT)));
+                $count = $guess;
+//                dump($guess);
+//                dd("plz set total in config");
 //                    halaxa/json-machine
-                try {
-                    $count =  iterator_count(Items::fromFile($event->filename));
-                } catch (\Exception $e) {
-                    $this->logger->error($e->getMessage() . "\n" . $event->filename);
-                    throw $e;
-                }
+//                try {
+//                    $count =  iterator_count(Items::fromFile($event->filename));
+//                    dd($count, $guess);
+//                } catch (\Exception $e) {
+//                    $this->logger->error($e->getMessage() . "\n" . $event->filename);
+//                    throw $e;
+//                }
             } else {
                 $count = $this->lineCount($event->filename);
             }
