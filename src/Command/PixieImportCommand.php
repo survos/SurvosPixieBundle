@@ -55,6 +55,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: "purge db file first")] bool                                           $reset = false,
         #[Option(description: "Batch size for commit")] int                                          $batch = 500,
         #[Option(description: "total if known (slow to calc)")] int                                  $total = 0,
+        #[Option('start', description: "starting at (offset)")] int                                  $startingAt = 0,
         #[Option(description: "table search pattern")] string                                        $pattern = '',
         #[Option(description: 'tags (for listeners)')] ?string                                       $tags=null,
 
@@ -110,7 +111,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
 
         $limit = $this->pixieService->getLimit($limit);
-        $pixieImportService->import($configCode, $config, limit: $limit,
+        $pixieImportService->import($configCode, $config, limit: $limit, startingAt: $startingAt,
             context: [
                 'tags' => explode(",", $tags),
             ],

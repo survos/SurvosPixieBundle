@@ -39,6 +39,7 @@ class PixieImportService
     public function import(string $pixieCode,
                            ?Config $config=null,
                            int    $limit = 0,
+                           int    $startingAt = 0,
                            bool $overwrite = false, // individual records
                             array $context = [], // for passing extra context, like addTranslationstrings
                            ?StorageBox $kv=null, // if we already created it.
@@ -170,6 +171,10 @@ class PixieImportService
             $pk = $kv->getPrimaryKey($tableName);
             // this is the json/csv iterator
             foreach ($iterator as $idx => $row) {
+                if ($startingAt && ($idx<$startingAt)) {
+                    continue;
+                }
+
                 // if it's json, remap the keys
                 if ($ext === 'json') {
                     $mappedRow = [];

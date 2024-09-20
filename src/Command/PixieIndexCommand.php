@@ -272,6 +272,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             'de' => 'deu',
             'hi' => 'hin',
             'fr' => 'fra',
+            'da' => 'dnk',
         ];
         $searchableAttrs = [];
         foreach ($this->enabledLocales as $locale) {
