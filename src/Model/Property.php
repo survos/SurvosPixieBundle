@@ -148,10 +148,15 @@ class Property implements \Stringable
     {
         // https://github.com/simonw/til/blob/main/sqlite/related-rows-single-query.md
         if ($this->type == self::TYPE_RELATION) {
-            dd($this);
+            assert(false, $this->type);
             return $this->code == $this->schema->getIdName();
         }
         return null;
+    }
+
+    public function isRelation(): bool
+    {
+        return $this->getType() === self::TYPE_RELATION;
     }
 
     public function getListTableName(): ?string
@@ -203,6 +208,11 @@ class Property implements \Stringable
     public function getDelim(): ?string
     {
         return $this->getSettings()['delim']??null;
+    }
+
+    public function getValueType(): ?string
+    {
+        return $this->getSettings()['valueType']??null;
     }
 
     /**

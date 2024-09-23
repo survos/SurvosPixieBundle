@@ -211,7 +211,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             // export?
             $stats = $index->stats();
 //            dd($stats, $index->getSettings());
-            $io->success($stats['numberOfDocuments'] . " documents");
+            $io->success($stats['numberOfDocuments'] . " $pixieCode.$tableName documents");
             $this->eventDispatcher->dispatch(new IndexEvent($pixieCode, $tableName, $stats['numberOfDocuments']));
 
             $table = new Table($this->io());

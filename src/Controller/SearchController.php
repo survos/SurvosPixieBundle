@@ -26,7 +26,6 @@ class SearchController extends AbstractController
     public function __construct(
         private readonly PixieService $pixieService,
         private IriConverterInterface $iriConverter,
-        private InspectionService $inspectionService,
         private ?MeiliService $meiliService=null
 
 //        private ?AuthorizationCheckerInterface $authorizationChecker=null
@@ -105,22 +104,26 @@ class SearchController extends AbstractController
                 title: 'id',
 //                sortable: true,
                 browsable: false
-            ),
-            new Column(
-                name: 'thumbnail',
-                browsable: false
-            ),
+            )];
+        if ($table->isHasImages()) {
+            $gridColumns[] =
+                new Column(
+                    name: 'thumbnail',
+                    browsable: false
+                );
+        }
+        $gridColumns = array_merge($gridColumns, [
             new Column(
                 name: 'tombstone',
                 className: 'tombstone-heading',
                 browsable: false
             ),
-            new Column(
-                name: 'attrs',
-                className: 'tombstone-heading',
-                browsable: false
-            ),
-        ];
+//            new Column(
+//                name: 'attrs',
+//                className: 'tombstone-heading',
+//                browsable: false
+//            ),
+        ]);
 
 //        foreach ($table->getTranslatable() as $field) {
 //            $gridColumns[] = new Column(name: $field, browsable: false,
@@ -138,9 +141,12 @@ class SearchController extends AbstractController
 
             $column = new Column(
                 name: $property->getCode(),
-                browsable: $property->getIndex()=='INDEX',
+                browsable: $property->getIndex()=='INDEX' || $property->isRelation() || $property->getListTableName(),
                 sortable: $property->getIndex()=='INDEX',
             );
+            if ($property->isRelation()) {
+//                dd($property, $column);
+            }
             if ($condition = $property->getSetting('security')) {
 //                $column->condition = $this->security->isGranted($condition); // sprintf("isGranted('%s')", $condition);
                 $column->condition = $this->isGranted($condition); // sprintf("isGranted('%s')", $condition);
@@ -152,7 +158,7 @@ class SearchController extends AbstractController
             if (in_array($property->getCode(), $table->getTranslatable())) {
                 // hmm
             } else {
-                if ($column->sortable) {
+                if ($column->sortable || $column->browsable) {
                     $gridColumns[] = $column;
                 }
             }

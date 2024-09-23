@@ -117,7 +117,7 @@ final class PixieImportCommand extends InvokableServiceCommand
             ],
             overwrite: $overwrite, pattern: $pattern,
             callback: function ($row, $idx, StorageBox $kv) use ($batch, $limit) {
-                $finished = $limit ? $idx >= ($limit+1) : false;
+                $finished = $limit ? $idx >= ($limit) : false;
 //                dd($limit, $idx, $finished, $batch);
                 if ($finished || (($idx % $batch) == 0) ) {
                     $this->logger->info("Saving $batch, now at $idx of $limit");

@@ -27,6 +27,7 @@
             wiki : ux_icon("simple-icons:wikidata"),
             github: ux_icon("tabler:brand-github"),
             ds1: ux_icon("tabler:database"),
+            citation: ux_icon("formkit:url"),
             rights: ux_icon("tabler:copyright")
         }
     } %}
@@ -59,7 +60,14 @@
             {% set svg = globals.icons['github'] %}
             <div class="tombstone custom-heading text-truncate-four-lines">
                 {# really the translatable fields #}
-                <b>{{ row.title|default(row.label) }}</b>
+                {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}, globals.showParams) %}
+                {% set pixieItemUrl = path(globals.showPath, lrp) %}
+                <div class="text-truncate-one-line">
+                    <a href="{{ pixieItemUrl }}">
+                        <b>{{ row.title|default(row.label|default(row.code|default(row.id|default('~')))) }}</b>
+                    </a>
+                </div>
+
                 <div class="text-truncate-three-line">
                     {{ row.description }}
                 </div>
@@ -73,7 +81,8 @@
 
 {#                @tombstone links#}
             <div xclass='d-flex justify-content-between align-items-center gap-2'>
-                {% for x in ['url','github','api','wiki','ds1','rights'] %}
+{#                'rights',#}
+                {% for x in ['url','github','api','wiki','ds1','citation'] %}
                     {% if row[x]??false %}
                         <a class="d-flex align-items-center gap-2" href="{{ row[x] }}" title="{{ x }}" target="_blank">
                             {#                        {{ globals|json_encode }}#}
@@ -95,10 +104,11 @@
 
         <twig:block name="pixie_key">
 
+            {# really we need the pk #}
             {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}) %}
             {% set pixieItemUrl = path('pixie_show_record', lrp) %}
             <a href="{{ pixieItemUrl }}">
-                #<code>{{ row.id }}</code>
+4                @<code>{{ row.id|default(row.code|default('~')) }}</code>
             </a>
         </twig:block>
         <twig:block name="id">

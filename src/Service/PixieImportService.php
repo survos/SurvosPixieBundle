@@ -149,6 +149,7 @@ class PixieImportService
             // don't parse the header match each time, store them
 //            $regexRules = $configData['tables'][$tableName]['formatter'] ?? [];
             // why not mapped headers?
+            // setup the dataRules to apply later
             $dataRules = [];
             foreach ($headers as $header => $origHeader) {
                 foreach ($table->getPatches() as $headerRegex => $regexRules) {
@@ -181,33 +182,18 @@ class PixieImportService
                     foreach ($headers as $header=>$headerOrig) {
                         $mappedRow[$header] = $row->{$headerOrig}??null;
                     }
-//                    dd($row, $mappedRow);
                     $row = $mappedRow;
                 }
 
                 // just check the first row
                 if ($idx == 0) {
                     assert(array_key_exists($pk, $row),
-                        $tableName . " should have $pk  " .
+                        $tableName . " should have primaryKey $pk  " .
                         json_encode($row, JSON_PRETTY_PRINT));
                 }
 
                 $exists = $kv->has($row[$pkName], preloadKeys: true);
-                foreach ($row as $k => $v) {
-                    foreach ($dataRules[$k] ?? [] as $dataRegexRule => $substitution) {
-                        $match = preg_match($dataRegexRule, $v, $mm);
-                        if ($match) {
-                            if ($substitution === '') {
-                                $row[$k] = null;
-                            } else {
-//                                dump($row[$k]);
-                                // or a preg_replace?
-                                $row[$k] = str_replace($mm[0], $substitution, $row[$k]);
-//                                dd($row[$k]);
-                            }
-                        }
-                    }
-                }
+                $row = $this->applyDataRules($row, $dataRules);
                 if (!$row) {
                     dd($row, $idx, $tableName);
                     continue;
@@ -223,9 +209,13 @@ class PixieImportService
                     storageBox: $kv,
                     context: $context));
 
-                // handling relations could be its own RowEvent too, for now it's here
-                $this->handleRelations($kv, $pixieCode, $table, $row);
 
+                // handling relations could be its own RowEvent too, for now it's here
+                $row = $this->handleRelations($kv, $config, $pixieCode, $table, $event->row);
+                $event->row = $row;
+//                $tableName=='obj' && dd($row['classification'], $event->row['classification']);
+
+//                $tableName == 'obj' && dd($row);
 
                 if ($callback) {
                     // for batching
@@ -243,11 +233,11 @@ class PixieImportService
                     dd($event);
                     continue;
                 }
-                $row  = $event->row;
                 // don't set if discard
                 if ($event->type == RowEvent::DISCARD) {
                     continue;
                 }
+
                 // add the source strings
 //                $event = new FetchTranslationObjectEvent($row, )
 //                    $sourceString = $row[$tKey];
@@ -266,8 +256,9 @@ class PixieImportService
                 }
 
                 assert($row['license']??'' <> 'Copyrighted', "invalid license");
+//                    dump($row, $tableName);
                 try {
-                    $kv->set($row);
+                    $kv->set($row, $tableName);
                 } catch (\Exception $e) {
                     dd($kv->getFilename(), $kv, $e, $kv->getSelectedTable(), row: $row);
                 }
@@ -363,7 +354,10 @@ class PixieImportService
 
         $rules = $config->getTableRules($tableName);
         $table = $config->getTable($tableName);
-        $mappedHeader = $kv->mapHeader($headers, regexRules: $rules);
+        $mappedHeader = $kv->mapHeader($headers,
+            $config->getSource()->propertyCodeRule,
+            regexRules: $rules);
+//        ($tableName == 'obj') && dd($tableName, $mappedHeader);
 //            dump($rules, $tableName, headers: $headers, mappedHeader: $mappedHeader);
         // keep for replacing the key names later
 //                dd($headers, mapped: $mappedHeader, rules: $rules);
@@ -394,41 +388,136 @@ class PixieImportService
      * @param StorageBox|null $kv
      * @param string $pixieCode
      * @param Table $table
-     * @return void
+     * @return array $row modified row, side effect of creating lists.
      */
-    public function handleRelations(?StorageBox $kv, string $pixieCode, Table $table, array $row): void
+    public function handleRelations(?StorageBox $kv,
+                                    Config $config,
+                                    string $pixieCode,
+                                    Table $table,
+                                    array $row): array
     {
         assert(count($kv->getTables()), "no tables in $pixieCode");
         foreach ($table->getProperties() as $property) {
-            if ($relatedTable = $property->getListTableName()) {
-                $propertyCode = $property->getCode();
-                if (!array_key_exists($relatedTable, $this->listsByLabel)) {
-                    foreach ($kv->iterate($relatedTable) as $relatedRow) {
-                        dd($relatedRow);
+
+            $propertyCode = $property->getCode();
+            $settings = $property->getSettings();
+
+            // only lists and relations
+            if (!$relatedTableName = $property->getSubType()) {
+                continue;
+            }
+
+            AppService::assertKeyExists($propertyCode, $row, "missing in table " . $table->getName());
+            if (!$label = $row[$propertyCode]) {
+                continue; // skip if blank
+            }
+
+            // list and relation are merging...
+            if ($property->isRelation()) {
+                $relatedTable = $config->getTable($relatedTableName);
+                if ($delim = $property->getDelim()) {
+                    $values = array_map('trim', explode($delim, $row[$propertyCode]));
+                    if ($property->getValueType() == '@pk') {
+                        // @todo: make a many-to-many table.  For now, a simple array
+                        $row[$propertyCode] = $values;
+                    } elseif ($property->getValueType() == '@label') {
+                        // create a new table.
+                        dd($property, $settings,  $row[$property->getCode()], $values);
+
                     }
-                    $listsByLabel[$relatedTable] = [];
-                    $label = $row[$propertyCode];
-                    if (!array_key_exists($label, $listsByLabel[$relatedTable])) {
-                        // it must not be in the table, so add it
-//                        $kv->beginTransaction();
-                        $kv->set([
-                            'id' => $relatedId = count($listsByLabel[$relatedTable])+1, // manual auto-create
-                            'label' => $label
-                        ], $relatedTable);
-//                        $kv->commit();
-                        $this->listsByLabel[$relatedTable][$label] = $relatedId;
+                }
+//                if ($relatedTable = $property->getRelatedTable()) {
+//                    dd($relatedTable);
+//                    // create the relation.  unlike the old system, we can have relations in the sql
+//                }
+            }
+
+            if ($relatedTableName = $property->getListTableName()) {
+                $relatedTable = $config->getTable($relatedTableName);
+                $pkName = $relatedTable->getPkName();
+                $valueType = $property->getValueType();
+//                ($propertyCode == 'classification') && dump($property, $relatedTable);
+                // first time, cache
+                if (!array_key_exists($relatedTableName, $this->listsByLabel)) {
+                    $this->listsByLabel[$relatedTableName] = [];
+                    // eh, don't we have this as a pixie?
+                    foreach ($kv->iterate($relatedTableName) as $relatedRow) {
+                        $this->listsByLabel[$relatedTableName][$relatedRow->label()] =
+                            $relatedRow->getKey();
                     }
-                    $relatedId = $this->listsByLabel[$relatedTable][$label];
+                }
+                if ($label)
+                {
+                    // if label is missing, create it in the relatedTable pixie
+//                    dump($this->listsByLabel[$relatedTableName], $label);
+                    if (!array_key_exists($label, $this->listsByLabel[$relatedTableName])) {
+                        if ($valueType === '@label') {
+                            $relatedId = 'line-' . count($this->listsByLabel[$relatedTableName])+1;
+                            $relatedRow = [
+                                'label' => $label,
+                            ];
+                            if (class_exists(FetchTranslationObjectEvent::class)) {
+                                $event = $this->eventDispatcher->dispatch(
+                                    new FetchTranslationObjectEvent($relatedRow,
+                                        $config->getSource()->locale,
+                                        $config->getSource()->locale,
+                                        pixieCode:  $pixieCode,
+                                        table: $relatedTableName,
+                                        key: $relatedId,
+                                        keys: ['label']
+                                    )
+                                );
+                                // the label and _translations have been set
+                                $relatedRow = $event->getNormalizedData();
+                                $relatedId = $relatedRow['label'];;
+                                // replace the key with the translation key
+                                $relatedRow[$pkName] = $relatedId;
+                            }
+                            $kv->set($relatedRow, $relatedTableName);
+                            $this->listsByLabel[$relatedTableName][$label] = $relatedId;
+                        } else {
+                            assert(false, "valueType not handled " . $propertyCode . ' ' . $valueType);
+                        }
+                    }
+//                    dd($this->listsByLabel, $label, $relatedTableName);
+                    AppService::assertKeyExists($propertyCode, $row, "missing in table " . $table->getName());
+
+                    $relatedId = $this->listsByLabel[$relatedTableName][$label];
                     $row[$propertyCode] = $relatedId; // if this is a string, this could instead be the translation source key?
                 }
+
                 // fetch the key by label?  Or keep it in memory?
                 // create the relation.  unlike the old system, we can have relations in the sql
             }
-            if ($relatedTable = $property->getRelatedTable()) {
-                dd($relatedTable);
-                // create the relation.  unlike the old system, we can have relations in the sql
+
+        }
+        return $row;
+    }
+
+    /**
+     * @param mixed $row
+     * @param array $dataRules
+     * @param array $mm
+     * @return array
+     */
+    public function applyDataRules(mixed $row, array $dataRules): array
+    {
+        foreach ($row as $k => $v) {
+            foreach ($dataRules[$k] ?? [] as $dataRegexRule => $substitution) {
+                $match = preg_match($dataRegexRule, $v, $mm);
+                if ($match) {
+                    if ($substitution === '') {
+                        $row[$k] = null;
+                    } else {
+//                                dump($row[$k]);
+                        // or a preg_replace?
+                        $row[$k] = str_replace($mm[0], $substitution, $row[$k]);
+//                                dd($row[$k]);
+                    }
+                }
             }
         }
+        return $row;
     }
 
 }

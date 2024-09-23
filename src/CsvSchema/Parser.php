@@ -463,8 +463,25 @@ class Parser
         $subType = $parameters;
 
         // handle array shortcut
+        # this is a comma-separated string of pks
+//        - collection_codes:rel.coll[@pk],
 
+        if (str_contains($subType, '@')) {
+            $lastChar = $subType ? substr($subType, -1) : null;
+            if (in_array($lastChar, ['|', '$', ',', '/'])) {
+                $subType = $subType ? rtrim($subType, $lastChar) : null;
+                $settings['delim'] = $lastChar;
+            }
+            if (preg_match('/(.*?)\[(@.*?)]/', $subType, $mm)) {
+                $subType = $mm[1];
+                $indexType = 'INDEX'; // is this true?
+                $settings['valueType'] =  $mm[2];
+//                dd($mm, $subType, $mm, $settings);
+            }
+//            dd($header, $subType, $settings, $indexType);
+        }
 
+        // old way, but now we gobble these characters :-(
         $lastChar = $header ? substr($header, -1) : null;
         if (in_array($lastChar, ['|', '$', ',', '/'])) {
 //            $parameters = null;
@@ -491,10 +508,12 @@ class Parser
 //            $header = $parameters; // db types must be our internal codes
         }
 
+
         $property = new Property($header, $type, $subType, $settings, $indexType);
         if ($property->getDelim()) {
 //            dd($property, $type, $parameters, subType: $subType, settings: $settings);
         }
+
         return $property;
 
     }

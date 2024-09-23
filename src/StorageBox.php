@@ -157,7 +157,7 @@ class StorageBox
 
     // @todo: make this an event listener?
     // given the HEADER array, map the key names, for array_combine or csv getRecords
-    public function mapHeader(array $header, string $tableName = null, array $regexRules = []): array
+    public function mapHeader(array $header, string $propertyRule, string $tableName = null, array $regexRules = []): array
     {
         $tableName = $tableName ?? $this->currentTable;
         // $fieldName is the attribute (json) or column name (csv)
@@ -175,7 +175,14 @@ class StorageBox
                     break; // match first rule only
                 }
             }
-            $newHeaders[] = u($newFieldName)->snake()->toString();
+
+            $newFieldName = match($propertyRule) {
+                'preserve' => $newFieldName,
+                'snake' => u($newFieldName)->snake()->toString(),
+                'camel' => u($newFieldName)->camel()->toString()
+            };
+            assert(!str_contains(' ', $newFieldName), "invalid $propertyRule property code: $newFieldName");
+            $newHeaders[] = $newFieldName;
         }
         return array_combine($newHeaders, $header);
     }
@@ -508,8 +515,8 @@ catch
     static $preparedStatements = [];
     // cache prepared statements
     if (empty($preparedStatements[$this->filename][$sql])) {
-        $preparedStatements[$this->filename][$sql] = $this->db->prepare($sql);;
         try {
+        $preparedStatements[$this->filename][$sql] = $this->db->prepare($sql);;
         } catch (\Exception $exception) {
             dump($exception, $sql, $this->filename, $variables);
             assert(false, $sql . " " . $exception->getMessage());
@@ -643,7 +650,8 @@ catch
      * @param string $value The value to store.
      * @param string $propertyName If set, update the property, not _raw
      */
-    public function set(array|object|string $value, string $tableName = null,
+    public function set(array|object|string $value,
+                        string $tableName = null,
                         string|int|null     $key = null,
                         string $propertyName = null,
                         string              $mode = 'replace',
@@ -659,12 +667,13 @@ catch
     }
     static $preparedStatements = [];
 
-    $schema = $this->inspectSchema();
-    assert(array_key_exists($tableName, $schema), "no table $tableName in schema " . $this->getFilename());
+//    $schema = $this->inspectSchema();
+//    assert(array_key_exists($tableName, $schema), "no table $tableName in schema " . $this->getFilename());
     /** @var Table $table */
-    $table = $schema[$tableName];
-    assert($table, "No table $tableName");
-    $keyName = $table->getPkName();
+//    $table = $schema[$tableName];
+//    assert($table, "No table $tableName");
+
+    $keyName = $this->getTable($tableName)->getPkName();
 
     if ($mode === self::MODE_PATCH) {
         $data = $this->get($key, $tableName)->getData();
@@ -770,19 +779,37 @@ catch
     $this->query("DELETE FROM $this->currentTable;");
 }
 
-    public function getSql(string $table, array $where = [], array $order = [], int $startingAt = 0, int $max = 0, bool $keyOnly = false): array
+    public function getSql(string $table, array $where = [],
+                           array $order = [],
+                           int $startingAt = 0,
+                           int $max = 0,
+                           bool $keyOnly = false,
+    array $whereExtra = [],
+    array $pks = [],
+    array $columns = ['*']
+    ): array
 {
     $pk = $this->getPrimaryKey($table);
     // @todo: only prepare the statement once
-    $sql = "select " . ($keyOnly ? $pk : '*') . " from " . ($table ?? $this->currentTable);
+    $sql = "select " . ($keyOnly ? $pk : join(',', $columns)) .
+        " from " . ($table ?? $this->currentTable);
+    $params = [];
 
     // @todo: prepared statement and bind values.
-    $sql .= " where 1=1";
+    $sql .= " where 1=1 ";
+
+    // https://stackoverflow.com/questions/920353/can-i-bind-an-array-to-an-in-condition-in-a-pdo-query
+    if (count($pks)) {
+        foreach ($pks as $idx => $pkValue) {
+            $pkKeys[] = ":" . ($keyName = "key$idx");
+            $params[$keyName] = $pkValue;
+        }
+        $sql .= "and $pk in (" . join(',', $pkKeys) . ")";
+    }
 
     // dexie format: .where('myField').equals(1) .where('myField').gt(5)
     // where returns a collection (promise) with no objects. https://dexie.org/docs/Collection/Collection
     // pass a tuple with operator?  or a string?  I think that's how api grid works.
-    $params = [];
     foreach ($where as $key => $value) {
         if ($value === null) {
             $sql .= " and ($key IS NULL)";
@@ -790,6 +817,13 @@ catch
             $sql .= " and " . $key . " = :$key";
             $params[$key] = $value;
         }
+    }
+
+    // marking == NULL
+    // key in (:ids)
+    foreach ($whereExtra as $fragment => $fragmentValues) {
+        $sql .= " and $fragment ";
+        $params = array_merge($params, $fragmentValues);
     }
     if (count($order) == 0) {
         $order = [$this->getPrimaryKey($table) => 'ASC'];
@@ -814,13 +848,19 @@ catch
                             ?bool  $associative = null,
                             int    $depth = 512,
                             int    $flags = PDO::FETCH_ASSOC,
+                            ?array $whereExtra= [],
+                            ?array $pks= [],
 ): \Generator
 {
     $table = $table ?? $this->currentTable;
     assert($table, "no table configured");
     $pkName = $this->getPrimaryKey($table);
     $keyOnly = true;
-    [$sql, $params] = $this->getSql($table, $where, $order, max: $max, keyOnly: $keyOnly);
+    [$sql, $params] = $this->getSql($table, $where, $order, max: $max,
+        keyOnly: $keyOnly,
+        pks: $pks,
+        whereExtra: $whereExtra,
+    );
 
 
     // https://stackoverflow.com/questions/78623214/using-a-generator-to-loop-through-an-update-a-table-in-pdo
