@@ -450,6 +450,12 @@ class PixieImportService
                 {
                     // if label is missing, create it in the relatedTable pixie
 //                    dump($this->listsByLabel[$relatedTableName], $label);
+                    assert(is_string($relatedTableName), json_encode($relatedTableName));
+//                    $relatedTableName == 'tec' && dd($label);
+                    // @todo: this is probably a rel, not a list!
+                    if (is_array($label)) {
+                        $label = join("|", $label);
+                    }
                     if (!array_key_exists($label, $this->listsByLabel[$relatedTableName])) {
                         if ($valueType === '@label') {
                             $relatedId = 'line-' . count($this->listsByLabel[$relatedTableName])+1;
