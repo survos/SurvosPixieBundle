@@ -82,7 +82,7 @@
                         </div>
                     </div>
                     <div class="col-xl-9 col-lg-8">
-                        <h1>{{ pixieCode }}.{{ tableName }} {{ row.key }} {{ row.name|default(row.label) }}</h1>
+                        <h1>{{ pixieCode }}/{{ tableName|trans }} {{ row.key }} </h1>
                         {% with {data: row.data} %}
                             {{ block('details') }}
                         {% endwith %}
@@ -163,21 +163,22 @@
     } %}
     {% if row.dimensions %}
         {% for x, dimension in row.dimensions %}
-            <code>{{ dimension.name|default('') }}</code>
             <p class="mb-2 d-flex align-items-center flex-wrap gap-2">
-                {#                {{ ux_icon('tabler:ruler-measure', {width: "30px"}) }} #}
+{#                                {{ ux_icon('tabler:ruler-measure', {width: "30px"}) }}#}
+                {{ ux_icon('fluent:slide-size-20-regular') }}
+
                 {% for d in ['height','width','length','depth','radius'] %}
 
                     {% set dimValue = attribute(dimension, d)|default(false) %}
                     {% if dimValue %}
                     <span class="badge bg-light text-muted mb-0">
                         {#                    {{ loop.first ? '' : 'x' }} #}
-                        <span title="{{ d }}">
+                        <span title="{{ d|trans }}">
                             {{ ux_icon(dimIcons[d]) }}
                             {{ dimValue }}
-                        </span>
                         {# if large screen #}
                         {{ dimension.units }}
+                        </span>
                         </span>
                     {% endif %}
 
@@ -309,6 +310,10 @@
             {#            {% endif %} #}
         {% endfor %}
     </div>
+
+    {# ugh, requires internal, what a hack!  need to rethink group design #}
+    {{ block('dim') }}
+
 {% endblock %}
 
 {% block internal %}
@@ -327,8 +332,6 @@
         {% endfor %}
     </div>
 
-    {# ugh, requires internal, what a hack!  need to rethink group design #}
-    {{ block('dim') }}
 
 {% endblock %}
 
@@ -337,22 +340,29 @@
         <h4 class="fw-semibold my-3 text-capitalize">{{ 'relations'|trans }}</h4>
         <ul class="list-group list-group-flush">
             {% set locale = app.locale %}
-            {% for property in config.table(tableName).properties|filter( p => p.listTableName) %}
+            {% for property in config.table(tableName).properties %}
+{#                }|filter( p => p.listTableName) %}#}
                 {% set var = property.code %}
                 {% set value = attribute(data,var)|default(false) %}
+
+
+                {% if property.listTableName %}
                 {% if value %}
 {#                    {% set locale = app.locale %}#}
                     {% set translations = value._translations() %}
                     {% if translations %}
                         {% set value = attribute(translations, locale).label|default(false) %}
+                        {% else %}
+                        MISSING {{ locale }} translation for {{ value.key }}
                         {% endif %}
-                    {{ value }}
+{#                    {{ value }}#}
                 {% endif %}
-            {% endfor %}
-            {% for var in keys %}
-                {% set value = attribute(data,var)|default(false) %}
+                {% endif %}
+{#            {% endfor %}#}
+{#            {% for var in keys %}#}
+{#                {% set value = attribute(data,var)|default(false) %}#}
                 {% if value %}
-                    <code>{{ var }}</code>
+                    <code>{{ var|trans }}</code>
                     {#                <h6 class="px-3 fw-medium pt-3 text-capitalize">{{ var }}</h6> #}
                     {% set icon = iconMap[var]|default(false) %}
                     <li class="list-group-item bg-light" title="{{ var|trans }}">
@@ -371,7 +381,7 @@
                                 <span>{{ value }}</span>
                             {% endif %}
                             {% if not icon %}
-                                <code>{{ var }}</code>
+{#                                <code>{{ var }}</code>#}
                             {% endif %}
 
                         </div>
