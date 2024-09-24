@@ -531,7 +531,7 @@ class PixieController extends AbstractController
 
             $charts = [];
             $table = $kv->getTable($tableName);
-            $tableSchema = $kv->inspectSchema()[$tableName];
+//            $tableSchema = $kv->inspectSchema()[$tableName];
             foreach ($table->getProperties() as $property) {
                 if ($condition = $property->getSetting('security')) {
                     if (!$this->isGranted($condition)) {

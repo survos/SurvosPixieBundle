@@ -139,7 +139,6 @@ class PixieImportService
             list($ext, $iterator, $headers) =
                 $this->setupHeader($config, $tableName, $kv, $fn);
             assert(count($kv->getTables()), "no tables in $pixieCode");
-//            dd($headers, $tableName, $config);
 
             // takes a function that will iterate through an object
 //            $kv->addFormatter(function());
@@ -333,7 +332,7 @@ class PixieImportService
     public function setupHeader(Config $config, string $tableName, StorageBox $kv, int|string $fn): array
     {
         $ext = pathinfo($fn, PATHINFO_EXTENSION);
-        if ($ext == 'json') {
+        if ($ext === 'json') {
             $iterator = Items::fromFile($fn)->getIterator();
             $firstRow = $iterator->current();
             // @todo: handle nested properties

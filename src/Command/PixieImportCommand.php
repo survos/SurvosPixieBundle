@@ -24,7 +24,7 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
 
-#[AsCommand('pixie:import', 'Import csv to Pixie, a file or directory of files"')]
+#[AsCommand('pixie:import', 'Import csv to Pixie, a file or directory of files"', aliases: ['import'])]
 final class PixieImportCommand extends InvokableServiceCommand
 {
     use RunsCommands;
@@ -117,7 +117,7 @@ final class PixieImportCommand extends InvokableServiceCommand
             ],
             overwrite: $overwrite, pattern: $pattern,
             callback: function ($row, $idx, StorageBox $kv) use ($batch, $limit) {
-                $finished = $limit ? $idx >= ($limit) : false;
+                $finished = $limit ? $idx > ($limit) : false;
 //                dd($limit, $idx, $finished, $batch);
                 if ($finished || (($idx % $batch) == 0) ) {
                     $this->logger->info("Saving $batch, now at $idx of $limit");

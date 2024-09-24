@@ -172,6 +172,9 @@ class StorageBox
 //                assert(preg_match($regex, ''), $regex);
                 if (preg_match($regex, $fieldName, $mm)) {
                     $newFieldName = $value; // @todo: apply a function or rule
+                    if (in_array($newFieldName, $newHeaders)) {
+                        throw new \Exception("$newFieldName already matched! $fieldName");
+                    }
                     break; // match first rule only
                 }
             }
@@ -451,7 +454,6 @@ join(";\n", array_values($indexSql))
 //        dd($columns, $indexSql, $sql, $primaryKey);
 try
 {
-//dump($sql);
 $result = $this->db->exec($sql);
 //if ($tableName === 'obj') dd($sql);
 }

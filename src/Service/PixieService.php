@@ -368,16 +368,41 @@ class PixieService
         $data = (array)$item->getData();
         foreach ($properties as $property) {
             $propertyName = $property->getCode();
-            if ($property->getType() === 'rel') {
+            if (!$relatedTable = $property->getSubType()) {
+                continue;
+            }
+            {
                 // get the related item from the PK stored in the item, replace it with the actual record, but without the _id?
                 $relatedId = $data[$propertyName];
                 // the subtype table needs to exist!
                 if ($config->getTable($property->getSubType())) {
                     // publish these properties as flickr tags, including label and description
+//                    if ($property->getCode() == 'classification') {
+//                        dd($relatedId, $propertyName, $relatedName, $property);
+//                    }
                     if ($relatedId) {
-                        $relatedItem = $kv->get($relatedId, $property->getSubType()); // subtype is related table
-                        $relatedName = str_replace('_id', '', $propertyName);
-                        $data[$relatedName] = $relatedItem;
+                        // @todo: get many-to-many right, e.g. walters coll
+                        if (is_array($relatedId)) {
+                            $data[$propertyName] = join('|', $relatedId);
+                            if (false) {
+                                foreach ($relatedId as $code) {
+                                    // during dev, relations may not be loaded, walters has 4000 creators
+                                    if ($relatedItem = $kv->get($code, $property->getSubType())) {
+                                        dd($relatedItem, $property->getSubType());
+
+                                    } // subtype is related table
+                                    $relatedName = str_replace('_id', '', $propertyName);
+                                }
+
+                            }
+                        } else {
+                            assert(!is_iterable($relatedId), json_encode($relatedId));
+                            $relatedItem = $kv->get($relatedId, $property->getSubType()); // subtype is related table
+                            $relatedName = str_replace('_id', '', $propertyName);
+                            // @todo: list or 1-many
+                            $data[$relatedName] = $relatedItem;
+//                            if ($propertyName == 'classification') dd($data, $relatedName);
+                        }
 
                     }
                 }

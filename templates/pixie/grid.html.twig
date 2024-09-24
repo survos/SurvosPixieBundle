@@ -44,6 +44,10 @@
             <div class="size-100">
                 {% set thumb = row.thumbnail|default(row.image_url|default(false)) %}
                 {% if thumb %}
+                    {% if row.image_count|default(1) > 1 %}
+                        {# @todo: make a badge in the image somewhere. #}
+                        <code>{{ row.image_count }}</code>
+                    {% endif %}
             <img class="img-thumbnail h-100 object-fit-cover size-100"
                  src="{{ thumb }}" />
                 {% endif %}
