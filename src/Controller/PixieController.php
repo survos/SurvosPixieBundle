@@ -222,7 +222,8 @@ class PixieController extends AbstractController
             'row' => $item,
             'item' => $item, // redundant! use row for data!
             'columns' => array_keys((array)$item),
-            'groups' => $groups
+            'groups' => $groups,
+                'config' => $config
         ];
 
     }

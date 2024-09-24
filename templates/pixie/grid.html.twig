@@ -68,7 +68,7 @@
                 {% set pixieItemUrl = path(globals.showPath, lrp) %}
                 <div class="text-truncate-one-line">
                     <a href="{{ pixieItemUrl }}">
-                        <b>{{ row.title|default(row.label|default(row.code|default(row.id|default('~')))) }}</b>
+                        <b>{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>
                     </a>
                 </div>
 

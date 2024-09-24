@@ -101,6 +101,7 @@ class SearchController extends AbstractController
             ),
             new Column(
                 name: 'pixie_key',
+                condition: $this->isGranted('ROLE_ADMIN'),
                 title: 'id',
 //                sortable: true,
                 browsable: false
