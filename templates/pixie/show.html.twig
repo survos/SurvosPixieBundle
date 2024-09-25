@@ -44,10 +44,11 @@
         </section> #}
 
 
-        <div class="card mb-4">
+
+        <div class="card mb-4 walters-main">
             <div class="card-body p-4">
                 <div class="row g-4">
-                    <div class="col-xl-3 col-lg-4 col-md-8 mx-auto">
+                    <div class="walters-left col-xl-3 col-lg-4 col-md-8 mx-auto">
                         <div class="card shadow-sm">
                             <div class="card-body p-1 text-center">
                                 {% for imageField in ['thumbnail'] %}
@@ -81,7 +82,7 @@
 
                         </div>
                     </div>
-                    <div class="col-xl-9 col-lg-8">
+                    <div class="walters-right col-xl-9 col-lg-8">
                         <h1>{{ pixieCode }}/{{ tableName|trans }} {{ row.key }} </h1>
                         {% with {data: row.data} %}
                             {{ block('details') }}
@@ -320,15 +321,15 @@
     <h3 class="fw-semibold my-3 text-capitalize">{{ group }}</h3>
     <div class="row">
         {% for key in keys %}
-            <div class="col-6 walters">
-                <div class="stats__item">
-                    {% set value = attribute(data,key)|default(false) %}
-                    {% if value %}
+            {% set value = attribute(data,key)|default(false) %}
+            {% if value %}
+                <div class="col-6 walters">
+                    <div class="stats__item">
                         <h6 class="fs-5 fw-semibold text-uppercase mb-2">{{ key }}</h6>
                         <p class="fw-normal text-muted"> {{ block('value') }}</p>
-                    {% endif %}
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         {% endfor %}
     </div>
 
@@ -448,33 +449,6 @@
             </tbody>
         </table>
         </div>
-
-
-        <ul class="list-group">
-            {% for var in keys %}
-                {#  hack to avoid internals! #}
-                {% set value = attribute(data,var)|default(false) %}
-                {% set icon = iconMap[var]|default('ph:empty-light') %}
-                {% if var in ['marking','thumbnail_urls','image_urls','dimensions','weight','thumbnail','_translations','sourceKeys'] %}
-                    {% set value = false %}
-                {% endif %}
-
-                {% if value %}
-
-                    <li class="list-group-item list-group-item-action">
-                        <code>{{ var }}</code>
-                        {{ block('value') }}
-                        {#                        {% if value is iterable %} #}
-                        {#                            {% for v in value %} #}
-                        {#                                <li>{{ v }}</li> #}
-                        {#                            {% endfor %} #}
-                        {#                        {% else %} #}
-                        {#                            <span class="text-success">{{ value }}</span> #}
-                        {#                        {% endif %} #}
-                    </li>
-                {% endif %}
-            {% endfor %}
-        </ul>
     </div>
 {% endblock %}
 

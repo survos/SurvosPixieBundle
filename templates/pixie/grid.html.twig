@@ -41,12 +41,12 @@
             :globals="globals"
     >
         <twig:block name="thumbnail">
-            <div class="size-100">
+            <div class="size-125 position-relative">
                 {% set thumb = row.thumbnail|default(row.image_url|default(false)) %}
                 {% if thumb %}
                     {% if row.image_count|default(1) > 1 %}
                         {# @todo: make a badge in the image somewhere. #}
-                        <code>{{ row.image_count }}</code>
+                        <span class="position-absolute fs-6 top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ row.image_count }}</span>
                     {% endif %}
             <img class="img-thumbnail h-100 object-fit-cover size-100"
                  src="{{ thumb }}" />
@@ -66,13 +66,13 @@
                 {# really the translatable fields #}
                 {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}, globals.showParams) %}
                 {% set pixieItemUrl = path(globals.showPath, lrp) %}
-                <div class="text-truncate-one-line">
+                <div >
                     <a href="{{ pixieItemUrl }}">
-                        <b>{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>
+                        <b class="line-limit-1">{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>
                     </a>
                 </div>
 
-                <div class="text-truncate-three-line">
+                <div class="line-limit-2">
                     {{ row.description }}
                 </div>
                 {% if row.citation %}

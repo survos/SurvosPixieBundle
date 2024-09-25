@@ -174,10 +174,25 @@ body {
     max-width: 116px;
 }
 
+.customTable td .size-125 ,
 .customTable td .size-100 {
     height: 100px;
     width: 100px;
     max-width: 100px;
+}
+
+.line-limit-1{
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.customTable td:has(> .size-125) {
+    background: transparent;
+    height: 100px;
+    width: 125px;
+    max-width: 125px;
 }
 
 @media (max-width:500px) {
@@ -257,4 +272,31 @@ body {
     padding: 10px;
     border-radius: 4px;
     height: calc(100% - 1.5rem);
+}
+
+@media print {
+    @media print and (min-width: 310px) { /* A3 size or larger */
+        .walters-main .row>* {
+            margin: 0;
+        }
+        .walters-main .walters-left,
+        .walters-main .walters-right {
+            width: 50%;
+        }
+        .walters-main .walters-left{
+            padding-left: 0;
+        }
+        .walters-main .walters-right{
+            padding-right: 0;
+        }
+        .walters-main.card .card-body {
+            padding: 0;
+        }
+    }
+}
+body .navbar .navbar-nav .nav-link .badge {
+    position: relative;
+    transform: none;
+    top: 0;
+    right: 0;
 }
