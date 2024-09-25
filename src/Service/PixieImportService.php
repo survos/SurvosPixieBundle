@@ -456,7 +456,9 @@ class PixieImportService
                         $label = join("|", $label);
                     }
                     if (!array_key_exists($label, $this->listsByLabel[$relatedTableName])) {
-                        if ($valueType === '@label') {
+                        if ($valueType === '@code') {
+                            //
+                        } elseif ($valueType === '@label') {
                             $relatedId = 'line-' . count($this->listsByLabel[$relatedTableName])+1;
                             $relatedRow = [
                                 'label' => $label,

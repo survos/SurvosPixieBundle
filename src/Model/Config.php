@@ -8,6 +8,9 @@ class Config
 {
     const string TYPE_SYSTEM = 'system';
     const string TYPE_MUSEUM = 'museum';
+    const string VISIBILITY_PUBLIC = 'public';
+    const string VISIBILITY_PRIVATE = 'private';
+    const string VISIBILITY_UNLISTED = 'unlisted';
     const string TYPE_AGGREGATOR = 'agg';
     public function __construct(
         private string|float|null $version=null,
@@ -20,6 +23,7 @@ class Config
         private array $tables=[],
         private ?string $configFilename=null,
         private string $type=self::TYPE_MUSEUM,
+        private string $visibility=self::VISIBILITY_PUBLIC,
         private array           $data=[],
         public ?string $dataDir = null, // set in service, kinda hacky
         public ?string $pixieFilename = null // set in service, kinda hacky, the sqlite file
@@ -32,6 +36,16 @@ class Config
 //
 //            $this->data = Yaml::parseFile($this->filename);
 //        }
+    }
+
+    public function getVisibility(): string
+    {
+        return $this->visibility;
+    }
+
+    public function setVisibility(string $visibility): void
+    {
+        $this->visibility = $visibility;
     }
 
     public function getType(): string
