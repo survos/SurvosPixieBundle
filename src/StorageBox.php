@@ -173,7 +173,9 @@ class StorageBox
                 if (preg_match($regex, $fieldName, $mm)) {
                     $newFieldName = $value; // @todo: apply a function or rule
                     if (in_array($newFieldName, $newHeaders)) {
-                        throw new \Exception("$newFieldName already matched! $fieldName");
+                        throw new \Exception("$newFieldName already matched! $fieldName\n" .
+                            join("\n", array_filter($newHeaders, fn($header) => preg_match($regex, $header)))
+                        );
                     }
                     break; // match first rule only
                 }
