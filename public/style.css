@@ -300,3 +300,24 @@ body .navbar .navbar-nav .nav-link .badge {
     top: 0;
     right: 0;
 }
+
+.dt-container .dt-info {
+    padding-top: var(--tblr-card-spacer-y);
+}
+
+div.dt-container div.dt-search {
+    padding-top: 4px;
+}
+
+.dtsp-verticalContainer .dtsp-verticalPanes .dtsp-panesContainer {
+    margin-bottom: 0;
+}
+
+.dtsp-verticalContainer .dtsp-verticalPanes .dtsp-titleRow button {
+    margin-left: .5em;
+    margin-bottom: .5em;
+}
+
+.dtsp-verticalContainer .dtsp-verticalPanes .dtsp-searchPanes .dtsp-searchPane {
+    margin-top: 4px !important;
+}
