@@ -13,6 +13,7 @@ use Survos\WorkflowBundle\Service\WorkflowHelperService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -54,16 +55,19 @@ final class IterateCommand extends InvokableServiceCommand
         PixieImportService                                    $pixieImportService,
         #[Argument(description: 'config code')] string        $pixieCode,
         #[Argument(description: 'table name')] string         $tableName,
+        #[Autowire('%env(DEFAULT_TRANSPORT)%')] ?string $defaultTransport=null,
         #[Option(description: 'workflow transition')] ?string $transition=null,
         // marking CAN be null, which is why we should set it when inserting
         #[Option(description: 'workflow marking')] ?string    $marking=null,
         #[Option(description: 'message transport')] ?string   $transport=null,
         #[Option(description: 'tags (for listeners)')] ?string   $tags=null,
+        #[Option(name: 'index', description: 'index after flush')] ?bool $indexAfterFlush = false,
         #[Option] int                                         $limit = 0,
         #[Option] string                                         $dump = '',
 
     ): int
     {
+        $transport ??= $defaultTransport;
         // do we need the Config?  Or is it all in the StorageBox?
         $kv = $pixieService->getStorageBox($pixieCode);
         $config = $pixieService->getConfig($pixieCode);
@@ -103,6 +107,7 @@ final class IterateCommand extends InvokableServiceCommand
                 $this->io()->warning("No items found for " . json_encode($where));
                 return self::SUCCESS;
             }
+
             $progressBar = new ProgressBar($io, $count);
             $idx = 0;
             $stamps = [];
@@ -197,7 +202,14 @@ final class IterateCommand extends InvokableServiceCommand
                     'transport' => $transport
                 ])
         );
-        $io->success('Pixie:iterate success ' . $kv->getFilename());
+
+        if ($indexAfterFlush || $transport==='sync') {
+                $cli = "pixie:index $pixieCode  --reset"; // trans simply _gets_ existing translations
+                $this->io()->warning('bin/console ' . $cli);
+                $this->runCommand($cli);
+        }
+
+        $io->success($this->getName() . ' success ' . $kv->getFilename());
         return self::SUCCESS;
     }
 
