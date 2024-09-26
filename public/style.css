@@ -321,3 +321,8 @@ div.dt-container div.dt-search {
 .dtsp-verticalContainer .dtsp-verticalPanes .dtsp-searchPanes .dtsp-searchPane {
     margin-top: 4px !important;
 }
+
+.list-inline-dots {
+    display: inline-flex;
+    flex-wrap: wrap;
+}
