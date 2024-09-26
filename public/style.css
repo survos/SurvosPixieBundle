@@ -326,3 +326,7 @@ div.dt-container div.dt-search {
     display: inline-flex;
     flex-wrap: wrap;
 }
+
+footer .nav-item .nav-link {
+    gap: 6px;
+}
