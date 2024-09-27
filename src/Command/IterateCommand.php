@@ -203,7 +203,7 @@ final class IterateCommand extends InvokableServiceCommand
                 ])
         );
 
-        if ($indexAfterFlush || $transport==='sync') {
+        if ($indexAfterFlush) { // || $transport==='sync') { @todo: check for tags, e.g. create-owners
                 $cli = "pixie:index $pixieCode  --reset"; // trans simply _gets_ existing translations
                 $this->io()->warning('bin/console ' . $cli);
                 $this->runCommand($cli);

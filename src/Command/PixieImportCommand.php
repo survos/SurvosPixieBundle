@@ -154,13 +154,16 @@ final class PixieImportCommand extends InvokableServiceCommand
         if (!$count = $this->total) {
             if ($event->getType() == 'json') {
                 // faster to get the first record and filesize and divide, for a rough estimate.
-                $iterator = Items::fromFile($event->filename);
-                $first = $iterator->getIterator()->current();
-                $pointer = $iterator->getCurrentJsonPointer();
+                $iterator = Items::fromFile($event->filename)->getIterator();
+                $first = $iterator->current();
+//                $pointer = $iterator->getCurrentJsonPointer();
                 $size = filesize($event->filename);
+
                 $guess = (int)($size / strlen(json_encode($first, JSON_PRETTY_PRINT)));
                 $count = $guess;
-//                dump($guess);
+                assert($guess, "no objects in $event->filename");
+                $iterator->rewind();
+
 //                dd("plz set total in config");
 //                    halaxa/json-machine
 //                try {
