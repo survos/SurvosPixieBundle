@@ -330,3 +330,21 @@ div.dt-container div.dt-search {
 footer .nav-item .nav-link {
     gap: 6px;
 }
+
+.dt-container.dt-bootstrap5 .dt-scroll-body {
+    background: none !important;
+    padding-right: 0 !important;
+    overflow: hidden;
+}
+
+.dt-container.dt-bootstrap5 .dt-scroll-headInner {
+    padding-right: 0 !important;
+}
+
+.dt-container.dt-bootstrap5 .dt-scroll-body::-webkit-scrollbar {
+    display: none;
+}
+
+.dt-container.dt-bootstrap5 .dt-scroll-body {
+    scrollbar-width: none;
+}
