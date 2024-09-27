@@ -313,13 +313,15 @@ div.dt-container div.dt-search {
     margin-bottom: 0;
 }
 
-.dtsp-verticalContainer .dtsp-verticalPanes .dtsp-titleRow button {
-    margin-left: .5em;
-    margin-bottom: .5em;
-}
-
 .dtsp-verticalContainer .dtsp-verticalPanes .dtsp-searchPanes .dtsp-searchPane {
     margin-top: 4px !important;
+}
+
+.dtsp-verticalContainer .dtsp-verticalPanes .dtsp-panesContainer .dtsp-titleRow { 
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0;
 }
 
 .list-inline-dots {
@@ -332,19 +334,60 @@ footer .nav-item .nav-link {
 }
 
 .dt-container.dt-bootstrap5 .dt-scroll-body {
+    border: none !important;
     background: none !important;
     padding-right: 0 !important;
     overflow: hidden;
 }
 
-.dt-container.dt-bootstrap5 .dt-scroll-headInner {
-    padding-right: 0 !important;
+.dt-container.dt-bootstrap5 .dt-scroll-body:hover {
+    overflow: auto;
 }
 
 .dt-container.dt-bootstrap5 .dt-scroll-body::-webkit-scrollbar {
     display: none;
 }
 
+.dt-container.dt-bootstrap5 .dt-scroll-body:hover::-webkit-scrollbar {
+    display: block;
+}
+
 .dt-container.dt-bootstrap5 .dt-scroll-body {
     scrollbar-width: none;
+}
+
+.dt-container.dt-bootstrap5 .dt-scroll-body:hover {
+    scrollbar-width: thin;
+}
+
+body .page-wrapper .page-header {
+    margin: calc(var(--tblr-gutter-x) * .5) 0 0;
+}
+
+body .page-wrapper .page-header .page-title {
+    line-height: var(--tblr-line-height-h3);
+}
+
+body .page-wrapper .page-body {
+    margin-top: var(--tblr-spacer-2);
+}
+
+body .page-wrapper .page-body section.content h3 {
+    margin-bottom: 8px;
+}
+
+body div.dtsb-searchBuilder div.dtsb-group {
+    margin-bottom: 4px;
+}
+
+.footer {
+    bottom: 0;
+    position: fixed;
+    right: 0;
+    left: 0;
+    z-index: 1001;
+}
+
+.page-wrapper {
+    padding: calc(70px + 1.5rem) calc(1.5rem* .5) 60px calc(1.5rem* .5);
 }
