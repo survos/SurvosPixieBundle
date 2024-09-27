@@ -60,7 +60,7 @@
 
                         <div class="flex-shrink-0">
 													<div class="avatar-sm d-flex align-items-center rounded-2 justify-content-center bg-warning-subtle">
-													    <twig:ux:icon name="mdi:github" class="avatar-xxs" />
+                                                        {{ ux_icon('mdi:github', {class:"avatar-xxs" }) }}
 
 
 														{# <span class="avatar-title bg-soft-success rounded p-2">
@@ -187,7 +187,7 @@
                                 {% set icon = iconMap[key]|default('mdi:external-link') %}
                                     <a href="{{ link }}" target="_blank" class="avatar-group-item flex-shrink-0 text-decoration-none">
                                         <div class="avatar-xxs rounded-circle bg-light d-flex align-items-center text-dark justify-content-center">
-                                            <twig:ux:icon name="{{icon }}" height="15" width="15" />
+                                            {{ ux_icon(icon) }}
                                         </div>
                                         {# {{ key }} #}
                                     </a>

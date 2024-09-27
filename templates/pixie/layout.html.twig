@@ -35,7 +35,7 @@
     {% if tableName|default(false) %}
         <h6 class="flex-shrink-0 mb-0 ms-auto">
             <a class="link link-dark text-capitalize text-decoration-none" href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
-                <twig:ux:icon name="material-symbols:refresh" width="18" height="18" class="align-middle" />
+                {{ ux_icon('material-symbols:refresh', {class: "align-middle" }) }}
                 {{ tableName }}
             </a>
         </h6>
