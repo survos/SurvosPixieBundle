@@ -8,10 +8,10 @@ class Source
         public ?string $dir=null,
         public string $label = '',
         public string $description = 'source description',
-        public string $locale = 'en',
+        public ?string $locale = null, // in case it's not known during load.
         public string $units = 'cm',
         public string $country = 'us',
-        public string $instructions = 'installation insructions',
+        public string $instructions = 'installation instructions',
         public null|string|array $ignore = [],
         public null|string|array $include = [],
         public ?string $propertyCodeRule = 'snake', // during import, snake, camel or preserve keys (for properties)

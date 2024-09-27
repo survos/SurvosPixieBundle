@@ -210,6 +210,7 @@ class PixieImportService
 
 
                 // handling relations could be its own RowEvent too, for now it's here
+//                dd($row);
                 $row = $this->handleRelations($kv, $config, $pixieCode, $table, $event->row);
                 $event->row = $row;
 //                $tableName=='obj' && dd($row['classification'], $event->row['classification']);
@@ -241,12 +242,13 @@ class PixieImportService
 //                $event = new FetchTranslationObjectEvent($row, )
 //                    $sourceString = $row[$tKey];
                 if (count($table->getTranslatable())) {
+                    $sourceLocale =  $config->getSource()->locale??$row['locale'];
                     $event = $this->eventDispatcher->dispatch(
                         new FetchTranslationObjectEvent(
                             $row, // or $item?
                             pixieCode: $pixieCode,
-                            sourceLanguage: $config->getSource()->locale,
-                            targetLanguage: $config->getSource()->locale,
+                            sourceLanguage: $sourceLocale,
+                            targetLanguage: $sourceLocale,
                             table: $tableName, // for debugging,
                             key: $row[$table->getPkName()],
                             keys: $table->getTranslatable()
@@ -464,6 +466,10 @@ class PixieImportService
                             $relatedRow = [
                                 'label' => $label,
                             ];
+                            // md doesn't know the locale, so don't do anything yet.
+                            if ($config->getSource()->locale) {
+
+                            }
                             if (class_exists(FetchTranslationObjectEvent::class)) {
                                 $event = $this->eventDispatcher->dispatch(
                                     new FetchTranslationObjectEvent($relatedRow,
