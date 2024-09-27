@@ -242,7 +242,10 @@ class PixieImportService
 //                $event = new FetchTranslationObjectEvent($row, )
 //                    $sourceString = $row[$tKey];
                 if (count($table->getTranslatable())) {
-                    $sourceLocale =  $config->getSource()->locale??$row['locale'];
+                    $sourceLocale =  $config->getSource()->locale??$row['locale']??null;
+                    if (!$sourceLocale) {
+                        dd($row);
+                    }
                     $event = $this->eventDispatcher->dispatch(
                         new FetchTranslationObjectEvent(
                             $row, // or $item?
