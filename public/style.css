@@ -389,5 +389,5 @@ body div.dtsb-searchBuilder div.dtsb-group {
 }
 
 .page-wrapper {
-    padding: calc(70px + 1.5rem) calc(1.5rem* .5) 60px calc(1.5rem* .5);
+    padding-bottom: 60px;
 }
