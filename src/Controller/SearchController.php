@@ -202,8 +202,11 @@ class SearchController extends AbstractController
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
-            return $this->redirectToRoute('owner_label_report', get_defined_vars() +
-                $data + ['ownerId' => $owner->getId()]);
+            return $this->redirectToRoute('owner_label_report',
+                $data + [
+                    'pixieCode' => $pixieCode,
+                    'tableName' => $tableName,
+                    'ownerId' => $owner->getId()]);
         }
 
         return $this->render('owner/label-form.html.twig', get_defined_vars() + [
