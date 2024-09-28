@@ -8,6 +8,8 @@ use ApiPlatform\Api\IriConverterInterface;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Symfony\Routing\IriConverter;
 use App\Entity\MeiliItem;
+use App\Entity\Owner;
+use App\Form\LabelFormType;
 use Survos\ApiGrid\Model\Column;
 use Survos\ApiGrid\Service\MeiliService;
 use Survos\InspectionBundle\Services\InspectionService;
@@ -177,6 +179,69 @@ class SearchController extends AbstractController
             'tableName' => $tableName,
             'filter' => [], // only if we are able to merge the meili indexes ['table' => $tableName]
         ];
+    }
+
+    #[Route('/{ownerId}/labels', name: 'owner_labels', options: ['expose' => true])]
+    public function labels(Request $request,
+                           string $tableName,
+                           string $pixieCode,
+                           Owner $owner): Response
+    {
+        // @todo: https://gist.github.com/armadsen/5084458
+
+        $data = [
+            'number_of_columns' => 3,
+            'number_of_rows' => 8,
+            'row_height' => 10,
+            'row_width' => 40,
+            'left_margin' => 12,
+            'column_spacing' => 6,
+        ];
+        // https://github.com/amattu2/avery-fpdf-labels/blob/master/example.php
+        $form = $this->createForm(LabelFormType::class, $data);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+            return $this->redirectToRoute('owner_label_report', get_defined_vars() +
+                $data + ['ownerId' => $owner->getId()]);
+        }
+
+        return $this->render('owner/label-form.html.twig', get_defined_vars() + [
+            'form' => $form->createView(),
+        ]);
+    }
+
+    #[Route('/{ownerId}/report', name: 'owner_label_report')]
+    public function label_report(Request $request,
+                           string $tableName,
+                           string $pixieCode,
+                           Owner $owner): Response
+    {
+        $pixieCode = $owner->getPixieCode();
+        // @todo: get filtered data
+        $kv = $this->pixieService->getStorageBox($owner->getPixieCode());
+        $properties = $kv->getTable($tableName)->getProperties();
+        $items = $kv->iterate($tableName, max: 30);
+
+        if (!$this->meiliService) {
+            throw new \RuntimeException('Meili service not available, run composer req ...?');
+        }
+
+        $indexName = $this->meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode, $tableName));
+        $index = $this->meiliService->getIndex($indexName);
+        $items = $index->search(null);
+
+        $config = $this->pixieService->getConfig($pixieCode);
+        $table = $config->getTable($tableName);
+
+
+
+        return $this->render('owner/labels.html.twig', [
+            '_locale' => $request->getLocale(),
+            'properties' => $properties,
+            'items' => $items->getHits(),
+            'owner' => $owner
+        ]);
     }
 
 //    private function isGranted($attribute, $subject = null): bool
