@@ -18,6 +18,7 @@ use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -185,11 +186,16 @@ class SearchController extends AbstractController
     public function labels(Request $request,
                            string $tableName,
                            string $pixieCode,
-                           Owner $owner): Response
+                           Owner $owner,
+    #[MapQueryParameter] ?string $q=null,
+    #[MapQueryParameter] array $ff=[], // filters
+    ): Response
     {
         // @todo: https://gist.github.com/armadsen/5084458
 
         $data = [
+            'q' => $q,
+            'ff' => json_encode($ff),
             'number_of_columns' => 3,
             'number_of_rows' => 8,
             'row_height' => 10,
