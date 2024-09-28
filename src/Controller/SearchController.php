@@ -196,6 +196,7 @@ class SearchController extends AbstractController
         $data = [
             'q' => $q,
             'ff' => json_encode($ff),
+            'elements' => ['qr', 'description'],
             'number_of_columns' => 3,
             'number_of_rows' => 8,
             'row_height' => 10,
