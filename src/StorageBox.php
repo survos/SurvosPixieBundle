@@ -789,7 +789,7 @@ catch
                            int $max = 0,
                            bool $keyOnly = false,
     array $whereExtra = [],
-    array $pks = [],
+    ?array $pks = [],
     array $columns = ['*']
     ): array
 {
@@ -803,13 +803,14 @@ catch
     $sql .= " where 1=1 ";
 
     // https://stackoverflow.com/questions/920353/can-i-bind-an-array-to-an-in-condition-in-a-pdo-query
-    if (count($pks)) {
+    if (is_array($pks) && count($pks)) {
         foreach ($pks as $idx => $pkValue) {
             $pkKeys[] = ":" . ($keyName = "key$idx");
             $params[$keyName] = $pkValue;
         }
         $sql .= "and $pk in (" . join(',', $pkKeys) . ")";
     }
+
 
     // dexie format: .where('myField').equals(1) .where('myField').gt(5)
     // where returns a collection (promise) with no objects. https://dexie.org/docs/Collection/Collection
@@ -853,13 +854,16 @@ catch
                             int    $depth = 512,
                             int    $flags = PDO::FETCH_ASSOC,
                             ?array $whereExtra= [],
-                            ?array $pks= [],
+                            ?array $pks= null,
 ): \Generator
 {
     $table = $table ?? $this->currentTable;
     assert($table, "no table configured");
     $pkName = $this->getPrimaryKey($table);
     $keyOnly = true;
+    if (is_array($pks) && !count($pks)) {
+        assert(false, "are you sure you want to pass 0 pks?");
+    }
     [$sql, $params] = $this->getSql($table, $where, $order, max: $max,
         keyOnly: $keyOnly,
         pks: $pks,
