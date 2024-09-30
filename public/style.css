@@ -379,15 +379,3 @@ body .page-wrapper .page-body section.content h3 {
 body div.dtsb-searchBuilder div.dtsb-group {
     margin-bottom: 4px;
 }
-
-.footer {
-    bottom: 0;
-    position: fixed;
-    right: 0;
-    left: 0;
-    z-index: 1001;
-}
-
-.page-wrapper {
-    padding-bottom: 60px;
-}
