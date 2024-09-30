@@ -246,17 +246,19 @@ class PixieImportService
                     if (!$sourceLocale) {
                         dd($row);
                     }
-                    $event = $this->eventDispatcher->dispatch(
-                        new FetchTranslationObjectEvent(
-                            $row, // or $item?
-                            pixieCode: $pixieCode,
-                            sourceLanguage: $sourceLocale,
-                            targetLanguage: $sourceLocale,
-                            table: $tableName, // for debugging,
-                            key: $row[$table->getPkName()],
-                            keys: $table->getTranslatable()
-                        ));
-                    $row = $event->getNormalizedData();
+                    if (class_exists(FetchTranslationObjectEvent::class)) {
+                        $event = $this->eventDispatcher->dispatch(
+                            new FetchTranslationObjectEvent(
+                                $row, // or $item?
+                                pixieCode: $pixieCode,
+                                sourceLanguage: $sourceLocale,
+                                targetLanguage: $sourceLocale,
+                                table: $tableName, // for debugging,
+                                key: $row[$table->getPkName()],
+                                keys: $table->getTranslatable()
+                            ));
+                        $row = $event->getNormalizedData();
+                    }
                 }
 
                 assert($row['license']??'' <> 'Copyrighted', "invalid license");

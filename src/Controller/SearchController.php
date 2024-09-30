@@ -28,7 +28,7 @@ class SearchController extends AbstractController
 {
     public function __construct(
         private readonly PixieService $pixieService,
-        private IriConverterInterface $iriConverter,
+        private ?IriConverterInterface $iriConverter=null,
         private ?MeiliService $meiliService=null
 
 //        private ?AuthorizationCheckerInterface $authorizationChecker=null

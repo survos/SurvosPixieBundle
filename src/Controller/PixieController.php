@@ -487,6 +487,9 @@ class PixieController extends AbstractController
                 rand(0, 255)
             );
         }
+        if (!$chartBuilder) {
+            throw new \Exception("composer require symfony/ux-chartjs");
+        }
         $chart = $chartBuilder->createChart(
             str_contains($indexName, 'year') ? Chart::TYPE_LINE :
                 Chart::TYPE_PIE

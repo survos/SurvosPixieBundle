@@ -34,7 +34,8 @@
         <button type="button" {{ stimulus_action(_sc, 'copy') }}
                 {{ stimulus_target(_sc, 'button') }}
         >
-            {{ ux_icon('pajamas:copy-to-clipboard') }}
+            copy
+{#            {{ ux_icon('pajamas:copy-to-clipboard', {width: '50px'}) }}#}
         </button>
     </div>
 
@@ -46,7 +47,8 @@
             <button type="button" {{ stimulus_action(_sc, 'copy') }}
                     {{ stimulus_target(_sc, 'button') }}
             >
-                {{ ux_icon('pajamas:copy-to-clipboard') }}
+                copy
+{#                {{ ux_icon('pajamas:copy-to-clipboard') }}#}
             </button>
             <span {{ stimulus_target(_sc, 'source') }}>{{ line }}</span>
         </li>
