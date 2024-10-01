@@ -11,7 +11,6 @@ use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Command\PixieIndexCommand;
 use Survos\PixieBundle\Controller\PixieController;
-use Survos\PixieBundle\Controller\PixieTransitionController;
 use Survos\PixieBundle\Controller\SearchController;
 use Survos\PixieBundle\DataCollector\PixieDataCollector;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
@@ -74,11 +73,6 @@ class SurvosPixieBundle extends AbstractBundle
             ->addTag('controller.service_arguments')
             ->setArgument('$bus', new Reference('debug.traced.messenger.bus.default', ContainerInterface::NULL_ON_INVALID_REFERENCE))
             ->setArgument('$chartBuilder', new Reference('chartjs.builder', ContainerInterface::NULL_ON_INVALID_REFERENCE))
-        ;
-
-        $builder->autowire(PixieTransitionController::class)
-            ->addTag('container.service_subscriber')
-            ->addTag('controller.service_arguments')
         ;
 
         $builder->autowire(SearchController::class)

@@ -461,10 +461,10 @@
 {% endblock %}
 
 {% block value %}
-    {% if value|fn_is_object %}
+    {% if value|is_object %}
         {{ value|json_encode }}
-    {% elseif value|fn_is_array %}
-        {% if value|fn_array_is_list %}
+    {% elseif value|is_array %}
+        {% if value|array_is_list %}
             <ol>
                 {% for v in value %}
                     <li>
