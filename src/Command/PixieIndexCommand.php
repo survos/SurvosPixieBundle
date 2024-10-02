@@ -275,6 +275,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             'da' => 'dan',
         ];
         $searchableAttrs = [];
+        $localizedAttributes = [];
         foreach ($this->enabledLocales as $locale) {
             $locale3 = $map[$locale];
             $localizedAttributes[] = ['locales' => [$locale3],
