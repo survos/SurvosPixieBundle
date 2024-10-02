@@ -164,8 +164,11 @@ class StorageBox
         $newHeaders = [];
 //        $regexRules = $this->regexRules[$tableName] ?? [];
 //        dd(tableName: $tableName, regex: $regexRules);
-        foreach ($header as $fieldName) {
+        foreach ($header as $idx => $fieldName) {
             $newFieldName = trim($fieldName);
+            if (empty($newFieldName)) {
+                $newFieldName = "col-$idx";
+            }
             foreach ($regexRules as $regex => $value) {
 //                assert($regex, $regex);
 //                dump($regex, $this->regexRules);
@@ -186,7 +189,7 @@ class StorageBox
                 'snake' => u($newFieldName)->snake()->toString(),
                 'camel' => u($newFieldName)->camel()->toString()
             };
-            assert(!str_contains(' ', $newFieldName), "invalid $propertyRule property code: $newFieldName");
+            assert(!str_contains(' ', $newFieldName), "invalid $propertyRule property code: [$newFieldName]");
             $newHeaders[] = $newFieldName;
         }
         return array_combine($newHeaders, $header);
