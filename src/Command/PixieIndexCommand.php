@@ -272,7 +272,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             'de' => 'deu',
             'hi' => 'hin',
             'fr' => 'fra',
-            'da' => 'dnk',
+            'da' => 'dan',
         ];
         $searchableAttrs = [];
         foreach ($this->enabledLocales as $locale) {
@@ -283,10 +283,12 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 $searchableAttrs[] = '_translations.' . $locale . ".$property";
             }
         }
-        $localizedAttributes[] = ['locales' => [], 'attributePatterns' => ['*']];
+
+//        $localizedAttributes[] = ['locales' => [], 'attributePatterns' => ['*']];
 
         $results = $index->updateSettings($settings = [
             'displayedAttributes' => ['*'],
+            'localizedAttributes' => $localizedAttributes,
             'searchableAttributes' => $searchableAttrs,
 //            'localizedAttributes' => $localizedAttributes,
             'filterableAttributes' => $filterable, //  $this->datatableService->getFieldsWithAttribute($settings, 'browsable'),
