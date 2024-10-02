@@ -466,7 +466,7 @@ class Parser
         # this is a comma-separated string of pks
 //        - collection_codes:rel.coll[@pk],
 
-        if (str_contains($subType, '@')) {
+        if ($subType && str_contains($subType, '@')) {
             $lastChar = $subType ? substr($subType, -1) : null;
             if (in_array($lastChar, ['|', '$', ',', '/'])) {
                 $subType = $subType ? rtrim($subType, $lastChar) : null;
