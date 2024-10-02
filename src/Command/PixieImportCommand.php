@@ -113,7 +113,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         $limit = $this->pixieService->getLimit($limit);
         $pixieImportService->import($configCode, $config, limit: $limit, startingAt: $startingAt,
             context: [
-                'tags' => explode(",", $tags),
+                'tags' => $tags ? explode(",", $tags) : [],
             ],
             overwrite: $overwrite, pattern: $pattern,
             callback: function ($row, $idx, StorageBox $kv) use ($batch, $limit) {

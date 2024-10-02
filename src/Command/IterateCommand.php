@@ -197,7 +197,7 @@ final class IterateCommand extends InvokableServiceCommand
                 type: RowEvent::POST_LOAD,
                 action: self::class,
                 context: [
-                    'tags' => explode(",", $tags),
+                    'tags' => $tags ? explode(",", $tags) : [],
                     'transition' => $transition,
                     'transport' => $transport
                 ])
