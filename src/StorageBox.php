@@ -130,15 +130,34 @@ class StorageBox
         $this->beginTransaction();
         foreach ($config->getTables() as $tableName => $table) {
             assert($table instanceof Table, json_encode($table));
+            if (str_starts_with($tableName, "@")) {
+                continue; // @list is the template name, not a real table
+            }
             if (!in_array($tableName, $this->schemaTables)) {
                 $this->createTable($tableName, $table, $this->valueType);
                 $this->tables[] = $table;
             }
+
+            if (!in_array($tableName, $this->schemaTables)) {
+                $_tableName = '_tables'; // for tracking table counts
+                $table = (new Table(
+                    name: $_tableName,
+                    pkName: 'id',
+                    properties: [
+                    new Property('id', 'text', generated: false), // the tableName
+                    new Property('count', 'int')
+                ]));
+                $this->createTable($tableName, $table, $this->valueType);
+                $config->addTable($_tableName, $table);
+                $this->tables[$_tableName] = $table;
+            }
+
         }
         $this->commit();
 
         // auto-create, or at least validate
         foreach ($config->getTables() as $tableName => $table) {
+            assert($table instanceof Table, $tableName);
             foreach ($table->getProperties() as $property) {
                 if ($list = $property->getListTableName()) {
                     assert($this->hasTable($list), "until auto-create works, create a table for each list, $list");
@@ -588,10 +607,14 @@ catch
 
 }
 
-    public function count(string $table = null, array $where = []): int
+    public function count(string $table = null, array $where = []): ?int
 {
     assert(!$this->db->inTransaction(), "already in a transaction");
     $table = $table ?? $this->currentTable;
+    if (str_starts_with($table, '@')) {
+        return null;
+    }
+    assert($table);
     $pk = $this->getPrimaryKey($table);
     $sql = "SELECT COUNT($pk) FROM $table";
     if (count($where) > 0) {

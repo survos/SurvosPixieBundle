@@ -10,6 +10,7 @@ use League\Csv\Info;
 use League\Csv\Reader;
 use League\Csv\SyntaxError;
 use Psr\Log\LoggerInterface;
+use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\Event\ImportFileEvent;
 use Survos\PixieBundle\Event\RowEvent;
@@ -36,6 +37,7 @@ class PixieImportService
     }
 
     public function import(string $pixieCode,
+                           string $subCode,
                            ?Config $config=null,
                            int    $limit = 0,
                            int    $startingAt = 0,
@@ -50,7 +52,7 @@ class PixieImportService
             $config = $this->pixieService->getConfig($pixieCode);
         }
         // the csv/json files
-        $dirOrFilename = $this->pixieService->getSourceFilesDir($pixieCode);
+        $dirOrFilename = $this->pixieService->getSourceFilesDir($pixieCode, subCode: $subCode);
 
         assert(file_exists($dirOrFilename), $dirOrFilename);
         $finder = new Finder();
@@ -87,7 +89,7 @@ class PixieImportService
         assert($config);
 //        list($splFile, $tableName, $mm, $fileMap, $fn, $tables, $tableData, $kv) =
         if (!$kv) {
-            $kv = $this->createKv($fileMap, $config, $pixieCode);
+            $kv = $this->createKv($fileMap, $config, $pixieCode, $subCode);
         }
         assert(count($kv->getTables()), "no tables in $pixieCode");
         $validTableNames = $config->getTables();
@@ -128,7 +130,7 @@ class PixieImportService
                 }
                 // we could do a callback here tagging it as a file.  Or some sort of event?
                 $this->logger && $this->logger->warning("Importing $fn to $tableName");
-                $this->eventDispatcher->dispatch(new ImportFileEvent($fn));
+                $this->eventDispatcher->dispatch(new ImportFileEvent($fn, $kv->getFilename()));
 
 //            if (!str_contains($pixieDbName, 'moma')) dd($tableName, $pixieDbName, $kv->getFilename());
 //            dd($tableName, $tablesToCreate);
@@ -143,6 +145,7 @@ class PixieImportService
                 $tables = $config->getTables(); // with the rules and such
                 $table = $tables[$tableName];
                 $pkName = $table->getPkName();
+                assert($pkName, "$tableName does not have a pk");
                 assert($pkName == $kv->getPrimaryKey($tableName), $tableName . ": " . $pkName . "<>" . $kv->getPrimaryKey($tableName));
                 assert($table instanceof Table, "Invalid table type");
                 $rules = $config->getTableRules($tableName);
@@ -203,7 +206,11 @@ class PixieImportService
                             $tableName . " should have primaryKey $pk  " .
                             json_encode($row, JSON_PRETTY_PRINT));
                     }
-//                    AppService::assertKeyExists($pkName, $row, "in $fn");
+                    if (!$row[$pkName]) {
+                        dd($row, $idx);
+                    }
+                    SurvosUtils::assertKeyExists($pkName, $row, "in $fn");
+                    assert($row[$pkName], "no primary key in $tableName row " . json_encode($row, JSON_PRETTY_PRINT));
                     $exists = $kv->has($row[$pkName], preloadKeys: true);
                     $row = $this->applyDataRules($row, $dataRules);
                     if (!$row) {
@@ -289,7 +296,7 @@ class PixieImportService
                 }
                 $kv->commit();
                 $count = $kv->count();
-                $this->logger->info($kv->getSelectedTable() . " now has " . $count);
+                $this->logger->info($kv->getFilename() . '/' . $kv->getSelectedTable() . " now has " . $count);
             }
         }
         if ($kv->inTransaction()) {
@@ -310,11 +317,11 @@ class PixieImportService
     public function createKv(array $fileMap,
                              Config $config,
                              string $pixieCode,
+    ?string $subCode,
     bool $destroyFirst = false
     ): StorageBox
     {
-
-
+        assert($subCode);
         // only create the tables that match the filenames
         $tablesToCreate=[];
         foreach ($fileMap as $fn => $tableName) {
@@ -323,12 +330,12 @@ class PixieImportService
                 $tablesToCreate[$tableName] = $tableData;
             }
         }
-        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
+        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode, $subCode);
         if ($destroyFirst) {
             $this->pixieService->destroy($pixieFilename);
         }
 
-        $kv = $this->pixieService->getStorageBox($pixieCode,
+        $kv = $this->pixieService->getStorageBox($pixieCode, subCode: $subCode,
             createFromConfig: true,
         );
 //        if (str_contains($kv->getFilename(), 'edu')) dd($kv->getFilename());
@@ -478,15 +485,17 @@ class PixieImportService
                             $relatedRow = [
                                 'label' => $label,
                             ];
-                            // md doesn't know the locale, so don't do anything yet.
-                            if ($config->getSource()->locale) {
-
+                            if (!$sourceLang = $row['locale']??null) {
+                                if (!$sourceLang = $config->getSource()->locale) {
+                                    assert(false, "unable to get source language");
+                                    dd($row);
+                                }
                             }
                             if (class_exists(FetchTranslationObjectEvent::class)) {
                                 $event = $this->eventDispatcher->dispatch(
                                     new FetchTranslationObjectEvent($relatedRow,
-                                        $config->getSource()->locale,
-                                        $config->getSource()->locale,
+                                        $sourceLang,
+                                        $sourceLang,
                                         pixieCode:  $pixieCode,
                                         table: $relatedTableName,
                                         key: $relatedId,

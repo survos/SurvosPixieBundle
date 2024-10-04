@@ -31,7 +31,7 @@ final class PixieImportCommand extends InvokableServiceCommand
     use RunsProcesses;
 
     private bool $initialized = false; // so the event listener can be called from outside the command
-    private ?ProgressBar $progressBar=null;
+    private ?ProgressBar $progressBar = null;
     private $total = 0; // hack to bypass count for large JSON files, e.g. smk
 
     public function __construct(
@@ -48,7 +48,8 @@ final class PixieImportCommand extends InvokableServiceCommand
         PixieService                                                                                 $pixieService,
         PixieImportService                                                                           $pixieImportService,
         #[Argument(description: 'config code')] string                                               $configCode,
-        #[Option(description: 'conf filename, default to directory name of first argument')] ?string $dir,
+        #[Argument(description: 'sub code, e.g. musdig inst id')] ?string        $subCode=null,
+        #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
         #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
         #[Option(description: "overwrite records if they already exist")] bool                       $overwrite = false,
         #[Option(description: "index after import (default: true)")] ?bool                           $index = null,
@@ -57,31 +58,31 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: "total if known (slow to calc)")] int                                  $total = 0,
         #[Option('start', description: "starting at (offset)")] int                                  $startingAt = 0,
         #[Option(description: "table search pattern")] string                                        $pattern = '',
-        #[Option(description: 'tags (for listeners)')] ?string                                       $tags=null,
+        #[Option(description: 'tags (for listeners)')] ?string                                       $tags = null,
 
     ): int
     {
         $this->initialized = true;
         // not sure how to auto-wire this in the constructor
         // idea: if conf doesn't exist, require a directory name and create it, a la rector
-        if (empty($configCode)) {
-            $configCode = pathinfo($dir, PATHINFO_BASENAME);
-        }
+//        if (empty($configCode)) {
+//            $configCode = pathinfo($dir, PATHINFO_BASENAME);
+//        }
 
-        $index = is_null($index) ? true: $index;
-
+        $index = is_null($index) ? true : $index;
         $config = $pixieService->getConfig($configCode);
         assert($config, $config->getConfigFilename());
-        $dir = $pixieService->getSourceFilesDir($configCode, dir: $dir);
+        $sourceDir = $pixieService->getSourceFilesDir($configCode, subCode: $subCode);
+        assert(is_dir($sourceDir), "Invalid source dir: $sourceDir");
+
 
 //        dump($configData, $config->getVersion());
 //        dd($dirOrFilename, $config, $configFilename, $pixieService->getPixieFilename($configCode));
 
-        // Pixie databases go in datadir, not with their source? Or defined in the config
-        if (!is_dir($dir)) {
-            $io->error("$dir does not exist.  set the directory in config or pass it as the first argument");
-            return self::FAILURE;
-        }
+//        if (!is_dir($dir)) {
+//            $io->error("$dir does not exist.  set the directory in config or pass it as the first argument");
+//            return self::FAILURE;
+//        }
 
 //        if (!file_exists($configFilename) && (file_exists($configWithCsv = $dirOrFilename . "/$config"))) {
 //            $config = $configWithCsv;
@@ -95,10 +96,12 @@ final class PixieImportCommand extends InvokableServiceCommand
 //            $config = $dirOrFilename . "/$config";
 //        }
 
-        $pixieDbName = $pixieService->getPixieFilename($configCode);
+        $pixieDbName = $pixieService->getPixieFilename($configCode, $subCode);
         if (!file_exists($dirName = pathinfo($pixieDbName, PATHINFO_DIRNAME))) {
             mkdir($dirName, 0777, true);
         }
+        $io->title(sprintf("Reading %s, writing %s", $sourceDir, $pixieDbName));
+
         if ($reset) {
             $this->pixieService->destroy($pixieDbName);
         }
@@ -111,7 +114,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
 
         $limit = $this->pixieService->getLimit($limit);
-        $pixieImportService->import($configCode, $config, limit: $limit, startingAt: $startingAt,
+        $pixieImportService->import($configCode, $subCode,  $config, limit: $limit, startingAt: $startingAt,
             context: [
                 'tags' => $tags ? explode(",", $tags) : [],
             ],
@@ -119,26 +122,37 @@ final class PixieImportCommand extends InvokableServiceCommand
             callback: function ($row, $idx, StorageBox $kv) use ($batch, $limit) {
                 $finished = $limit ? $idx > ($limit) : false;
 //                dd($limit, $idx, $finished, $batch);
-                if ($finished || (($idx % $batch) == 0) ) {
+                if ($finished || (($idx % $batch) == 0)) {
                     $this->logger->info("Saving $batch, now at $idx of $limit");
                     $kv->commit();
                     $kv->beginTransaction();
                 };
 //                return true; // return true to continue
-                return $limit ?  !$finished: true; // break if we've hit the limit
+                return $limit ? !$finished : true; // break if we've hit the limit
             });
 
-        $kv = $this->pixieService->getStorageBox($configCode);
+        $kv = $this->pixieService->getStorageBox($configCode, $subCode);
+
         $consoleTable = new Table($io);
-        $consoleTable->setHeaders(['table','count']);
+        $consoleTable->setHeaders(['table', 'count']);
+        // these counts should match up with the meili facet counts
+
         foreach ($config->getTables() as $table) {
-            $consoleTable->addRow([$table->getName(), $kv->count($table->getName())]);
+            $count = $kv->count($table->getName());
+//            $kv->beginTransaction();
+//            $kv->set([
+//                'id' => $table->getName(),
+//                'count' => $count
+//            ], '_tables');
+//            $kv->commit();
+            $consoleTable->addRow([$table->getName(), $count]);
         }
+        $io->title($kv->getFilename());
         $consoleTable->render();
         $io->success($this->getName() . ' success ' . $pixieDbName);
 
         if ($index) {
-            $this->runIndex($configCode);
+            $this->runIndex($configCode, $subCode);
         }
         return self::SUCCESS;
     }
@@ -150,7 +164,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         if (!$this->initialized) {
             return;
         }
-        $this->io()->title($event->filename);
+        $this->io()->title(sprintf("%s -> %s", $event->filename, $event->pixieDbName));
         if (!$count = $this->total) {
             if ($event->getType() == 'json') {
                 // faster to get the first record and filesize and divide, for a rough estimate.
@@ -207,9 +221,9 @@ final class PixieImportCommand extends InvokableServiceCommand
 //        $this->initialized && $event->isRowLoad() && $this->progressBar->advance();
     }
 
-    public function runIndex(string $pixieCode)
+    public function runIndex(string $pixieCode, ?string $subCode = null): void
     {
-        $cli = 'pixie:index ' . $pixieCode;
+        $cli = "pixie:index $pixieCode $subCode";
         $this->io()->warning('bin/console ' . $cli);
         $this->runCommand($cli);
     }

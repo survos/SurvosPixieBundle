@@ -10,6 +10,8 @@ class IndexEvent extends Event
 
     public function __construct(
         public string $pixieCode,
+        public ?string $subCode,
+        public string $pixieFilename,
         public string $tableName,
         public ?int $numberOfObjects=null
         // @todo: all index counts, all stats?

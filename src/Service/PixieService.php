@@ -70,9 +70,16 @@ class PixieService
 
     }
 
-    public function getPixieFilename(string $pixieCode): string
+    public function getPixieFilename(string $pixieCode, ?string $filename=null): string
     {
-        $filename = $this->getPixieDbDir() . "/$pixieCode.{$this->extension}";
+        if (!$filename) {
+            $filename = $pixieCode;
+        }
+        $dir = $this->getPixieDbDir() . "/$pixieCode";
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+        $filename =  $dir . "/$filename.{$this->extension}";
 
         if (file_exists($filename)) {
             $filename = realpath($filename);
@@ -81,9 +88,9 @@ class PixieService
 
     }
 
-    public static function getMeiliIndexName(string $pixieCode, ?string $tableName)
+    public static function getMeiliIndexName(string $pixieCode, string $subCode, ?string $tableName)
     {
-        return 'pixie_' . $pixieCode . '_' . $tableName;
+        return 'pixie_' . $pixieCode . '_'. $subCode . '_' . $tableName;
 
     }
 
@@ -125,8 +132,8 @@ class PixieService
     }
 
     function getStorageBox(string $pixieCode,
-                           ?string $filename=null, // since files can share a config
-                           array $tables=[],
+                           ?string $subCode=null,
+                           ?string $filename=null, // since files can share a config?
                            bool $destroy=false,
                            bool $createFromConfig=false,
                             ?Config $config = null,
@@ -134,7 +141,7 @@ class PixieService
     {
         assert(!str_contains($pixieCode, "/"), "pass in pixieCode, not filename");
         if (!$filename) {
-            $filename = $this->getPixieFilename($pixieCode);
+            $filename = $this->getPixieFilename($pixieCode, $subCode);
         }
         if ($createFromConfig && !$config) {
             $config = $this->getConfig($pixieCode);
@@ -333,10 +340,12 @@ class PixieService
     }
 
 
-    public function getSourceFilesDir(?string $pixieCode=null, ?Config $config=null,
+    public function getSourceFilesDir(?string $pixieCode=null,
+                                      ?Config $config=null,
                                       bool $autoCreate=false,
                                       bool $throwErrorIfMissing=true,
-    string $dir=null
+    string $dir=null,
+    string $subCode=null
     ): ?string
     {
         if (!$config) {
@@ -347,6 +356,9 @@ class PixieService
             if (!$dir = $config->getSourceFilesDir()) {
                 $dir = $this->dataRoot . "/$pixieCode";
             }
+        }
+        if ($subCode) {
+            $dir .= "/$subCode";
         }
 
         $dir = $this->addProjectDir($dir);

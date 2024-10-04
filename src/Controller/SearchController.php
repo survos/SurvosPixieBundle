@@ -24,16 +24,17 @@ class SearchController extends AbstractController
     {
     }
 
-    #[Route('/meili/{pixieCode}/{tableName}', name: 'pixie_meili_browse')]
+    #[Route('/meili/{pixieCode}/{subCode}/{tableName}', name: 'pixie_meili_browse')]
     public function meili(
         string $pixieCode,
+        string $subCode,
         string $tableName,
                           IriConverterInterface $iriConverter,
                           InspectionService $inspectionService,
                           MeiliService $meiliService // @todo: move to constructor and make optional, throw error if missing and used
     ): Response
     {
-        $indexName = $meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode, $tableName));
+        $indexName = $meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode, $subCode, $tableName));
         $operation = (new GetCollection())->withClass(MeiliItem::class);
         // pass in an object if all the parameters are available in the object,
         //  or pass in the class and the uri_variables.

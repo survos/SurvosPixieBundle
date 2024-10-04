@@ -125,6 +125,12 @@ class Config
         return $this->tables[$tableName] ?? null;
     }
 
+    public function addTable(string $tableName, Table $table): self
+    {
+        $this->tables[$tableName] = $table;
+        return $this;
+    }
+
     public function setTables(array $tables): Config
     {
         foreach ($tables as $table) {

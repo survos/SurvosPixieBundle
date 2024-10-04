@@ -63,6 +63,8 @@ final class PixieIndexCommand extends InvokableServiceCommand
         PixieService                                          $pixieService,
         PixieImportService                                    $pixieImportService,
         #[Argument(description: 'config code')] string        $pixieCode,
+        #[Argument(description: 'sub code, e.g. musdig inst id')] ?string        $subCode=null,
+        #[Option('dir', description: 'dir to pixie')] string         $dir=null,
         #[Option('table', description: 'table name(s?), all if not set')] string         $tableFilter=null,
 //        #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
         #[Option(description: "reset the meili index")] ?bool                      $reset=null,
@@ -75,13 +77,18 @@ final class PixieIndexCommand extends InvokableServiceCommand
         if (is_null($reset)) {
             $reset = true;
         }
+
         if (!$this->meiliService) {
 
             $io->error("Run composer require survos/api-grid-bundle");
             return self::FAILURE;
         }
+
         $this->initialized = true;
-        $kv = $pixieService->getStorageBox($pixieCode);
+        $kv = $pixieService->getStorageBox($pixieCode, $subCode);
+        $pixieDbName = $pixieService->getPixieFilename($pixieCode, $subCode);
+//        assert(realpath($pixieDbName) == $kv->getFilename(), "$pixieDbName <> " . $kv->getFilename());
+        $io->title("Reading $pixieDbName");
         $config = $pixieService->getConfig($pixieCode);
 
         if ($tableFilter) {
@@ -97,17 +104,19 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 continue;
             }
 
-            $indexName = $this->meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode, $tableName));
+            if ($kv->count($tableName) == 0) {
+                $this->io()->warning("Skipping $tableName (no records)");
+                continue;
+            }
+
+            $indexName = $this->meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode, $subCode, $tableName));
             $io->title($indexName);
 
             if ($reset) {
                 $this->io()->warning("resetting $indexName");
                 $this->meiliService->reset($indexName);
             }
-            if ($kv->count($tableName) == 0) {
-                $this->io()->warning("Skipping $tableName (no records)");
-                continue;
-            }
+
             $index = $this->configureIndex($config, $indexName, $tableName);
 //            $task = $this->waitForTask($this->getMeiliClient()->createIndex($indexName, ['primaryKey' => Instance::DB_CODE_FIELD]));
 
@@ -208,11 +217,14 @@ final class PixieIndexCommand extends InvokableServiceCommand
             $recordsToWrite = [];
             $this->meiliService->waitForTask($task);
 
-            // export?
+            // export property counts to kv
             $stats = $index->stats();
 //            dd($stats, $index->getSettings());
             $io->success($stats['numberOfDocuments'] . " $pixieCode.$tableName documents");
-            $this->eventDispatcher->dispatch(new IndexEvent($pixieCode, $tableName, $stats['numberOfDocuments']));
+            $this->eventDispatcher->dispatch(new IndexEvent($pixieCode,
+                $subCode,
+                $kv->getFilename(),
+                $tableName, $stats['numberOfDocuments']));
 
             $table = new Table($this->io());
             $table->setHeaders(['attributes', 'value']);
@@ -239,7 +251,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
 
 
-        $io->success(sprintf("%s success %s %s",  $this->getName(), $pixieCode, $indexName));
+        $io->success(sprintf("%s success %s %s",  $this->getName(), $pixieCode, $pixieDbName));
         return self::SUCCESS;
     }
 
