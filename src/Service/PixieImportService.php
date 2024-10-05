@@ -6,6 +6,7 @@ namespace Survos\PixieBundle\Service;
 
 use App\Event\FetchTranslationEvent;
 use App\Event\FetchTranslationObjectEvent;
+use App\Service\SourceService;
 use League\Csv\Info;
 use League\Csv\Reader;
 use League\Csv\SyntaxError;
@@ -37,7 +38,7 @@ class PixieImportService
     }
 
     public function import(string $pixieCode,
-                           string $subCode,
+                           ?string $subCode,
                            ?Config $config=null,
                            int    $limit = 0,
                            int    $startingAt = 0,
@@ -207,7 +208,7 @@ class PixieImportService
                             json_encode($row, JSON_PRETTY_PRINT));
                     }
                     if (!$row[$pkName]) {
-                        dd($row, $idx);
+                        dd($row, $pkName, $idx);
                     }
                     SurvosUtils::assertKeyExists($pkName, $row, "in $fn");
                     assert($row[$pkName], "no primary key in $tableName row " . json_encode($row, JSON_PRETTY_PRINT));
@@ -321,7 +322,7 @@ class PixieImportService
     bool $destroyFirst = false
     ): StorageBox
     {
-        assert($subCode);
+//        assert(($pixieCode<>'md') || $subCode, "$pixieCode $subCode");
         // only create the tables that match the filenames
         $tablesToCreate=[];
         foreach ($fileMap as $fn => $tableName) {

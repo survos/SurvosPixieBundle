@@ -88,9 +88,9 @@ class PixieService
 
     }
 
-    public static function getMeiliIndexName(string $pixieCode, string $subCode, ?string $tableName)
+    public static function getMeiliIndexName(string $pixieCode, ?string $subCode, ?string $tableName)
     {
-        return 'pixie_' . $pixieCode . '_'. $subCode . '_' . $tableName;
+        return 'px_' . $pixieCode . ($subCode ? ('_'. $subCode) : '') . '_' . $tableName;
 
     }
 

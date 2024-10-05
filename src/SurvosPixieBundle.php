@@ -78,6 +78,7 @@ class SurvosPixieBundle extends AbstractBundle
         $builder->autowire(SearchController::class)
             ->addTag('container.service_subscriber')
             ->addTag('controller.service_arguments')
+            ->setArgument('$iriConverter', new Reference('api_platform.symfony.iri_converter', ContainerInterface::NULL_ON_INVALID_REFERENCE))
 //            ->setArgument(
 //                '$authorizationChecker',
 //                new Reference('security.authorization_checker', ContainerInterface::NULL_ON_INVALID_REFERENCE)

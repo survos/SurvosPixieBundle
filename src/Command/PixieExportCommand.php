@@ -23,7 +23,7 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
 
-#[AsCommand('pixie:export', 'Import a table to csv/json"')]
+#[AsCommand('pixie:export', "Export a table to csv/json")]
 final class PixieExportCommand extends InvokableServiceCommand
 {
     use RunsCommands;
