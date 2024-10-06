@@ -545,7 +545,7 @@ catch
         $preparedStatements[$this->filename][$sql] = $this->db->prepare($sql);;
         } catch (\Exception $exception) {
             dump($exception, $sql, $this->filename, $variables);
-            assert(false, $sql . " " . $exception->getMessage());
+            assert(false, $sql . " {$this->filename} " . $exception->getMessage());
         }
     }
     $statement = $preparedStatements[$this->filename][$sql];
@@ -609,6 +609,10 @@ catch
 
     public function count(string $table = null, array $where = []): ?int
 {
+    $table = $table ?? $this->currentTable;
+    if (!$this->tableExists($table)) {
+        return null;
+    }
     assert(!$this->db->inTransaction(), "already in a transaction");
     $table = $table ?? $this->currentTable;
     if (str_starts_with($table, '@')) {

@@ -309,3 +309,8 @@ aws s3 sync s3://voxitour/data/pixie . --acl public-read  --exclude="*" --includ
 aws s3 sync s3://voxitour/data/pixie . --acl public-read  --exclude="*" --include="*.zip"
 
 
+### Notes 
+
+This may come in handy someday
+
+* https://packagist.org/packages/tbachert/spi

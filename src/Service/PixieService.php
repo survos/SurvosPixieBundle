@@ -70,13 +70,13 @@ class PixieService
 
     }
 
-    public function getPixieFilename(string $pixieCode, ?string $filename=null): string
+    public function getPixieFilename(string $pixieCode, ?string $filename=null, bool $autoCreateDir=false): string
     {
         if (!$filename) {
             $filename = $pixieCode;
         }
         $dir = $this->getPixieDbDir() . "/$pixieCode";
-        if (!is_dir($dir)) {
+        if ($autoCreateDir && !is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
         $filename =  $dir . "/$filename.{$this->extension}";
@@ -207,6 +207,7 @@ class PixieService
     public function getConfigFiles(string $q=null, ?string $pixieCode=null, int $limit = 0): array
     {
         $finder = new Finder();
+        $finder->depth("<1");
         $configs  = [];
         $pattern = $pixieCode ?: ($q?:'*');
         // this is only the configs in the configDir.
@@ -215,6 +216,7 @@ class PixieService
             // we can optimize later...
             $code = $file->getFilenameWithoutExtension();
             $config = $this->getConfig($code);
+            assert($config, "invalid config $code");
 
             $resolvedDataPath = $this->resolveFilename($config->getSourceFilesDir(), 'data');
             $config->dataDir = $resolvedDataPath;
@@ -305,6 +307,7 @@ class PixieService
 
     public function getConfigDir(bool $autoCreate=false): string
     {
+        assert(!$autoCreate);
         $dir = $this->configDir;
         if (!file_exists($dir) && !str_starts_with($dir, "/")) {
             $dir = $this->projectDir . "/$dir";
@@ -348,6 +351,7 @@ class PixieService
     string $subCode=null
     ): ?string
     {
+        assert(!$autoCreate);
         if (!$config) {
             $config = $this->getConfig($pixieCode);
         }

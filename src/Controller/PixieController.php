@@ -51,7 +51,6 @@ class PixieController extends AbstractController
     private function getPixieConf(string $pixieCode, bool $throwIfMissing = true): ?string
     {
 
-        dd($pixieCode, $this->pixieService->getConfigDir());
         $dirs = [
             $this->bag->get('config_dir'),
             $this->bag->get('kernel.project_dir') . "/config/packages/pixie/",
@@ -582,7 +581,7 @@ class PixieController extends AbstractController
         );
 //        dd($pixie->getTables(), $purgeFirst);
 
-        $pixieImportService->import($pixieCode, limit: $limit, kv: $pixie, overwrite: true);
+        $pixieImportService->import($pixieCode, null, limit: $limit, kv: $pixie, overwrite: true);
         return $this->redirectToRoute('pixie_homepage', [
             'pixieCode' => $pixieCode
         ]);
