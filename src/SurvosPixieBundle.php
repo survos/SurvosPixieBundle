@@ -169,9 +169,9 @@ class SurvosPixieBundle extends AbstractBundle
                 ->arrayNode('tables')
                 ->arrayPrototype()
                 ->children()
+                ->end()
+            ->end()
 
-            ->end()
-            ->end()
             ->end()
             ->end();
 
@@ -180,6 +180,7 @@ class SurvosPixieBundle extends AbstractBundle
 
     public function configure(DefinitionConfigurator $definition): void
     {
+        // see https://github.com/tacman/pwa-bundle/tree/1.2.x/src/Resources/config/definition for best practices
         $rootNode = $definition->rootNode();
         $rootNode
             ->children()
