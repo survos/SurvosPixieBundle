@@ -2,6 +2,7 @@
 
 namespace Survos\PixieBundle\Twig;
 
+use Survos\PixieBundle\Service\PixieService;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Extension\AbstractExtension;
@@ -11,7 +12,7 @@ use Twig\TwigFunction;
 class TwigExtension extends AbstractExtension
 {
     public function __construct(
-        private array $config,
+        private PixieService $pixieService,
         private ?RequestStack $requestStack=null,
 //        #[Autowire('locale')] private string $locale
     )

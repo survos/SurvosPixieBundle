@@ -20,7 +20,7 @@ class Config
         /**
          * @var array<Table>
          */
-        private array $tables=[],
+        public array $tables=[],
         private ?string $configFilename=null,
         private string $type=self::TYPE_MUSEUM,
         private string $visibility=self::VISIBILITY_PUBLIC,

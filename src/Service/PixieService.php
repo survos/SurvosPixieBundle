@@ -18,6 +18,7 @@ use Survos\PixieBundle\Model\Source;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Finder\Finder;
@@ -38,24 +39,24 @@ class PixieService
 
     public function __construct(
         private bool                                        $isDebug, private readonly EventDispatcherInterface $eventDispatcher,
-        private array                                       $data=[],
+        private array                                       $data = [],
         private string                                      $extension = "pixie.db",
-        private string                                      $dbDir='pixie',
-        private string                                      $dataRoot='data', //
-        private string                                      $configDir='config/packages/pixie',
-        private array $config=[],
-        #[Autowire('%kernel.project_dir%')] private ?string $projectDir=null,
-        private ?LoggerInterface                            $logger=null,
-        private ?Stopwatch                                  $stopwatch=null,
-        private ?PropertyAccessorInterface                  $accessor=null,
-        private ?SerializerInterface                        $serializer=null,
-        private ?WorkflowHelperService $workflowHelperService=null,
-        private ?DenormalizerInterface $denormalizer=null,
+        private string                                      $dbDir = 'pixie',
+        private string                                      $dataRoot = 'data', //
+        private string                                      $configDir = 'config/packages/pixie',
+        private array                                       $bundleConfig = [],
+        #[Autowire('%kernel.project_dir%')] private ?string $projectDir = null,
+        private ?LoggerInterface                            $logger = null,
+        private ?Stopwatch                                  $stopwatch = null,
+        private ?PropertyAccessorInterface                  $accessor = null,
+        private ?SerializerInterface                        $serializer = null,
+        private ?WorkflowHelperService                      $workflowHelperService = null,
+        private ?DenormalizerInterface                      $denormalizer = null,
     )
     {
 //        dd($this->serializer->denormalize($this->data, Config::class));
 //        assert($this->logger);
-        $this->denormalizer=$this->serializer; // ->denormalize($this->data, DenormalizerInterface::class);
+        $this->denormalizer = $this->serializer; // ->denormalize($this->data, DenormalizerInterface::class);
     }
 
     /**
@@ -66,11 +67,11 @@ class PixieService
      */
     public function getLimit(?int $limit = null): ?int
     {
-        return is_null($limit) ? $this->config['limit'] : $limit;
+        return is_null($limit) ? $this->bundleConfig['limit'] : $limit;
 
     }
 
-    public function getPixieFilename(string $pixieCode, ?string $filename=null, bool $autoCreateDir=false): string
+    public function getPixieFilename(string $pixieCode, ?string $filename = null, bool $autoCreateDir = false): string
     {
         if (!$filename) {
             $filename = $pixieCode;
@@ -79,7 +80,7 @@ class PixieService
         if ($autoCreateDir && !is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
-        $filename =  $dir . "/$filename.{$this->extension}";
+        $filename = $dir . "/$filename.{$this->extension}";
 
         if (file_exists($filename)) {
             $filename = realpath($filename);
@@ -90,15 +91,15 @@ class PixieService
 
     public static function getMeiliIndexName(string $pixieCode, ?string $subCode, ?string $tableName)
     {
-        return 'px_' . $pixieCode . ($subCode ? ('_'. $subCode) : '') . '_' . $tableName;
+        return 'px_' . $pixieCode . ($subCode ? ('_' . $subCode) : '') . '_' . $tableName;
 
     }
 
-    private function resolveFilename($filename, string $type=null): ?string
+    private function resolveFilename($filename, string $type = null): ?string
     {
 
         if ($type && ($filename && !file_exists($filename))) {
-            $root = match($type) {
+            $root = match ($type) {
                 'db' => $this->dbDir,
                 'config' => $this->configDir,
                 'data' => $this->dataRoot,
@@ -131,12 +132,12 @@ class PixieService
         $event->setStorageBox($kv);
     }
 
-    function getStorageBox(string $pixieCode,
-                           ?string $subCode=null,
-                           ?string $filename=null, // since files can share a config?
-                           bool $destroy=false,
-                           bool $createFromConfig=false,
-                            ?Config $config = null,
+    function getStorageBox(string  $pixieCode,
+                           ?string $subCode = null,
+                           ?string $filename = null, // since files can share a config?
+                           bool    $destroy = false,
+                           bool    $createFromConfig = false,
+                           ?Config $config = null,
     ): StorageBox
     {
         assert(!str_contains($pixieCode, "/"), "pass in pixieCode, not filename");
@@ -162,10 +163,9 @@ class PixieService
 //            }
         }
         $destroy && $this->destroy($filename);
-        if (!$kv = $this->storageBoxes[$filename]??false)
-        {
+        if (!$kv = $this->storageBoxes[$filename] ?? false) {
             $class = $this->isDebug ? TraceableStorageBox::class : StorageBox::class;
-            $kv =  new $class($filename,
+            $kv = new $class($filename,
                 $this->data, // for debug
                 $config,
                 pixieCode: $pixieCode,
@@ -204,12 +204,35 @@ class PixieService
     /**
      * @return array<Config>
      */
-    public function getConfigFiles(string $q=null, ?string $pixieCode=null, int $limit = 0): array
+    public function getConfigFiles(string $q = null, ?string $pixieCode = null, int $limit = 0): array
     {
+
+        $configs = [];
+        foreach ($this->bundleConfig['pixies'] as $code => $pixie) {
+            if ($q && !str_contains($q, $code)) {
+                continue;
+            }
+            if ($pixieCode && $code !== $pixieCode) {
+                continue;
+            }
+            // @todo: use normalizer, no reason to go to JSON first
+            $yaml = json_encode($pixie);
+            $config = $this->serializer->deserialize(
+                $yaml,
+                Config::class, 'json');
+            $config->setPixieFilename($this->getPixieFilename($code));
+            // eh.
+            $resolvedDataPath = $this->resolveFilename($config->getSourceFilesDir(), 'data');
+            $config->dataDir = $resolvedDataPath;
+
+            $configs[$code] = $config;
+        }
+        return $configs;
+
         $finder = new Finder();
         $finder->depth("<1");
-        $configs  = [];
-        $pattern = $pixieCode ?: ($q?:'*');
+        $configs = [];
+        $pattern = $pixieCode ?: ($q ?: '*');
         // this is only the configs in the configDir.
         foreach ($finder->files()->name("$pattern.yaml")
                      ->in($this->getConfigDir())->sortByName()->reverseSorting() as $file) {
@@ -235,8 +258,17 @@ class PixieService
     // @todo: add custom dataDir, etc.
     public function getConfig(string $pixieCode): ?Config
     {
+        static $configCache=null;
+        if (null === $configCache) {
+            $configCache = $this->getConfigFiles();
+        }
+
+        $config = StorageBox::fix($configCache[$pixieCode]);
+        return $config;
+
+        dd($pixieCode, $this->bundleConfig);
         static $configs = [];
-        if ($config = $configs[$pixieCode]??false) {
+        if ($config = $configs[$pixieCode] ?? false) {
             return $config;
         }
         $configFilename = $this->getConfigFilename($pixieCode);
@@ -246,8 +278,10 @@ class PixieService
         }
         assert(file_exists($configFilename), "$configFilename does not exist");
         try {
-        $configData = Yaml::parseFile($configFilename, Yaml::PARSE_CONSTANT); // so we can use php constants!
-        $yaml = Yaml::dump($configData);
+            $configData = Yaml::parseFile($configFilename, Yaml::PARSE_CONSTANT); // so we can use php constants!
+            $yaml = Yaml::dump($configData);
+
+
 //        $yaml = file_get_contents($configFilename);
 //        $config = $this->denormalizer->denormalize($configData, Config::class);
 //        dd(config: $config, data: $configData);
@@ -259,7 +293,7 @@ class PixieService
             dd($configFilename, $exception->getMessage());
         }
         // if the properties are strings, we need to parse them
-        foreach ($config->getTables() as $tableName=>$table) {
+        foreach ($config->getTables() as $tableName => $table) {
             $properties = [];
             $table->setName($tableName);
             foreach ($table->getProperties() as $propIndex => $propData) {
@@ -268,7 +302,7 @@ class PixieService
                 } else {
                     $property = new Property(
                         index: $propData['index'] ?? null,
-                        code: $propData['name']??dd($propData),
+                        code: $propData['name'] ?? dd($propData),
                         generated: isset($propData['generated']) ? $propData['generated'] : true,
                         initial: $propData['initial'] ?? null,
                         type: $propData['type'] ?? null // maybe default type based on code?
@@ -291,7 +325,7 @@ class PixieService
         assert($config instanceof Config);
 //        assert($config->source, $configFilename . " missing source key");
 //        assert($config->source instanceof Source);
-        foreach ($config->getTables() as $idx=>$table) {
+        foreach ($config->getTables() as $idx => $table) {
             assert($table instanceof Table, "table $idx is not of class Table");
         }
 //        dd($config, $configFilename, $config);
@@ -299,13 +333,14 @@ class PixieService
 //        dd($config);
         return $config;
     }
+
     public function getConfigFilename(string $pixieCode): string
     {
         // @todo: handle non-standard locations
         return $this->getConfigDir() . "/$pixieCode.yaml";
     }
 
-    public function getConfigDir(bool $autoCreate=false): string
+    public function getConfigDir(bool $autoCreate = false): string
     {
         assert(!$autoCreate);
         $dir = $this->configDir;
@@ -333,22 +368,23 @@ class PixieService
     public function addProjectDir(string $s): string
     {
         if (!file_exists($s) && !str_starts_with($s, "/")) {
-            $s  = $this->projectDir . "/$s";
+            $s = $this->projectDir . "/$s";
         }
         return $s;
     }
+
     public function removeProjectDir(string $s): string
     {
         return str_replace($this->projectDir . '/', '', $s);
     }
 
 
-    public function getSourceFilesDir(?string $pixieCode=null,
-                                      ?Config $config=null,
-                                      bool $autoCreate=false,
-                                      bool $throwErrorIfMissing=true,
-    string $dir=null,
-    string $subCode=null
+    public function getSourceFilesDir(?string $pixieCode = null,
+                                      ?Config $config = null,
+                                      bool    $autoCreate = false,
+                                      bool    $throwErrorIfMissing = true,
+                                      string  $dir = null,
+                                      string  $subCode = null
     ): ?string
     {
         assert(!$autoCreate);
@@ -372,7 +408,7 @@ class PixieService
         if ($throwErrorIfMissing) {
             assert(file_exists($dir), "Missing source files dir $dir");
         }
-        return file_exists($dir) ? realpath($dir): null;
+        return file_exists($dir) ? realpath($dir) : null;
 
 
     }
@@ -476,7 +512,7 @@ class PixieService
             $kv->commit();
 
             // dispatch the FIRST valid next transition
-            foreach ($context['nextTransitions']??[] as $transition) {
+            foreach ($context['nextTransitions'] ?? [] as $transition) {
                 if ($workflow->can($row, $transition)) {
                     // apply it? Or dispatch it?  or recursively call this?
                     // since it's been saved (above), we will refetch it when this is recursively called
@@ -503,8 +539,6 @@ class PixieService
         }
 
     }
-
-
 
 
 }

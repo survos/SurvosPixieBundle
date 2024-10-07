@@ -4,18 +4,23 @@
 
     <div>
         {# deal with headlines separately, license, JSON, etc. #}
-        <div class="row g-4 mb-4"> {% for pixieCode, data in tables %}
-                {% with {pixieCode: pixieCode, config: configs[pixieCode], data: data} %}
+        <div class="row g-4 mb-4">
+{#            {% for pixieCode, config in configs %}#}
+{#                <h1>{{ pixieCode }}</h1>#}
 
-                    {{ block('testcard') }}
-                {% endwith %}
+                    {% for pixieCode, data in tables %}
+                        {% with {pixieCode: pixieCode, config: configs[pixieCode], data: data} %}
+                        {{ block('testcard') }}
+                        {% endwith %}
+                    {% endfor %}
 
-            {% endfor %}
+{#            {% endfor %}#}
         </div>
     </div>
 {% endblock %}
 
 {% block testcard %}
+    <h1>{{ pixieCode }}</h1>
     <div class="col-xxl-3 col-sm-6 project-card">
         <div class="card card-height-100 overflow-hidden">
             <div class="p-3 bg-info-subtle">
