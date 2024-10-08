@@ -7,6 +7,7 @@ namespace Survos\PixieBundle;
 use Survos\ApiGrid\Controller\GridController;
 use Survos\CoreBundle\Traits\HasAssetMapperTrait;
 use Survos\PixieBundle\Command\IterateCommand;
+use Survos\PixieBundle\Command\PixieBuildCommand;
 use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Command\PixieIndexCommand;
@@ -130,27 +131,15 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
 
         }
 
-        // check https://github.com/zenstruck/console-extra/issues/59
-        $builder->autowire(PixieIndexCommand::class)
-            ->setAutoconfigured(true)
-            ->addTag('console.command')
-        ;
+        foreach ([PixieIndexCommand::class, PixieExportCommand::class, IterateCommand::class, PixieIndexCommand::class, PixieBuildCommand::class] as $commandClass) {
+            // check https://github.com/zenstruck/console-extra/issues/59
+            $builder->autowire($commandClass)
+                ->setAutoconfigured(true)
+                ->addTag('console.command')
+            ;
+        }
 
-        $builder->autowire(PixieImportCommand::class)
-            ->setAutoconfigured(true)
-            ->addTag('console.command')
-        ;
-        $builder->autowire(IterateCommand::class)
-            ->setAutoconfigured(true)
-            ->addTag('console.command')
-        ;
-        $builder->autowire(PixieExportCommand::class)
-            ->setAutoconfigured(true)
-            ->addTag('console.command')
-        ;
-
-
-        $x = $builder->register(PixieService::class)
+        $builder->register(PixieService::class)
             ->setAutowired(true)
             ->setAutoconfigured(true)
             ->setArgument('$isDebug', $builder->getParameter('kernel.debug'))

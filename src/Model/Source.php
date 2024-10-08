@@ -12,6 +12,7 @@ class Source
         public string $units = 'cm',
         public string $country = 'us',
         public string $instructions = 'installation instructions',
+        public array $build = [],
         public null|string|array $ignore = [],
         public null|string|array $include = [],
         public ?string $propertyCodeRule = 'snake', // during import, snake, camel or preserve keys (for properties)
