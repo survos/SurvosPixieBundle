@@ -279,6 +279,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->children();
 
         $this->addGitSection($source);
+        $this->addBuildSection($source);
         $source
             ->scalarNode('instructions')->end()
             ->scalarNode('units')->info("mm or cm")->defaultValue('cm')->end()
@@ -323,6 +324,22 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                     ->scalarNode('repo')->end()
                     ->booleanNode('lfs')->defaultFalse()->end()
                     ->scalarNode('lsf_include')->end()
+                ->end()
+            ->end();
+    }
+
+    private function addBuildSection(NodeBuilder $sourceRoot): void
+    {
+        $sourceRoot
+            ->arrayNode('build')
+                ->arrayPrototype()
+                    ->children()
+                        ->scalarNode('action')->end()
+                        ->scalarNode('source')->end()
+                        ->scalarNode('target')->end()
+                        ->scalarNode('unzip')->end()
+                        ->scalarNode('cmd')->end()
+                    ->end()
                 ->end()
             ->end();
     }
