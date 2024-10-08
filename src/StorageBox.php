@@ -103,10 +103,14 @@ class StorageBox
         }
     }
 
-    static public function fix(Config $config)
+    static public function fix(Config $config, array $templates=[])
     {
+
         foreach ($config->getTables() as $tableName => $table) {
             $newProperties = [];
+            if ($extends = $table->getExtends()) {
+                dd($templates[$extends]);
+            }
             foreach ($table->getProperties() as $propIndex => $property) {
                 if (is_string($property)) {
                     $property = Parser::parseConfigHeader($property);

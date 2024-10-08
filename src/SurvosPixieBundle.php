@@ -163,16 +163,9 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->setArgument('$logger', new Reference('logger'))
         ;
 
-        foreach ($config['pixies'] as $pixie) {
-
-        }
-
         // register our listener.  We could disable or set priority in the config
         foreach ([TranslationRowEventListener::class, CsvHeaderEventListener::class] as $listenerClass) {
             $builder->register($listenerClass)
-//            ->addTag('kernel.event_listener', [
-//                'method' => 'onCsvHeaderEvent',
-//                'event' => CsvHeaderEvent::class])
                 ->setAutowired(true)
                 ->setAutoconfigured(true)
                 ->setPublic(true)
@@ -186,6 +179,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
         $children = $rootNode->children();  // Start with children() on the root node
 
         $this->addCoresSection($children);
+        $this->addTablesSection($children, 'templates');
         $this->addPixiesSectionChildren($children);
 
         $children->end();  // End the children block
@@ -225,19 +219,24 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->scalarNode('roles')->defaultNull()->end()
             ->end();
 
+        $this->addTablesSection($pixieRoot);
 
+        $this->addSourceSection($pixieRoot);
+    }
 
+    private function addTablesSection(NodeBuilder $pixieRoot, string $key='tables'): void
+    {
         // like pixies, tables are keyed by some value, but have a prototype beneath them of rules, properies, translatableFields, etc.
         // replace this with
-//        $this->addTablesSection($pixies);
-        $pixieRoot->arrayNode('tables')
+        $pixieRoot->arrayNode($key)
             ->arrayPrototype()
             ->children()
             ->integerNode('total')->info("if total is known for progressBar")->defaultNull()->end()
             ->booleanNode('has_images')->info("if images display thumbnail")->defaultTrue()->end()
+            ->scalarNode('extends')->info("inherits table data from templates")->defaultNull()->end()
 
             ->arrayNode('rules')
-                ->scalarPrototype()
+            ->scalarPrototype()
             ->end()
             ->end()
 
@@ -271,12 +270,8 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->end()
             ->end()
 
-        ->end();
-
-
-        $this->addSourceSection($pixieRoot);
+            ->end();
     }
-
     private function addSourceSection(NodeBuilder $pixieRoot): void
     {
         $source = $pixieRoot

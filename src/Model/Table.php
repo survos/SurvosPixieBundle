@@ -20,6 +20,7 @@ class Table
         private array $translatable =[],
         private ?string $indexes=null, // the super-succint dexie-style index defintion, e.g. "id|int,department"
         private ?string $pkName=null,
+        private ?string $extends=null,
         private ?string $workflow=null,
         private ?bool $hasImages=null,
         private ?int $total=null, // if known, speeds up count, especially JSON
@@ -27,6 +28,21 @@ class Table
     )
     {
 
+    }
+
+    public function getExtends(): ?string
+    {
+        return $this->extends;
+    }
+
+    public function getHasImages(): ?bool
+    {
+        return $this->hasImages;
+    }
+
+    public function getParent(): ?string
+    {
+        return $this->parent;
     }
 
     public function isHasImages(): bool

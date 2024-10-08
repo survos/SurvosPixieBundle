@@ -21,6 +21,10 @@ class Config
          * @var array<Table>
          */
         public array $tables=[],
+        /**
+         * @var array<Table>
+         */
+        public array $templates=[],
         private ?string $configFilename=null,
         private string $type=self::TYPE_MUSEUM,
         private string $visibility=self::VISIBILITY_PUBLIC,

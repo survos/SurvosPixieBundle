@@ -209,17 +209,14 @@ class PixieService
 
         $configs = [];
         foreach ($this->bundleConfig['pixies'] as $code => $pixie) {
-            if ($q && !str_contains($q, $code)) {
+            if ($q && !str_contains($code, $q)) {
                 continue;
             }
             if ($pixieCode && $code !== $pixieCode) {
                 continue;
             }
-            // @todo: use normalizer, no reason to go to JSON first
-            $yaml = json_encode($pixie);
-            $config = $this->serializer->deserialize(
-                $yaml,
-                Config::class, 'json');
+//            https://www.strangebuzz.com/en/snippets/converting-an-array-into-an-object-with-the-symfony-serializer
+            $config = $this->serializer->denormalize($pixie, Config::class);
             $config->setPixieFilename($this->getPixieFilename($code));
             // eh.
             $resolvedDataPath = $this->resolveFilename($config->getSourceFilesDir(), 'data');
@@ -263,7 +260,7 @@ class PixieService
             $configCache = $this->getConfigFiles();
         }
 
-        $config = StorageBox::fix($configCache[$pixieCode]);
+        $config = StorageBox::fix($configCache[$pixieCode], $this->bundleConfig['templates']);
         return $config;
 
         dd($pixieCode, $this->bundleConfig);

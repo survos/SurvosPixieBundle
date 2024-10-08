@@ -373,6 +373,7 @@ class PixieController extends AbstractController
         // cache candidate!
         $tables = [];
         foreach ($configs as $pixieCode => $config) {
+            assert($config->getCode(), $pixieCode);
             $kv = $this->pixieService->getStorageBox($pixieCode);
             foreach ($kv->getTables() as $tableName => $table) {
                 // how many items in the table

@@ -41,7 +41,7 @@ final class PixieMenu implements KnpMenuHelperInterface
     }
 
 //    #[AsEventListener(event: KnpMenuEvent::PAGE_MENU)]
-    #[AsEventListener(event: KnpMenuEvent::SIDEBAR_MENU)]
+    #[AsEventListener(event: KnpMenuEvent::NAVBAR_MENU)]
     public function pixiePageMenu(KnpMenuEvent $event): void
     {
         // there must be a pixie.  Messy, because this goes in app, need to add it to the config in pixie
@@ -109,7 +109,7 @@ final class PixieMenu implements KnpMenuHelperInterface
     {
         $menu = $event->getMenu();
         $options = $event->getOptions();
-        return;
+//        return;
 
         // we could put the specific active pixie, and a link to all pixies.
         // use the velzon App pop-up for the tables
@@ -120,7 +120,8 @@ final class PixieMenu implements KnpMenuHelperInterface
         $nestedMenu = $this->addSubmenu($menu, 'PixieBundle');
         foreach (['bundles', 'javascript'] as $type) {
             // $this->addMenuItem($nestedMenu, ['route' => 'survos_base_credits', 'rp' => ['type' => $type], 'label' => ucfirst($type)]);
-//            $this->addMenuItem($nestedMenu, ['uri' => "#$type", 'label' => ucfirst($type)]);
+            $this->addMenuItem($nestedMenu, ['uri' => "#$type", 'label' => ucfirst($type)]);
         }
+        $this->addHeading($menu, $event->getOption('pixieCode')?:'no-pixie');
     }
 }

@@ -17,6 +17,19 @@
 {##}
 {% endblock %}
 
+{% block NAVBAR_MENU %}
+    {{ component('menu', {
+        caller: _self,
+        type: NAVBAR_MENU,
+        wrapperClass: 'fw-bold py-3 mb-4 text-primary d-print-none',
+        options: {
+            pixieCode: pixieCode,
+            tableName: tableName|default(null),
+            itemKey: item.key|default(null)
+        }
+    }) }}
+{% endblock %}
+
 {% block page_header %}
     <div>
                 {{ component('menu', {
