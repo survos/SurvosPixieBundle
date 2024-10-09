@@ -52,6 +52,7 @@ class PixieImportService
         if (!$config) {
             $config = $this->pixieService->getConfig($pixieCode);
         }
+
         // the csv/json files
         $dirOrFilename = $this->pixieService->getSourceFilesDir($pixieCode, subCode: $subCode);
 
@@ -147,7 +148,8 @@ class PixieImportService
                 $table = $tables[$tableName];
                 $pkName = $table->getPkName();
                 assert($pkName, "$tableName does not have a pk");
-                assert($pkName == $kv->getPrimaryKey($tableName), $tableName . ": " . $pkName . "<>" . $kv->getPrimaryKey($tableName));
+                assert($pkName == $kv->getPrimaryKey($tableName),
+                    "$pixieCode / $tableName: " . $pkName . "<>" . $kv->getPrimaryKey($tableName));
                 assert($table instanceof Table, "Invalid table type");
                 $rules = $config->getTableRules($tableName);
                 $kv->map($rules, [$tableName]);

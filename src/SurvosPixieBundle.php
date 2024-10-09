@@ -126,17 +126,22 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
         foreach ([StorageBox::class, TraceableStorageBox::class] as $storageBoxClass) {
             $builder->register($storageBoxClass)
                 ->setAutowired(true)
+                ->setAutoconfigured(true)
                 ->setArgument('$logger', new Reference('logger'))
             ;
 
         }
 
-        foreach ([PixieIndexCommand::class, PixieExportCommand::class, IterateCommand::class, PixieIndexCommand::class, PixieBuildCommand::class] as $commandClass) {
+        foreach ([
+                     PixieImportCommand::class,
+                     PixieExportCommand::class,
+                     IterateCommand::class,
+                     PixieIndexCommand::class,
+                     PixieBuildCommand::class] as $commandClass) {
             // check https://github.com/zenstruck/console-extra/issues/59
             $builder->autowire($commandClass)
                 ->setAutoconfigured(true)
-                ->addTag('console.command')
-            ;
+                ->addTag('console.command');
         }
 
         $builder->register(PixieService::class)

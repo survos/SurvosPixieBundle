@@ -10,8 +10,10 @@ use Meilisearch\Bundle\SearchService;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
+use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 
 final class TraceableStorageBox extends StorageBox
@@ -26,9 +28,11 @@ final class TraceableStorageBox extends StorageBox
                                      private bool                      $temporary = false, // nyi
                                      private readonly ?LoggerInterface $logger = null,
                                      private readonly ?PropertyAccessorInterface  $accessor = null,
+                                     private readonly ?SerializerInterface $serializer=null,
                                      private array                     $formatters = [],
                                      private readonly ?Stopwatch       $stopwatch = null,
-                                     private ?string $pixieCode=null //
+                                     private ?string $pixieCode=null, //
+                                     private array $templates=[],
 
     )
     {

@@ -118,10 +118,11 @@ class PixieService
     {
         if ($event->isTranslation()) {
             $filename = $this->getPixieFilename($event->getPixieCode());
+
             $translationPixieFilename = str_replace('.pixie.db', '-translation.pixie.db', $filename);
             $kv = $this->getStorageBox(
                 PixieInterface::PIXIE_TRANSLATION,
-                $translationPixieFilename
+                filename: $translationPixieFilename,
             );
         } else {
             $kv = $this->getStorageBox(
@@ -141,6 +142,8 @@ class PixieService
     ): StorageBox
     {
         assert(!str_contains($pixieCode, "/"), "pass in pixieCode, not filename");
+//        assert($filename, $pixieCode . " $filename ");
+
         if (!$filename) {
             $filename = $this->getPixieFilename($pixieCode, $subCode);
         }
@@ -171,7 +174,9 @@ class PixieService
                 pixieCode: $pixieCode,
                 accessor: $this->accessor,
                 logger: $this->logger,
-                stopwatch: $this->stopwatch);
+                stopwatch: $this->stopwatch,
+                templates: $this->getTemplates()
+            );
             $this->storageBoxes[$filename] = $kv;
         }
 //        dump($filename, storageBoxes: array_keys($this->storageBoxes));
@@ -218,6 +223,8 @@ class PixieService
 //            https://www.strangebuzz.com/en/snippets/converting-an-array-into-an-object-with-the-symfony-serializer
             $config = $this->serializer->denormalize($pixie, Config::class);
             $config->setPixieFilename($this->getPixieFilename($code));
+
+
             // eh.
             $resolvedDataPath = $this->resolveFilename($config->getSourceFilesDir(), 'data');
             $config->dataDir = $resolvedDataPath;
@@ -252,6 +259,15 @@ class PixieService
 
     }
 
+    public function getTemplates(): array
+    {
+        $templates = [];
+        foreach ($this->bundleConfig['templates'] as $code => $template) {
+            $templates[$code] = $this->serializer->denormalize($template, Table::class);
+        }
+        return $templates;
+
+    }
     // @todo: add custom dataDir, etc.
     public function getConfig(string $pixieCode): ?Config
     {
@@ -260,7 +276,12 @@ class PixieService
             $configCache = $this->getConfigFiles();
         }
 
-        $config = StorageBox::fix($configCache[$pixieCode], $this->bundleConfig['templates']);
+//        if ($extends = $table->getExtends()) {
+//            // deserialize
+//        }
+
+
+        $config = StorageBox::fix($configCache[$pixieCode], $this->getTemplates());
         return $config;
 
         dd($pixieCode, $this->bundleConfig);

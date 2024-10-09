@@ -2,8 +2,6 @@
 
 namespace Survos\PixieBundle\Event;
 
-use App\Entity\Catalog;
-use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Contracts\EventDispatcher\Event;
 

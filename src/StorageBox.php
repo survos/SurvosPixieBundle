@@ -9,15 +9,18 @@ use Doctrine\DBAL\Schema\Schema;
 use JetBrains\PhpStorm\NoReturn;
 use \PDO;
 use Psr\Log\LoggerInterface;
+use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\PixieBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Index;
 use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Model\Table;
+use Survos\PixieBundle\Service\PixieService;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 use function PHPUnit\Framework\directoryExists;
 use function Symfony\Component\String\u;
@@ -62,9 +65,11 @@ class StorageBox
                                      private bool                                $temporary = false, // nyi
                                      private readonly ?LoggerInterface           $logger = null,
                                      private readonly ?PropertyAccessorInterface $accessor = null,
+                                     private readonly ?SerializerInterface $serializer=null,
                                      private array                               $formatters = [],
                                      private readonly ?Stopwatch                 $stopwatch = null,
-                                     private readonly ?string                    $pixieCode = null //
+                                     private readonly ?string                    $pixieCode = null, //
+                                     private array $templates=[],
     )
     {
         $path = $this->filename;
@@ -96,7 +101,7 @@ class StorageBox
             }
         }
 
-        $this->config = self::fix($this->config);
+        $this->config = self::fix($this->config, $this->templates);
         // fix until we fix in the definition parser
         if ($this->config) {
             $this->createTables($this->config);
@@ -105,25 +110,57 @@ class StorageBox
 
     static public function fix(Config $config, array $templates=[])
     {
-
+        // we are over-calling fix!
+        static $fixed=[];
+        if (in_array($config->code, $fixed)) {
+            return $config;
+        }
+        $fixed[] = $config->code;
         foreach ($config->getTables() as $tableName => $table) {
             $newProperties = [];
             if ($extends = $table->getExtends()) {
-                dd($templates[$extends]);
+                SurvosUtils::assertKeyExists($extends, $templates);
+                foreach ($templates[$extends]->getProperties() as $propIndex => $property) {
+                    // better probably to push the properties to table rather than repeating this code.
+                    if (is_string($property)) {
+                        $property = Parser::parseConfigHeader($property);
+                        $newProperties[] = $property;
+                    }
+                    if ($propIndex == 0) {
+                        $primaryKey = $property->getCode();
+                        $table->setPkName($primaryKey);
+                        $property->generated = false;
+                        $property->setIndex('PRIMARY');
+//                        $tableName=='image' && dump($propIndex, $property);
+//                        $tableName=='image' && dd($property);
+                    }
+                }
             }
+            // now the pixie-specific properties
             foreach ($table->getProperties() as $propIndex => $property) {
                 if (is_string($property)) {
                     $property = Parser::parseConfigHeader($property);
                     $newProperties[] = $property;
+                } else {
+                    $newProperties[] = $property;
                 }
-                if ($propIndex == 0) {
+//                $tableName=='image' && dd($table);
+                if ( (!$table->getPkName()) && $propIndex == 0) {
                     $primaryKey = $property->getCode();
                     $table->setPkName($primaryKey);
                     $property->setIndex('PRIMARY');
                 }
             }
 
-            $config->tables[$tableName]->setProperties($newProperties);
+//            $tableX = $config->tables[$tableName];
+            $table->setProperties($newProperties);
+            $table->setName($tableName);
+            assert($table->getPkName(), $tableName);
+//            $tableName=='image' && dump(__LINE__, __METHOD__, $newProperties, $table->getPkName());
+//            dd($tableX, $table);
+            assert(count($newProperties), "no new properties $tableName");
+            assert(count($table->getProperties()), $tableName);
+            $config->tables[$tableName] = $table;
         }
         return $config;
 
@@ -413,7 +450,6 @@ class StorageBox
     {
         $columns = [];
         $indexes = $this->getIndexDefinitions($table->getIndexes());
-        $properties = [];
         // by this point, the table properties are already objects
         // really it's propertyDataArray
 
@@ -426,6 +462,8 @@ class StorageBox
         }
 
         $propertyIndexes = [];
+        $properties = [];
+//        $tableName=='image' && dump(count($table->getProperties()));
         foreach ($table->getProperties() as $property) {
             $propertyCode = $property->getCode();
             assert($property::class === Property::class);
@@ -441,8 +479,15 @@ class StorageBox
             }
             // hack, property->setIndex would be better.
             if ($property->getIndex()) {
-                $propertyIndexes[$property->getCode()] = new Index($property->getCode(),
+                if (array_key_exists($propertyCode, $propertyIndexes)) {
+                    continue;
+                }
+                $tableName=='image' && dump($property);
+                assert(!array_key_exists($propertyCode, $propertyIndexes), "$propertyCode already exists.");
+
+                $propertyIndexes[$propertyCode] = new Index($property->getCode(),
                     isPrimary: $property->getIndex() === 'PRIMARY');
+                $tableName=='image' && ($property->getCode()==='key') && dump(keyIndex: $propertyIndexes[$property->getCode()]);
             }
             $properties[] = $property; // now with the index
         }
@@ -451,12 +496,14 @@ class StorageBox
          * @var int $indexId
          * @var Index $index
          */
+
         foreach ($properties as $idx => $property) {
             $name = $property->getCode();
             $index = $propertyIndexes[$name] ?? null;
             // @todo: handle auto-increment
             if ($index) {
                 $type = $property->getType();
+//                $tableName=='image' && dd($type, $property, $propertyIndexes);
                 if ($index->isPrimary) {
                     $primaryKey = "$name $type PRIMARY KEY";
                     $columns[$name] = $primaryKey;
@@ -518,7 +565,7 @@ class StorageBox
 
 //        assert($this->getPrimaryKey($tableName), "missing pk " . $sql);
 //        if (str_contains($sql, 'student')) dd($sql, $result);
-//        dd($sql);
+//        $tableName=='image' && dd($sql);
     }
 
     private function log($msg)
