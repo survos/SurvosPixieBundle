@@ -210,7 +210,10 @@ class PixieImportService
                             json_encode($row, JSON_PRETTY_PRINT));
                     }
                     if (!$row[$pkName]) {
-                        dd($row, $pkName, $idx);
+                        // e.g. empty excel rows.  Could handle in the grid:excel-to-csv
+                        $this->logger->error("Empty pk, skipping row " . $idx);
+                        continue;
+//                        dd($row, $pkName, $idx);
                     }
                     SurvosUtils::assertKeyExists($pkName, $row, "in $fn");
                     assert($row[$pkName], "no primary key in $tableName row " . json_encode($row, JSON_PRETTY_PRINT));

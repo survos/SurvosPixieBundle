@@ -49,7 +49,12 @@ final class PixieMenu implements KnpMenuHelperInterface
         if (!$pixieCode = $event->getOption('pixieCode')) {
             return; // pixie  browse should be handled outside of this menu.
         }
+
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return;
+        }
         $this->add($menu, 'pixie_browse_configs');
+
             $this->addHeading($menu, $pixieCode);
             foreach (['pixie_schema'] as $pixieRoute) {
                 $this->add($menu, $pixieRoute, ['pixieCode' => $pixieCode]);
@@ -91,8 +96,8 @@ final class PixieMenu implements KnpMenuHelperInterface
                 }
         }
 
-        if ($tableName) {
-            $this->addHeading($menu, label: "Breadcrumbs!");
+        if ($tableName && $this->isGranted('ROLE_ADMIN')) {
+            $this->addHeading($menu, label: "Pixie Breadcrumbs!");
             $tableRp = ['tableName' => $tableName, 'pixieCode' => $pixieCode];
             $this->add($menu, 'pixie_meili_browse', $tableRp, label: 'Search ' . $tableName);
             if ($key = $event->getOption('itemKey')) {
@@ -109,7 +114,7 @@ final class PixieMenu implements KnpMenuHelperInterface
     {
         $menu = $event->getMenu();
         $options = $event->getOptions();
-//        return;
+        return;
 
         // we could put the specific active pixie, and a link to all pixies.
         // use the velzon App pop-up for the tables
