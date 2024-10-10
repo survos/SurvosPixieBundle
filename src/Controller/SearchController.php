@@ -250,6 +250,7 @@ class SearchController extends AbstractController
         return $this->render('owner/labels.html.twig', [
             '_locale' => $request->getLocale(),
             'properties' => $properties,
+            'tableName' => $tableName,
             'items' => $items->getHits(),
             'owner' => $owner
         ]);
