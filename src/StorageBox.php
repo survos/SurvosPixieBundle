@@ -482,12 +482,11 @@ class StorageBox
                 if (array_key_exists($propertyCode, $propertyIndexes)) {
                     continue;
                 }
-                $tableName=='image' && dump($property);
                 assert(!array_key_exists($propertyCode, $propertyIndexes), "$propertyCode already exists.");
 
                 $propertyIndexes[$propertyCode] = new Index($property->getCode(),
                     isPrimary: $property->getIndex() === 'PRIMARY');
-                $tableName=='image' && ($property->getCode()==='key') && dump(keyIndex: $propertyIndexes[$property->getCode()]);
+//                $tableName=='image' && ($property->getCode()==='key') && dump(keyIndex: $propertyIndexes[$property->getCode()]);
             }
             $properties[] = $property; // now with the index
         }

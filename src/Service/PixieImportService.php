@@ -206,7 +206,7 @@ class PixieImportService
                     // just check the first row
                     if ($idx == 0) {
                         assert(array_key_exists($pk, $row),
-                            $tableName . " should have primaryKey $pk  " .
+                            $tableName . " should have primaryKey `$pk`  " .
                             json_encode($row, JSON_PRETTY_PRINT));
                     }
                     if (!$row[$pkName]) {
