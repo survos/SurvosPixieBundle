@@ -67,7 +67,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-
+//        dd($config['pixies']['ajs']);
         $builder->register(PixieImportService::class)
             ->setAutowired(true)
             ->setArgument('$logger', new Reference('logger'))
@@ -278,6 +278,9 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->scalarNode('instructions')->end()
             ->scalarNode('units')->info("mm or cm")->defaultValue('cm')->end()
             ->scalarNode('label')->end()
+            ->scalarNode('flickr_album_id')->end()
+            ->scalarNode('license')->info("license in md format, e.g. 'CC BY-NC-SA' ")->end()
+            ->scalarNode('moderation')->defaultValue('all')->info("moderate before flickr upload (none|all)")->end()
             ->scalarNode('description')->end()
             ->scalarNode('origin')->info("data source, e.g. api, github, musdig")->end()
             // @todo: validate country and locale

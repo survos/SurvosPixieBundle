@@ -120,6 +120,11 @@ class StorageBox
             $newProperties = [];
             if ($extends = $table->getExtends()) {
                 SurvosUtils::assertKeyExists($extends, $templates);
+                /** @var Table $templateTable */
+                $templateTable = $templates[$extends];
+                if ($templateTable->getWorkflow()) {
+                    $table->setWorkflow($templateTable->getWorkflow());
+                }
                 foreach ($templates[$extends]->getProperties() as $propIndex => $property) {
                     // better probably to push the properties to table rather than repeating this code.
                     if (is_string($property)) {

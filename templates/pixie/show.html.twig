@@ -227,17 +227,17 @@
         </ul>
     </details>
 
-    <details>
-        <summary>
-            <h1>Debug information, mostly for checking fields</h1>
-
-        </summary>
 
         {{ include(["pixie/%s/%s.html.twig"|format(pixieCode, tableName),  "pixie/%s.html.twig"|format(pixieCode)], {
             item: row,
             data: row.data,
             kv: kv|default(null)
         }, ignore_missing=true) }}
+    <details>
+        <summary>
+            <h1>Debug information, mostly for checking fields</h1>
+
+        </summary>
 
         {% if row %}
             <h3>{{ tableName }} Properties</h3>
