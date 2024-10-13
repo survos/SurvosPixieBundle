@@ -7,7 +7,7 @@ namespace Survos\PixieBundle;
 use Survos\ApiGrid\Controller\GridController;
 use Survos\CoreBundle\Traits\HasAssetMapperTrait;
 use Survos\PixieBundle\Command\IterateCommand;
-use Survos\PixieBundle\Command\PixieBuildCommand;
+use Survos\PixieBundle\Command\PixieMakeCommand;
 use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Command\PixieIndexCommand;
@@ -137,7 +137,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                      PixieExportCommand::class,
                      IterateCommand::class,
                      PixieIndexCommand::class,
-                     PixieBuildCommand::class] as $commandClass) {
+                     PixieMakeCommand::class] as $commandClass) {
             // check https://github.com/zenstruck/console-extra/issues/59
             $builder->autowire($commandClass)
                 ->setAutoconfigured(true)
@@ -273,7 +273,9 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->children();
 
         $this->addGitSection($source);
-        $this->addBuildSection($source);
+        $this->addBuildSection($source, 'build');
+        $this->addBuildSection($source, 'make');
+
         $source
             ->scalarNode('instructions')->end()
             ->scalarNode('units')->info("mm or cm")->defaultValue('cm')->end()
@@ -282,7 +284,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->scalarNode('license')->info("license in md format, e.g. 'CC BY-NC-SA' ")->end()
             ->scalarNode('moderation')->defaultValue('all')->info("moderate before flickr upload (none|all)")->end()
             ->scalarNode('description')->end()
-            ->scalarNode('origin')->info("data source, e.g. api, github, musdig")->end()
+            ->scalarNode('origin')->isRequired()->info("data source, e.g. api, github, musdig")->end()
             // @todo: validate country and locale
             ->scalarNode('country')->info("2-letter country code")->end()
             ->scalarNode('locale')->end()
@@ -292,7 +294,9 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
 
         $links = $source->arrayNode('links')->children();
         # this isn't right.
-        foreach (['facebook', 'twitter','github','instagram','flickr', 'api', 'contact', 'license', 'website', 'search','info'] as $socialMedia) {
+        foreach (['facebook', 'twitter','github','instagram','flickr', 'api', 'contact', 'license',
+                     'web',
+                     'website', 'search','info'] as $socialMedia) {
             $links->scalarNode($socialMedia)->end();
         }
 
@@ -325,10 +329,10 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->end();
     }
 
-    private function addBuildSection(NodeBuilder $sourceRoot): void
+    private function addBuildSection(NodeBuilder $sourceRoot, string $nodeName='build'): void
     {
         $sourceRoot
-            ->arrayNode('build')
+            ->arrayNode($nodeName)
                 ->arrayPrototype()
                     ->children()
                         ->scalarNode('action')->end()

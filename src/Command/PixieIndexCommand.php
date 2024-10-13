@@ -7,6 +7,7 @@ use App\Service\TranslationService;
 use Meilisearch\Endpoints\Indexes;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Service\MeiliService;
+use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\PixieBundle\Event\IndexEvent;
 use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Model\Config;
@@ -178,8 +179,12 @@ final class PixieIndexCommand extends InvokableServiceCommand
 ////                unset($data['keyedTranslations']);
 //                }
 
-                // or slugify?  Key can't have
-                $data->pixie_key = $this->asciiSlugger->slug(sprintf("%s_%s", $tableName, $row->getKey()));
+                // slugify the pixie key, which might be a filename like obj1.jpg
+                $data->pixie_key = $this->asciiSlugger->slug($row->getKey())->toString();
+
+                // or add the table_name to the key if multiple tables exist in one index.
+//                $data->pixie_key = $this->asciiSlugger->slug(sprintf("%s_%s", $tableName, $row->getKey()))->toString();
+
                 $data->coreId = $tableName;
                 $data->table = $tableName;
                 $data->rp = [
@@ -187,6 +192,8 @@ final class PixieIndexCommand extends InvokableServiceCommand
                     'tableName'  =>  $tableName,
                     'key'       =>  $row->getKey(),
                 ];
+//                SurvosUtils::cleanNullsOfObject($data);
+
                 $recordsToWrite[] = $data;
 //                if (++$batchCount >= $batchSize) {
 //                    $batchCount = 0;

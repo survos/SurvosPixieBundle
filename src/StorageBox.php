@@ -118,6 +118,7 @@ class StorageBox
         $fixed[] = $config->code;
         foreach ($config->getTables() as $tableName => $table) {
             $newProperties = [];
+//            $tableName=='obj' && dd($config, $table, $tableName, $newProperties);
             if ($extends = $table->getExtends()) {
                 SurvosUtils::assertKeyExists($extends, $templates);
                 /** @var Table $templateTable */

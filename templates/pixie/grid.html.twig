@@ -18,6 +18,7 @@
     {% set globals = {
         locale: app.locale,
         pixieCode: pixieCode,
+        attrs: attrs,
         showPath: show_path,
         showParams: show_params??{locale: app.locale},
         icons: {
@@ -32,13 +33,16 @@
         }
     } %}
     <div class="search_builder">
-    <twig:api_grid
+
+        {# this would be better separated  #}
+        <twig:api_grid
             :class="class"
             :apiGetCollectionUrl="apiUrl"
             :caller="_self"
             :filter="filter"
             :buttons="buttons|default([])"
-            :columns="columns"
+            :columns="columns|merge(attrs)"
+            :facet_columns="attrs"
             :globals="globals"
     >
         <twig:block name="thumbnail">
@@ -60,6 +64,20 @@
             &nbsp;
         </twig:block>
         <twig:block name="attrs">
+            <ul class="list-inline">
+
+            {% for attr in globals.attrs %}
+                {% set value = row[attr.name]|default(false) %}
+                {% if value %}
+                <li class="list-inline-itemxx">
+                    {{ attr.name }}
+                <span class="{{ attr.name }}" title="{{ attr.name }}">
+                    {{ row[attr.name] }}
+                </span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            </ul>
         </twig:block>
         <twig:block name="tombstone">
             {% set svg = globals.icons['github'] %}
@@ -91,14 +109,16 @@
                     {% if row[x]??false %}
                         <a class="d-flex align-items-center gap-2" href="{{ row[x] }}" title="{{ x }}" target="_blank">
                             {#                        {{ globals|json_encode }}#}
+                            {% set label = row[x]|replace({'https://':'', 'http://':'', 'www.':''}) %}
                             <span title="{{ x }}">
                             {% if x in globals.icons|keys %}
                                 {{ globals.icons[x] }}
                             {% else %}
                                 {{ x }}
                             {% endif %}
-                            {% set label = row[x]|replace({'https://':'', 'http://':'', 'www.':''}) %}
-                            {{ label }}
+                                {% if (x=='citation') and (label|length < 22) %}
+                                {{ label }}
+                                    {% endif %}
 
                             </span>
                         </a>

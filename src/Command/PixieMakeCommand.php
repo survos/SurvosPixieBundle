@@ -24,8 +24,8 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
 
-#[AsCommand('pixie:build', "Execute the build steps to create csv/json")]
-final class PixieBuildCommand extends InvokableServiceCommand
+#[AsCommand('pixie:make', "Execute the build steps to create csv/json")]
+final class PixieMakeCommand extends InvokableServiceCommand
 {
     use RunsCommands;
     use RunsProcesses;
@@ -50,35 +50,46 @@ final class PixieBuildCommand extends InvokableServiceCommand
         PixieService                                          $pixieService,
         PixieImportService                                    $pixieImportService,
         #[Argument(description: 'config code')] string        $pixieCode,
+        #[Option(description: 'build from source')] ?bool $build,
+        #[Option(description: 'dry run, just show commands')] ?bool $dry,
 
     ): int
     {
         $this->initialized = true;
         $config = $pixieService->getConfig($pixieCode);
-
+        $build = $build??false;
+        $commands = [];
+        if ($build) {
         foreach ($config->getSource()->build as $key => $step) {
             switch ($step['action']) {
                 case 'fetch':
-                    $url = $step['source'];
-                    $io->writeln("Fetching $url...");
-                    // download to the right location...
-//                    $this->httpClient->get()
+                    $this->fetch($step['source'], $step['destination']);
                     break;
                 case 'cmd':
                     $command = $step['cmd'];
-                    $io->writeln("running $command...");
                     $command = str_replace('$code$', $pixieCode, $command);
-                    $this->runCommand($command);
+                    $io->writeln("running $command...");
+//                    $this->runCommand($command);
                     break;
                 default:
                     assert(false, $step['action']);
 //)
             }
         }
+        }
 
 
         $io->success($this->getName() . ' success ' . $pixieCode);
         return self::SUCCESS;
+    }
+
+    private function fetch(string $url, string $destination): void
+    {
+        $this->io()->writeln("Fetching $url...");
+        // download to the right location...
+//                    $this->httpClient->get()
+
+
     }
 
 

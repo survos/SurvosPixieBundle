@@ -24,7 +24,7 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
 
-#[AsCommand('pixie:import', 'Import csv to Pixie, a file or directory of files"', aliases: ['import'])]
+#[AsCommand('pixie:import', 'Import csv to Pixie, a file or directory of files"', aliases: ['import','p:imp'])]
 final class PixieImportCommand extends InvokableServiceCommand
 {
     use RunsCommands;

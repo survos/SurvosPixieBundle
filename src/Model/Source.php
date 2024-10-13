@@ -11,6 +11,7 @@ class Source
         public ?string $locale = null, // in case it's not known during load.
         public string $units = 'cm',
         public string $country = 'us',
+        public ?string $origin=null,
         public ?string $flickr_album_id = null,
         public ?string $license = null,
         public ?string $moderation = null,

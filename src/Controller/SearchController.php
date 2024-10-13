@@ -95,6 +95,7 @@ class SearchController extends AbstractController
         $config = $this->pixieService->getConfig($pixieCode);
         $table = $config->getTable($tableName);
         assert($table, "Missing $tableName in $pixieCode");
+        $footerColumns  = $attrColumns = $textColumns = [];
         $gridColumns = [
             new Column(
                 name: 'chevron',
@@ -122,11 +123,11 @@ class SearchController extends AbstractController
                 className: 'tombstone-heading',
                 browsable: false
             ),
-//            new Column(
-//                name: 'attrs',
-//                className: 'tombstone-heading',
-//                browsable: false
-//            ),
+            new Column(
+                name: 'attrs',
+                className: 'tombstone-heading',
+                browsable: false
+            ),
         ]);
 
 //        foreach ($table->getTranslatable() as $field) {
@@ -143,11 +144,18 @@ class SearchController extends AbstractController
                 continue;
             }
 
+            $browsable = $property->getIndex()=='INDEX'
+                || $property->isRelation()
+                || $property->getListTableName();
+
             $column = new Column(
                 name: $property->getCode(),
-                browsable: $property->getIndex()=='INDEX' || $property->isRelation() || $property->getListTableName(),
+                browsable: $browsable,
                 sortable: $property->getIndex()=='INDEX',
             );
+            if ($browsable) {
+                $column->order=0; // disable
+            }
             if ($property->isRelation()) {
 //                dd($property, $column);
             }
@@ -160,12 +168,18 @@ class SearchController extends AbstractController
             }
 
             if (in_array($property->getCode(), $table->getTranslatable())) {
+                $textColumns[] = $column;
                 // hmm
+            } elseif ($property->getSetting('footer')) {
+                $footerColumns[] = $column;
             } else {
                 if ($column->sortable || $column->browsable) {
-                    $gridColumns[] = $column;
+                    $attrColumns[] = $column;
                 }
             }
+
+            // since attr, text and footers are now displayed in tombstone or attrs, we can hide them from the grid.
+
         }
 //        https://mus.wip/api/meili/belvedere/object/mus_pixie_belvedere
 //        return $this->render('@SurvosPixie/pixie/grid.html.twig',
@@ -176,6 +190,9 @@ class SearchController extends AbstractController
                 'apiUrl' => $apiUrl,
                 'pixieCode' => $pixieCode,
                 'columns' => $gridColumns,
+                'attrs' => $attrColumns,
+                'text_properties' => $textColumns,
+                'tombstone_footer' => $footerColumns,
                 'class' => MeiliItem::class,
                 'tableName' => $tableName,
                 'filter' => [], // only if we are able to merge the meili indexes ['table' => $tableName]

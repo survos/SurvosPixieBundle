@@ -85,6 +85,7 @@ class PixieController extends AbstractController
                 break;
             }
         }
+        assert($property, $propertyCode);
 
         $chart = $this->getChartData($property, $tableName, $kv, limit:  $limit);
         return

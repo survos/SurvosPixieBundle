@@ -220,6 +220,7 @@ class PixieService
             if ($pixieCode && $code !== $pixieCode) {
                 continue;
             }
+
 //            https://www.strangebuzz.com/en/snippets/converting-an-array-into-an-object-with-the-symfony-serializer
             $config = $this->serializer->denormalize($pixie, Config::class);
             $config->setPixieFilename($this->getPixieFilename($code));
