@@ -87,7 +87,9 @@
                 {% set pixieItemUrl = path(globals.showPath, lrp) %}
                 <div >
                     <a href="{{ pixieItemUrl }}">
-                        <b class="line-limit-1">{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>
+                        {#  @todo: require label! add display? #}
+                        <b class="line-limit-1">{{ row.label|default('~') }}</b>
+{#                        <b class="line-limit-1">{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>#}
                     </a>
                 </div>
 
