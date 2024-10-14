@@ -88,15 +88,15 @@
                 <div >
                     <a href="{{ pixieItemUrl }}">
                         {#  @todo: require label! add display? #}
-                        <b class="line-limit-1">{{ row.label|default('~') }}</b>
-{#                        <b class="line-limit-1">{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>#}
+{#                        <b class="line-limit-1">{{ row.label|default('~') }}</b>#}
+                        <b class="line-limit-1">{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>
                     </a>
                 </div>
 
                 <div class="line-limit-2">
-                    {{ row.description }}
+                    {{ row.description|default('~') }}
                 </div>
-                {% if row.citation %}
+                {% if row.citation|default(false) %}
                     <a href="{{ row.citation }}" target="_blank">
                         {{ row.credit }}
                     </a>
@@ -113,14 +113,15 @@
                             {#                        {{ globals|json_encode }}#}
                             {% set label = row[x]|replace({'https://':'', 'http://':'', 'www.':''}) %}
                             <span title="{{ x }}">
+
                             {% if x in globals.icons|keys %}
-                                {{ globals.icons[x] }}
+                                {{ globalxxs.icons[x]|default(x) }}
                             {% else %}
                                 {{ x }}
                             {% endif %}
-                                {% if (x=='citation') and (label|length < 22) %}
-                                {{ label }}
-                                    {% endif %}
+{#                                {% if (x=='citation') and (label|length < 22) %}#}
+{#                                {{ label }}#}
+{#                                {% endif %}#}
 
                             </span>
                         </a>
