@@ -67,7 +67,6 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-//        dd($config['pixies']['ajs']);
         $builder->register(PixieImportService::class)
             ->setAutowired(true)
             ->setArgument('$logger', new Reference('logger'))
@@ -221,12 +220,12 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
     private function addTablesSection(NodeBuilder $pixieRoot, string $key='tables'): void
     {
         // like pixies, tables are keyed by some value, but have a prototype beneath them of rules, properies, translatableFields, etc.
-        // replace this with
         $pixieRoot->arrayNode($key)
+//            ->useAttributeAsKey('name')
             ->arrayPrototype()
             ->children()
             ->integerNode('total')->info("if total is known for progressBar")->defaultNull()->end()
-            ->booleanNode('has_images')->info("if images display thumbnail")->defaultTrue()->end()
+            ->booleanNode('has_images')->info("if images display thumbnail")->defaultNull()->end()
             ->scalarNode('extends')->info("inherits table data from templates")->defaultNull()->end()
 
             ->arrayNode('rules')
@@ -250,14 +249,16 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->arrayNode('extras')->info("extras column")->scalarPrototype()->end()->end()
 
             ->arrayNode('properties')
-            ->beforeNormalization()
-            ->ifArray()
-            ->then(function ($v) {dd($v); })
-//            ->end()
 
-            ->ifString()
-            ->then(fn($propData) => dd(Parser::parseConfigHeader($propData)))
+            ->beforeNormalization()
+                ->ifString()
+                    ->then(function (string $v): array { dd($v); return ['name' => $v]; })
+                ->ifArray()
+                    ->then(function ($v) {dd($v); })
+                ->ifString()
+                    ->then(fn($propData) => dd(Parser::parseConfigHeader($propData)))
             ->end()
+
             ->scalarPrototype()->defaultValue(["*.zip"])->end()
 
             ->scalarPrototype()

@@ -27,7 +27,6 @@ class Table
         private ?string $parent=null, // one ManyToOne, e.g. Artwork or Objekt in the 'image' table
     )
     {
-//        if ($this->has_images === false) dd($this, $this->name);
     }
 
     public function getExtends(): ?string

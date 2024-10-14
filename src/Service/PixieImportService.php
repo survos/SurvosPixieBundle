@@ -216,7 +216,7 @@ class PixieImportService
                         $unhandledKeys = array_diff($x =array_keys((array)$row), $y = array_keys($mappedRow));
                         foreach ($unhandledKeys as $newKey) {
                             if (!array_key_exists($newKey, $reverse)) {
-                                dd($newKey);
+                                assert(false, "$newKey missing in $tableName");
                                 $mappedRow[$newKey] = $row->{$newKey} ?? null;
                             } else {
                             }

@@ -80,7 +80,6 @@
             </ul>
         </twig:block>
         <twig:block name="tombstone">
-            {% set svg = globals.icons['github'] %}
             <div class="tombstone custom-heading text-truncate-four-lines">
                 {# really the translatable fields #}
                 {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}, globals.showParams) %}
@@ -94,18 +93,18 @@
                 </div>
 
                 <div class="line-limit-2">
-                    {{ row.description|default('~') }}
+                    {{ row.description|default('') }}
                 </div>
                 {% if row.citation|default(false) %}
                     <a href="{{ row.citation }}" target="_blank">
-                        {{ row.credit }}
+                        {{ row.credit|default(row.citation) }}
                     </a>
                 {% endif %}
 {#                {{ globals.icons|json_encode|raw }}#}
             </div>
 
 {#                @tombstone links#}
-            <div xclass='d-flex justify-content-between align-items-center gap-2'>
+            <div class='d-flex justify-content-between align-items-center gap-2'>
 {#                'rights',#}
                 {% for x in ['url','github','api','wiki','ds1','citation'] %}
                     {% if row[x]??false %}
@@ -115,7 +114,7 @@
                             <span title="{{ x }}">
 
                             {% if x in globals.icons|keys %}
-                                {{ globalxxs.icons[x]|default(x) }}
+                                {{ globals.icons[x]|default(x) }}
                             {% else %}
                                 {{ x }}
                             {% endif %}
@@ -131,12 +130,10 @@
         </twig:block>
 
         <twig:block name="pixie_key">
-
-            {# really we need the pk #}
             {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}) %}
             {% set pixieItemUrl = path('pixie_show_record', lrp) %}
             <a href="{{ pixieItemUrl }}">
-4                @<code>{{ row.id|default(row.code|default('~')) }}</code>
+                <code>{{ row.id|default(row.code|default('~')) }}</code>
             </a>
         </twig:block>
         <twig:block name="id">
