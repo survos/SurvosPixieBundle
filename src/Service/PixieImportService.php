@@ -162,8 +162,16 @@ class PixieImportService
                 // takes a function that will iterate through an object
 //            $kv->addFormatter(function());
 
-                if (isset($headers))
-                    assert(count($headers) == count(array_unique($headers)), json_encode($headers));
+                if (isset($headers)) {
+                    if (count($headers) !== count(array_unique($headers))) {
+//                        dd($headers, array_unique($headers));
+                        asort($headers);
+                        dd($headers);
+                        }
+                }
+//                    assert(),
+//                        "look for duplicate key!\n" .
+//                        json_encode($headers, JSON_PRETTY_PRINT));
                 // don't parse the header match each time, store them
 //            $regexRules = $configData['tables'][$tableName]['formatter'] ?? [];
                 // why not mapped headers?
@@ -194,12 +202,27 @@ class PixieImportService
                         continue;
                     }
 
-                    // if it's json, remap the keys
+                    // if it's json, remap the keys.
+                    $reverse = array_flip($headers);
                     if ($ext === 'json') {
                         $mappedRow = [];
+                        // if new values after first row
+                        $remainingHeaders = array_keys((array)$row);
                         foreach ($headers as $header => $headerOrig) {
                             $mappedRow[$header] = $row->{$headerOrig} ?? null;
                         }
+
+                        // handle keys that aren't in the mapped header, which is too dependent on the first row data
+                        $unhandledKeys = array_diff($x =array_keys((array)$row), $y = array_keys($mappedRow));
+                        foreach ($unhandledKeys as $newKey) {
+                            if (!array_key_exists($newKey, $reverse)) {
+                                dd($newKey);
+                                $mappedRow[$newKey] = $row->{$newKey} ?? null;
+                            } else {
+                            }
+                        }
+                        // if there are new headers, add them
+//                        dd(row: $row, mappedRow: $mappedRow, );
                         $row = $mappedRow;
                     }
 
@@ -412,6 +435,13 @@ class PixieImportService
                 $iterator = $csvReader->getRecords($headerKeys);
             } catch (SyntaxError $error) {
                 dd($headers, $error->getMessage());
+            }
+        } else {
+            // if it's json, we might be missing headers, so add them if it's in the table
+            foreach ($table->getProperties() as $property) {
+                if (!array_key_exists($propertyCode = $property->getCode(), $headers)) {
+                    $headers[$propertyCode] = $propertyCode;
+                }
             }
         }
 

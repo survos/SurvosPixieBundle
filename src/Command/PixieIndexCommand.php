@@ -195,6 +195,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //                SurvosUtils::cleanNullsOfObject($data);
 
                 $recordsToWrite[] = $data;
+//                $row->getKey() == 56185 && dd(dataToWrite: $data, row: $row;
 //                if (++$batchCount >= $batchSize) {
 //                    $batchCount = 0;
 //                    $index->addDocuments($recordsToWrite);
