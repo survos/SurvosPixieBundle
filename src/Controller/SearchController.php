@@ -226,6 +226,20 @@ class SearchController extends AbstractController
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
+
+            // @todo: the search!
+
+//            if ($data['slideshow'])
+            {
+                // hack, we just need some images
+
+                return $this->redirectToRoute('owner_slideshow',
+                    $data + [
+                        'pixieCode' => $pixieCode,
+                        'tableName' => $tableName,
+                        'ownerId' => $owner->getId()]);
+
+            }
             return $this->redirectToRoute('owner_label_report',
                 $data + [
                     'pixieCode' => $pixieCode,
@@ -236,6 +250,29 @@ class SearchController extends AbstractController
         return $this->render('owner/label-form.html.twig', get_defined_vars() + [
                 'form' => $form->createView(),
             ]);
+    }
+
+    #[Route('/{ownerId}/slideshow', name: 'owner_slideshow')]
+    public function slideshow(Request $request,
+                                 string $tableName,
+                                 string $pixieCode,
+                                 Owner $owner): Response
+    {
+        // pixieCode should allow slashes for subCode, this won't work with md
+        $pixieCode = $owner->getPixieCode();
+        // @todo: get filtered data
+        $kv = $this->pixieService->getStorageBox($owner->getPixieCode());
+        $properties = $kv->getTable($tableName)->getProperties();
+        $items = $kv->iterate($tableName, max: 30);
+
+        return $this->render('owner/slideshow.html.twig', [
+            '_locale' => $request->getLocale(),
+            'properties' => $properties,
+            'tableName' => $tableName,
+            'items' => $items,
+            'owner' => $owner
+        ]);
+
     }
 
     #[Route('/{ownerId}/report', name: 'owner_label_report')]
