@@ -4,6 +4,7 @@ namespace Survos\PixieBundle;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
+// consider: https://github.com/morris/dop for binding arrays as parameters and sub-queries
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Schema\Schema;
 use JetBrains\PhpStorm\NoReturn;
@@ -913,6 +914,7 @@ class StorageBox
 
         // https://stackoverflow.com/questions/920353/can-i-bind-an-array-to-an-in-condition-in-a-pdo-query
         if (is_array($pks) && count($pks)) {
+            // create key1, key2, for the IN statement and set the params
             foreach ($pks as $idx => $pkValue) {
                 $pkKeys[] = ":" . ($keyName = "key$idx");
                 $params[$keyName] = $pkValue;
