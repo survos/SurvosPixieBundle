@@ -185,10 +185,10 @@
                         {{ dimension.units }}
                         </span>
                         </span>
+                        {{ dimension.name|default('') }}
                     {% endif %}
 
                 {% endfor %}
-                {{ dimension.name }}
                 {# if not enough space to show all above, e.g. mobile #}
                 {# {{ dimension.units }} #}
             </p>
