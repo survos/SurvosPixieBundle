@@ -135,7 +135,7 @@ final class IterateCommand extends InvokableServiceCommand
                 // since we have the workflow and transition, we can do a "can" here.
                 if ($workflow && $transition) {
                     if (!$workflow->can($item, $transition)) {
-                        dd("$item cannot transition from {$item->getMarking()} to $transition");
+                        $this->logger->info("$item cannot transition from {$item->getMarking()} to $transition");
                         continue;
                     } else {
                         // if there's a workflow and a transition, dispatch a transition message, otherwise a simple row event
