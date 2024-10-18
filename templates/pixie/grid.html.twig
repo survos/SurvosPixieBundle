@@ -4,6 +4,20 @@
 
 {% block body %}
 
+    {% set attrIcons = {
+        bug : ux_icon("tabler:bug"),
+        url : ux_icon("tabler:world-www"),
+        api : ux_icon("tabler:api"),
+        wiki : ux_icon("simple-icons:wikidata"),
+        github: ux_icon("tabler:brand-github"),
+        ds1: ux_icon("tabler:database"),
+        citation: ux_icon("formkit:url"),
+        rights: ux_icon("tabler:copyright"),
+        mat: ux_icon('et:hazardous'),
+    } %}
+    {% if appIcons is defined %}
+        {% set attrIcons = attrIcons|merge(appIcons) %}
+    {% endif %}
     {#    {% set columns = [ #}
     {#        'table', #}
     {#        'label', #}
@@ -21,16 +35,7 @@
         attrs: attrs,
         showPath: show_path,
         showParams: show_params??{locale: app.locale},
-        icons: {
-            bug : ux_icon("tabler:bug"),
-            url : ux_icon("tabler:world-www"),
-            api : ux_icon("tabler:api"),
-            wiki : ux_icon("simple-icons:wikidata"),
-            github: ux_icon("tabler:brand-github"),
-            ds1: ux_icon("tabler:database"),
-            citation: ux_icon("formkit:url"),
-            rights: ux_icon("tabler:copyright")
-        }
+        icons: attrIcons
     } %}
     <div class="search_builder">
 
@@ -65,12 +70,19 @@
         </twig:block>
         <twig:block name="attrs">
             <ul class="list-inline">
-
             {% for attr in globals.attrs %}
                 {% set value = row[attr.name]|default(false) %}
                 {% if value %}
-                <li class="list-inline-itemxx">
-                    {{ attr.name }}
+                    <li class="list-inline-itemxx">
+                    {% set icon = globals.icons[attr.name]??false %}
+                    {% if icon %}
+                        {{ icon }}
+                        {% else %}
+                        <code>
+                            {{ attr.name }}
+                        </code>
+                        {% endif %}
+
                 <span class="{{ attr.name }}" title="{{ attr.name }}">
                     {{ row[attr.name] }}
                 </span>

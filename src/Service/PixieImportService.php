@@ -216,7 +216,11 @@ class PixieImportService
                         $unhandledKeys = array_diff($x =array_keys((array)$row), $y = array_keys($mappedRow));
                         foreach ($unhandledKeys as $newKey) {
                             if (!array_key_exists($newKey, $reverse)) {
-                                assert(false, "$newKey missing in $tableName");
+                                assert(false, "new key $newKey missing in $tableName \n" .
+                                    json_encode($row, JSON_PRETTY_PRINT) . "\n\n" .
+                                    json_encode($reverse, JSON_PRETTY_PRINT) . "
+                                    add $newKey to required fields so it exists in the first row"
+                                );
                                 $mappedRow[$newKey] = $row->{$newKey} ?? null;
                             } else {
                             }
@@ -232,11 +236,23 @@ class PixieImportService
                             $tableName . " should have primaryKey `$pk`  " .
                             json_encode($row, JSON_PRETTY_PRINT));
                     }
-                    if (!$row[$pkName]) {
+
+                    $event = $this->eventDispatcher->dispatch(new RowEvent(
+                        $config->code,
+                        $tableName,
+                        key: $row[$pk]??null,
+                        row: $row,
+                        index: $idx,
+                        action: self::class,
+                        storageBox: $kv,
+                        context: $context));
+                    $row = $event->row;
+
+                    if (!$row[$pkName]??null) {
                         // e.g. empty excel rows.  Could handle in the grid:excel-to-csv
                         $this->logger->error("Empty pk, skipping row " . $idx);
+                        dd($row, $pkName, $idx);
                         continue;
-//                        dd($row, $pkName, $idx);
                     }
                     SurvosUtils::assertKeyExists($pkName, $row, "in $fn");
                     assert($row[$pkName], "no primary key in $tableName row " . json_encode($row, JSON_PRETTY_PRINT));
@@ -247,15 +263,6 @@ class PixieImportService
                         continue;
                     }
 
-                    $event = $this->eventDispatcher->dispatch(new RowEvent(
-                        $config->code,
-                        $tableName,
-                        key: $row[$pk],
-                        row: $row,
-                        index: $idx,
-                        action: self::class,
-                        storageBox: $kv,
-                        context: $context));
 
 
                     // handling relations could be its own RowEvent too, for now it's here

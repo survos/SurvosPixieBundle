@@ -20,7 +20,7 @@
         rights: 'ph:copyright-light',
         license: 'ph:copyright-light',
         type: 'game-icons:painted-pottery',
-        tec: 'material-symbols-light:palette-outline',
+        tec: ux_icon('material-symbols-light:palette-outline'),
         classification: 'ic:sharp-category',
         floor: 'bi:bounding-box',
         section: 'teenyicons:section-remove-outline',
@@ -279,10 +279,10 @@
 
 {# these are for the translatable text fields only #}
 {% block text_title %}
-    <h3 class="fw-medium mb-2 text-capitalize">{{ value }}</h3>
+    <h3 class="fw-medium mb-2">{{ value }}</h3>
 {% endblock %}
 {% block text_label %}
-    <h4 class="fw-medium mb-2 text-capitalize">{{ value }}</h4>
+    <h4 class="fw-medium mb-2">{{ value }}</h4>
 {% endblock %}
 {% block text_description %}
     <p class="mb-4 text-muted">{{ value }}</p>
