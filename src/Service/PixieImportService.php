@@ -229,6 +229,7 @@ class PixieImportService
 //                        dd(row: $row, mappedRow: $mappedRow, );
                         $row = $mappedRow;
                     }
+                    assert($row);
 
                     // just check the first row
                     if ($idx == 0) {
@@ -237,16 +238,7 @@ class PixieImportService
                             json_encode($row, JSON_PRETTY_PRINT));
                     }
 
-                    $event = $this->eventDispatcher->dispatch(new RowEvent(
-                        $config->code,
-                        $tableName,
-                        key: $row[$pk]??null,
-                        row: $row,
-                        index: $idx,
-                        action: self::class,
-                        storageBox: $kv,
-                        context: $context));
-                    $row = $event->row;
+//                    $row = $event->row;
 
                     if (!$row[$pkName]??null) {
                         // e.g. empty excel rows.  Could handle in the grid:excel-to-csv
@@ -263,11 +255,21 @@ class PixieImportService
                         continue;
                     }
 
+                    $event = $this->eventDispatcher->dispatch(new RowEvent(
+                        $config->code,
+                        $tableName,
+                        key: $row[$pk]??null,
+                        row: $row,
+                        index: $idx,
+                        action: self::class,
+                        storageBox: $kv,
+                        context: $context));
+                    $row = $event->row;
 
 
                     // handling relations could be its own RowEvent too, for now it's here
 //                dd($row);
-                    $row = $this->handleRelations($kv, $config, $pixieCode, $table, $event->row);
+                    $row = $this->handleRelations($kv, $config, $pixieCode, $table, $row);
                     $event->row = $row;
 //                $tableName=='obj' && dd($row['classification'], $event->row['classification']);
 
@@ -303,6 +305,7 @@ class PixieImportService
                             dd($row);
                         }
                         if (class_exists(FetchTranslationObjectEvent::class)) {
+//                            $tableName=='obj' && dump($row);
                             $event = $this->eventDispatcher->dispatch(
                                 new FetchTranslationObjectEvent(
                                     $row, // or $item?
@@ -313,7 +316,9 @@ class PixieImportService
                                     key: $row[$table->getPkName()],
                                     keys: $table->getTranslatable()
                                 ));
+
                             $row = $event->getNormalizedData();
+//                            $tableName=='obj' && dd($row, $event->getTable());
                         }
                     }
 
