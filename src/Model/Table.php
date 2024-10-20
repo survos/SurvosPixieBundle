@@ -17,7 +17,9 @@ class Table
          */
         private array   $properties=[],
         private array   $patches=[],
-        private array   $translatable =[],
+        /** @var array<string> */ private array   $extras=[],
+        /** @var array<string> */ private array   $uses=[],
+        /** @var array<string> */  private array   $translatable =[],
         private ?string $indexes=null, // the super-succint dexie-style index defintion, e.g. "id|int,department"
         private ?string $pkName=null,
         private ?string $extends=null,
@@ -28,6 +30,17 @@ class Table
     )
     {
     }
+
+    public function getExtras(): array
+    {
+        return $this->extras;
+    }
+
+    public function getUses(): array
+    {
+        return $this->uses;
+    }
+
 
     public function getExtends(): ?string
     {

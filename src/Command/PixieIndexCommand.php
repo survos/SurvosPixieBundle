@@ -225,14 +225,17 @@ final class PixieIndexCommand extends InvokableServiceCommand
             $recordsToWrite = [];
             $this->meiliService->waitForTask($task);
 
+            // wait, so we can update owner
             // export property counts to kv
             $stats = $index->stats();
+            assert(!$stats['isIndexing']);
+            unset($stats['isIndexing']);
 //            dd($stats, $index->getSettings());
             $io->success($stats['numberOfDocuments'] . " $pixieCode.$tableName documents");
             $this->eventDispatcher->dispatch(new IndexEvent($pixieCode,
                 $subCode,
                 $kv->getFilename(),
-                $tableName, $stats['numberOfDocuments']));
+                $tableName, $stats));
 
             $table = new Table($this->io());
             $table->setHeaders(['attributes', 'value']);

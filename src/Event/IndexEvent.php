@@ -13,8 +13,7 @@ class IndexEvent extends Event
         public ?string $subCode,
         public string $pixieFilename,
         public string $tableName,
-        public ?int $numberOfObjects=null
-        // @todo: all index counts, all stats?
+        public array $stats
     )
     {
     }

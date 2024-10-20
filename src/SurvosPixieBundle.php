@@ -67,6 +67,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
+//        dd($config['pixies']['auur']['tables']);
         $builder->register(PixieImportService::class)
             ->setAutowired(true)
             ->setArgument('$logger', new Reference('logger'))
@@ -89,8 +90,6 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                 ->setAutowired(true)
                 ->setAutoconfigured(true)
                 ->setPublic(true);
-
-
         }
         $builder->autowire(SqliteService::class)
             ->setAutowired(true)
@@ -219,14 +218,16 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
 
     private function addTablesSection(NodeBuilder $pixieRoot, string $key='tables'): void
     {
-        // like pixies, tables are keyed by some value, but have a prototype beneath them of rules, properies, translatableFields, etc.
-        $pixieRoot->arrayNode($key)
-//            ->useAttributeAsKey('name')
+//        if ($key === 'templates') return;
+        // like pixies, tables are keyed by some value, but have a prototype beneath them of rules, properties, translatableFields, etc.
+        $tableRoot = $pixieRoot->arrayNode($key)
+            ->useAttributeAsKey('name')
             ->arrayPrototype()
             ->children()
             ->integerNode('total')->info("if total is known for progressBar")->defaultNull()->end()
             ->booleanNode('has_images')->info("if images display thumbnail")->defaultNull()->end()
             ->scalarNode('extends')->info("inherits table data from templates")->defaultNull()->end()
+//            ->scalarNode('name')->info("key...")->defaultNull()->end()
 
             ->arrayNode('rules')
             ->scalarPrototype()
@@ -248,8 +249,37 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->arrayNode('facets')->info("facets in tombstone")->scalarPrototype()->end()->end()
             ->arrayNode('extras')->info("extras column")->scalarPrototype()->end()->end()
 
-            ->arrayNode('properties')
+            ->arrayNode('uses')->info("get definitions from the 'internal' key in templates")
+                ->scalarPrototype()->info('key to internal table')->cannotBeEmpty()->end()
+            ->end()
 
+            ->arrayNode('properties')
+            ->beforeNormalization()
+            ->ifString()
+            ->then(function (string $v): array { dd($v); return ['name' => $v]; })
+            ->ifArray()
+            ->then(function ($v) {dd($v); })
+            ->ifString()
+            ->then(fn($propData) => dd(Parser::parseConfigHeader($propData)))
+            ->end()
+
+        ->scalarPrototype()->defaultValue(["*.zip"])->end()
+
+        ->scalarPrototype()
+        ->end()
+        ->end()
+
+        ->end();
+//        dd($pixieRoot, $tableRoot);
+
+//        $this
+//            ->addPropertiesSection($tableRoot, 'properties');
+
+    }
+    private function addPropertiesSection(NodeBuilder $pixieRoot, string $name='properties'): void
+    {
+        $pixieRoot
+            ->arrayNode($name)
             ->beforeNormalization()
                 ->ifString()
                     ->then(function (string $v): array { dd($v); return ['name' => $v]; })
@@ -257,15 +287,8 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                     ->then(function ($v) {dd($v); })
                 ->ifString()
                     ->then(fn($propData) => dd(Parser::parseConfigHeader($propData)))
-            ->end()
-
-            ->scalarPrototype()->defaultValue(["*.zip"])->end()
-
-            ->scalarPrototype()
-            ->end()
-            ->end()
-
             ->end();
+
     }
     private function addSourceSection(NodeBuilder $pixieRoot): void
     {

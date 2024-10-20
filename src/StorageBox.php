@@ -109,8 +109,22 @@ class StorageBox
         }
     }
 
-    static public function fix(Config $config, array $templates=[])
+    /**
+     * @param Config $config
+     * @param array<string, Table> $templates
+     * @return Config
+     */
+    static public function fix(Config $config,array $templates=[]): Config
     {
+        // if the property code is used, get the definition from here, rather than repeating it.  'extends' will add the property codes, this only add them if they key exist.  add a use: key with order?
+        $internalProperties = [];
+        foreach ($templates['internal']->getProperties() as $property) {
+            if (is_string($property)) {
+                $property = Parser::parseConfigHeader($property);
+            }
+            $internalProperties[$property->getCode()] = $property;
+        }
+
         // we are over-calling fix!
         static $fixed=[];
         if (in_array($config->code, $fixed)) {
@@ -119,6 +133,11 @@ class StorageBox
         $fixed[] = $config->code;
         foreach ($config->getTables() as $tableName => $table) {
             $newProperties = [];
+            foreach ($table->getUses() as $internalCode) {
+                $newProperties[] = $internalProperties[$internalCode];
+            }
+
+//            $tableName=='obj' && dd($internalProperties, table: $table, uses: $table->getUses(), extends: $table->getExtends());
 //            $tableName=='obj' && dd($config, $table, $tableName, $newProperties);
             if ($extends = $table->getExtends()) {
                 SurvosUtils::assertKeyExists($extends, $templates);

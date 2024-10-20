@@ -50,6 +50,8 @@ class Property implements \Stringable
         if ($this->schema) {
             $schema->addProperty($this);
         }
+
+        assert($this->code, "missing code");
     }
 
     public function getInitial(): ?string

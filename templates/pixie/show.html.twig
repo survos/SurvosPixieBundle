@@ -113,7 +113,10 @@
     {% for group, keys in groups %}
         {% with {title: group, keys:keys} %}
             {% if group %}
+{#                <h3>{{ group }}</h3>#}
+{#                {% if group in ['dim','image','attr','text','primary','admin','internal','INDEX'] %}#}
                 {{ block(group) }}
+{#                    {% endif %}#}
             {% else %}
                 <text class="bg-danger">
                     {{ keys|json_encode }}
@@ -297,8 +300,7 @@
             {% if block('text_' ~ var)  is defined %}
                 {{ block('text_' ~ var) }}
                 {% else %}
-                <code>{{ var }}</code>
-                    <i>{{ value }}</i>
+                <code>{{ var }}</code><i>{{ value }}</i>
             {% endif %}
 
 {#            {% set translatedValue = attribute(_fields, var)|default('x') %}#}
@@ -346,11 +348,11 @@
         <h4 class="fw-semibold my-3 text-capitalize">{{ 'relations'|trans }}</h4>
         <ul class="list-group list-group-flush">
             {% set locale = app.locale %}
-            {% for property in config.table(tableName).properties %}
+
+            {% for property in config.table(tableName).properties|slice(14,1) %}
 {#                }|filter( p => p.listTableName) %}#}
                 {% set var = property.code %}
                 {% set value = attribute(data,var)|default(false) %}
-
 
                 {% if property.listTableName %}
                 {% if value %}
@@ -367,6 +369,9 @@
 {#            {% endfor %}#}
 {#            {% for var in keys %}#}
 {#                {% set value = attribute(data,var)|default(false) %}#}
+
+{#            {% endfor %}#}
+{#            {% for x in [] %}#}
                 {% if value %}
                     <code>{{ var|trans }}</code>
                     {#                <h6 class="px-3 fw-medium pt-3 text-capitalize">{{ var }}</h6> #}
@@ -381,7 +386,7 @@
 
                             {% if value is iterable %}
                                 {% for v in value %}
-                                    <li>{{ v }}</li>
+                                    <li>{{ value is iterable ? v|json_encode : v }}</li>
                                 {% endfor %}
                             {% else %}
                                 <span>{{ value }}</span>

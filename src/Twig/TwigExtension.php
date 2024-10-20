@@ -33,7 +33,8 @@ class TwigExtension extends AbstractExtension
             new TwigFilter('t', function (object $obj, string $property) {
                 $locale = $this->requestStack->getCurrentRequest()->getLocale();
                 if ($_tr = $obj->_translations??null) {
-                    return $_tr->{$locale}->{$property}??"$property-$locale-is-untranslated";
+                    // is empty, or untranslated?
+                    return $_tr->{$locale}->{$property}??null; // "$property-$locale-is-untranslated";
                 } else {
 //                    dd(obj: $obj);
                     return "translations-are-missing";

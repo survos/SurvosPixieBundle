@@ -222,6 +222,11 @@ class PixieService
             }
 
 //            https://www.strangebuzz.com/en/snippets/converting-an-array-into-an-object-with-the-symfony-serializer
+//            $code=='auur' && dd($pixie['tables']['obj']);
+            // insert the name so we don't have to fix it manually later
+            foreach ($pixie['tables'] as $tableName => $tableData) {
+                $pixie['tables'][$tableName]['name'] = $tableName;
+            }
             $config = $this->serializer->denormalize($pixie, Config::class);
             $config->setPixieFilename($this->getPixieFilename($code));
 
@@ -265,6 +270,19 @@ class PixieService
         $templates = [];
         foreach ($this->bundleConfig['templates'] as $code => $template) {
             $templates[$code] = $this->serializer->denormalize($template, Table::class);
+        }
+        return $templates;
+
+    }
+
+    /**
+     * @return array(<string, Property>)
+     */
+    public function getInternalProperties(): array
+    {
+        $templates = [];
+        foreach ($this->bundleConfig['templates']['internal'] as $code => $property) {
+            dd($code, $property);
         }
         return $templates;
 
