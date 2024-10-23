@@ -193,6 +193,16 @@ final class PixieIndexCommand extends InvokableServiceCommand
                     'key'       =>  $row->getKey(),
                 ];
                 SurvosUtils::cleanNullsOfObject($data);
+                // argh, sqlite thing for arrays
+                foreach ($data as $k => $v) {
+                    if (is_string($v) && json_validate($v)) {
+
+                        $data->{$k} = json_decode($v);
+                        assert($data->{$k}, $k . " is empty");
+                    }
+                }
+
+//                $tableName=='obj' && dd($data->mat);
 
                 $recordsToWrite[] = $data;
 //                $row->getKey() == 56185 && dd(dataToWrite: $data, row: $row;

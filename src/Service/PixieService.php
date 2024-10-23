@@ -287,10 +287,11 @@ class PixieService
         return $templates;
 
     }
+
     // @todo: add custom dataDir, etc.
     public function getConfig(string $pixieCode): ?Config
     {
-        static $configCache=null;
+        static $configCache = null;
         if (null === $configCache) {
             $configCache = $this->getConfigFiles();
         }
@@ -463,6 +464,10 @@ class PixieService
             {
                 // get the related item from the PK stored in the item, replace it with the actual record, but without the _id?
                 $relatedId = $data[$propertyName];
+                // json from sqlite is stored as a string.
+                if (is_string($relatedId) && json_validate($relatedId)) {
+                    $relatedId = json_decode($relatedId);
+                }
                 // the subtype table needs to exist!
                 if ($config->getTable($property->getSubType())) {
                     // publish these properties as flickr tags, including label and description
@@ -472,17 +477,14 @@ class PixieService
                     if ($relatedId) {
                         // @todo: get many-to-many right, e.g. walters coll
                         if (is_array($relatedId)) {
-                            $data[$propertyName] = join('|', $relatedId);
-                            if (false) {
-                                foreach ($relatedId as $code) {
-                                    // during dev, relations may not be loaded, walters has 4000 creators
-                                    if ($relatedItem = $kv->get($code, $property->getSubType())) {
-                                        dd($relatedItem, $property->getSubType());
-
-                                    } // subtype is related table
-                                    $relatedName = str_replace('_id', '', $propertyName);
-                                }
-
+                            $data[$propertyName] = [];
+                            foreach ($relatedId as $code) {
+                                // during dev, relations may not be loaded, walters has 4000 creators
+                                if ($relatedItem = $kv->get($code, $property->getSubType())) {
+//                                    dd($data, $propertyName, $relatedItem);
+                                        $data[$propertyName][] = $relatedItem;
+//                                        $data[$propertyName][] = $relatedItem->label();
+                                } // subtype is related table
                             }
                         } else {
                             assert(!is_iterable($relatedId), json_encode($relatedId));
@@ -492,7 +494,6 @@ class PixieService
                             $data[$relatedName] = $relatedItem;
 //                            if ($propertyName == 'classification') dd($data, $relatedName);
                         }
-
                     }
                 }
             }

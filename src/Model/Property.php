@@ -274,5 +274,11 @@ class Property implements \Stringable
         return $x;
 
     }
+
+    public function is($type): bool
+    {
+        return $type===$this->type;
+
+    }
 }
 

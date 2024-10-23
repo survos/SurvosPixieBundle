@@ -73,7 +73,7 @@
             {% for attr in globals.attrs %}
                 {% set value = row[attr.name]|default(false) %}
                 {% if value %}
-                    <li class="list-inline-itemxx">
+                    <li class="list-inline-itemxx" title="{{ attr.name }}">
                     {% set icon = globals.icons[attr.name]??false %}
                     {% if icon %}
                         {{ icon }}

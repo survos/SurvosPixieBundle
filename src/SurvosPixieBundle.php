@@ -11,6 +11,7 @@ use Survos\PixieBundle\Command\PixieMakeCommand;
 use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Command\PixieIndexCommand;
+use Survos\PixieBundle\Command\PixiePrepareCommand;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Controller\SearchController;
 use Survos\PixieBundle\CsvSchema\Parser;
@@ -21,6 +22,7 @@ use Survos\PixieBundle\EventListener\CsvHeaderEventListener;
 use Survos\PixieBundle\EventListener\TranslationRowEventListener;
 use Survos\PixieBundle\Menu\PixieItemMenu;
 use Survos\PixieBundle\Menu\PixieMenu;
+use Survos\PixieBundle\Service\PixieConvertService;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\SqliteService;
@@ -69,6 +71,12 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
     {
 //        dd($config['pixies']['auur']['tables']);
         $builder->register(PixieImportService::class)
+            ->setAutowired(true)
+            ->setArgument('$logger', new Reference('logger'))
+            ->setArgument('$purgeBeforeImport', $config['purge_before_import'])
+        ;
+
+        $builder->register(PixieConvertService::class)
             ->setAutowired(true)
             ->setArgument('$logger', new Reference('logger'))
             ->setArgument('$purgeBeforeImport', $config['purge_before_import'])
@@ -131,6 +139,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
         }
 
         foreach ([
+                     PixiePrepareCommand::class,
                      PixieImportCommand::class,
                      PixieExportCommand::class,
                      IterateCommand::class,

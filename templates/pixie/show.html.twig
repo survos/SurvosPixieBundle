@@ -349,16 +349,24 @@
         <ul class="list-group list-group-flush">
             {% set locale = app.locale %}
 
-            {% for property in config.table(tableName).properties|slice(14,1) %}
-{#                }|filter( p => p.listTableName) %}#}
+            {% for property in config.table(tableName).properties|filter( p => p.listTableName) %}
                 {% set var = property.code %}
                 {% set value = attribute(data,var)|default(false) %}
 
-                {% if property.listTableName %}
                 {% if value %}
-{#                    {% set locale = app.locale %}#}
-                    {% set translations = value._translations() %}
-                    {% if translations %}
+                    {% if value is iterable %}
+                        {% set vv = [] %}
+                        {% for v in value %}
+                                {% set translations = v._translations() %}
+                                {% if translations %}
+                                    {% set value = attribute(translations, locale).label|default(false) %}
+                                    {% set vv = vv|merge([value]) %}
+                                {% endif %}
+                                {% endfor %}
+                        {% set value = vv %}
+                    {% else %} {#  value is a simple Item #}
+                        {% set translations = value._translations() %}
+                        {% if  translations %}
                         {% set value = attribute(translations, locale).label|default(false) %}
                         {% else %}
                         MISSING {{ locale }} translation for {{ value.key }}
@@ -386,7 +394,7 @@
 
                             {% if value is iterable %}
                                 {% for v in value %}
-                                    <li>{{ value is iterable ? v|json_encode : v }}</li>
+                                    <span>{{ v is iterable ? v|json_encode : v }}</span>
                                 {% endfor %}
                             {% else %}
                                 <span>{{ value }}</span>
