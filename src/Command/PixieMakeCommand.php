@@ -24,7 +24,7 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
 
-#[AsCommand('pixie:make', "Execute the build steps to create csv/json")]
+#[AsCommand('pixie:make', "Execute the build steps to create csv/json", aliases: ['pixie:build'])]
 final class PixieMakeCommand extends InvokableServiceCommand
 {
     use RunsCommands;
@@ -49,7 +49,7 @@ final class PixieMakeCommand extends InvokableServiceCommand
         IO                                                                                          $io,
         PixieService                                          $pixieService,
         PixieImportService                                    $pixieImportService,
-        #[Argument(description: 'config code')] string        $pixieCode,
+        #[Argument(description: 'pixie config code')] string        $pixieCode,
         #[Option(description: 'build from source')] ?bool $build,
         #[Option(description: 'dry run, just show commands')] ?bool $dry,
 
