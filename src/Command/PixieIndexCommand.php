@@ -60,21 +60,22 @@ final class PixieIndexCommand extends InvokableServiceCommand
     }
 
     public function __invoke(
-        IO                                                                                          $io,
-        PixieService                                          $pixieService,
-        PixieImportService                                    $pixieImportService,
-        #[Argument(description: 'config code')] string        $pixieCode,
-        #[Argument(description: 'sub code, e.g. musdig inst id')] ?string        $subCode=null,
-        #[Option('dir', description: 'dir to pixie')] string         $dir=null,
-        #[Option('table', description: 'table name(s?), all if not set')] string         $tableFilter=null,
+        IO                                                                             $io,
+        PixieService                                                                   $pixieService,
+        PixieImportService                                                             $pixieImportService,
+        #[Argument(description: 'config code')] ?string                                $configCode,
+        #[Argument(description: 'sub code, e.g. musdig inst id')] ?string              $subCode=null,
+        #[Option('dir', description: 'dir to pixie')] string                           $dir=null,
+        #[Option('table', description: 'table name(s?), all if not set')] string       $tableFilter=null,
 //        #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
-        #[Option(description: "reset the meili index")] ?bool                      $reset=null,
-        #[Option(description: "max number of records per table to export")] int                     $limit = 0,
-        #[Option(description: "extra data (YAML), e.g. --extra=[core:obj]")] string                     $extra = '',
-        #[Option('batch', description: "max number of records to batch to meili")] int                     $batchSize = 1000,
+        #[Option(description: "reset the meili index")] ?bool                          $reset=null,
+        #[Option(description: "max number of records per table to export")] int        $limit = 0,
+        #[Option(description: "extra data (YAML), e.g. --extra=[core:obj]")] string    $extra = '',
+        #[Option('batch', description: "max number of records to batch to meili")] int $batchSize = 1000,
 
     ): int
     {
+        $configCode ??= getenv('PIXIE_CODE');
         if (is_null($reset)) {
             $reset = true;
         }
@@ -86,11 +87,11 @@ final class PixieIndexCommand extends InvokableServiceCommand
         }
 
         $this->initialized = true;
-        $kv = $pixieService->getStorageBox($pixieCode, $subCode);
-        $pixieDbName = $pixieService->getPixieFilename($pixieCode, $subCode);
+        $kv = $pixieService->getStorageBox($configCode, $subCode);
+        $pixieDbName = $pixieService->getPixieFilename($configCode, $subCode);
 //        assert(realpath($pixieDbName) == $kv->getFilename(), "$pixieDbName <> " . $kv->getFilename());
         $io->title("Reading $pixieDbName");
-        $config = $pixieService->getConfig($pixieCode);
+        $config = $pixieService->getConfig($configCode);
 
         if ($tableFilter) {
             assert($kv->tableExists($tableFilter), "Missing table $tableFilter: \n".join("\n", $kv->getTableNames()));
@@ -110,7 +111,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 continue;
             }
 
-            $indexName = $this->meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($pixieCode, $subCode, $tableName));
+            $indexName = $this->meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($configCode, $subCode, $tableName));
             $io->title($indexName);
 
             if ($reset) {
@@ -132,7 +133,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
 
             $transKv = $this->eventDispatcher->dispatch(new StorageBoxEvent(
-                $pixieCode,
+                $configCode,
                 isTranslation: true,
                 tags: ['fetch']
             ))->getStorageBox();
@@ -188,7 +189,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 $data->coreId = $tableName;
                 $data->table = $tableName;
                 $data->rp = [
-                    'pixieCode' =>  $pixieCode,
+                    'pixieCode' =>  $configCode,
                     'tableName'  =>  $tableName,
                     'key'       =>  $row->getKey(),
                 ];
@@ -241,8 +242,8 @@ final class PixieIndexCommand extends InvokableServiceCommand
             assert(!$stats['isIndexing']);
             unset($stats['isIndexing']);
 //            dd($stats, $index->getSettings());
-            $io->success($stats['numberOfDocuments'] . " $pixieCode.$tableName documents");
-            $this->eventDispatcher->dispatch(new IndexEvent($pixieCode,
+            $io->success($stats['numberOfDocuments'] . " $configCode.$tableName documents");
+            $this->eventDispatcher->dispatch(new IndexEvent($configCode,
                 $subCode,
                 $kv->getFilename(),
                 $tableName, $stats));
@@ -272,7 +273,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
 
 
-        $io->success(sprintf("%s success %s %s",  $this->getName(), $pixieCode, $pixieDbName));
+        $io->success(sprintf("%s success %s %s",  $this->getName(), $configCode, $pixieDbName));
         return self::SUCCESS;
     }
 

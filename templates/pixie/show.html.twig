@@ -457,7 +457,7 @@
                     {% set value = false %}
                 {% endif %}
 
-                {% if value %}
+                {% if value and not ".hash" in var %}
                 <tr>
                     <th style="width: 150px;">{{ var }}</th>
                     <td>{{ block('value') }}</td>

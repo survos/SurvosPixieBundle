@@ -47,7 +47,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         IO                                                                                           $io,
         PixieService                                                                                 $pixieService,
         PixieImportService                                                                           $pixieImportService,
-        #[Argument(description: 'config code')] string                                               $configCode,
+        #[Argument(description: 'config code')] ?string                                              $configCode,
         #[Argument(description: 'sub code, e.g. musdig inst id')] ?string        $subCode=null,
         #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
         #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
@@ -63,11 +63,8 @@ final class PixieImportCommand extends InvokableServiceCommand
     ): int
     {
         $this->initialized = true;
-        // not sure how to auto-wire this in the constructor
-        // idea: if conf doesn't exist, require a directory name and create it, a la rector
-//        if (empty($configCode)) {
-//            $configCode = pathinfo($dir, PATHINFO_BASENAME);
-//        }
+        // in bash:  export PIXIE_CODE=aust
+        $configCode ??= getenv('PIXIE_CODE');
 
         $index = is_null($index) ? true : $index;
         $config = $pixieService->getConfig($configCode);

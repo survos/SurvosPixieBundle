@@ -49,7 +49,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
         IO                                                                                           $io,
         PixieService                                                                                 $pixieService,
         PixieConvertService $pixieConvertService,
-        #[Argument(description: 'config code')] string                                               $configCode,
+        #[Argument(description: 'config code')] ?string                                               $configCode,
         #[Argument(description: 'sub code, e.g. musdig inst id')] ?string        $subCode=null,
         #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
         #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
@@ -62,6 +62,8 @@ final class PixiePrepareCommand extends InvokableServiceCommand
 
     ): int
     {
+        $configCode ??= getenv('PIXIE_CODE');
+
         $this->initialized = true;
         // not sure how to auto-wire this in the constructor
         // idea: if conf doesn't exist, require a directory name and create it, a la rector

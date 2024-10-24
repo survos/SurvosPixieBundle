@@ -547,7 +547,12 @@ class PixieImportService
                     // if label is missing, create it in the relatedTable pixie
 //                    dump($this->listsByLabel[$relatedTableName], $label);
                     assert(is_string($relatedTableName), json_encode($relatedTableName));
+//                    $relatedTableName=='tag' && dd($label, $labels, $this->listsByLabel[$relatedTableName]);
 
+                    assert(is_string($label), "$relatedTableName " . json_encode($label));
+
+                    SurvosUtils::assertKeyExists($relatedTableName, $this->listsByLabel);
+//                    SurvosUtils::assertKeyExists($label, $this->listsByLabel[$relatedTableName], "missing label in listsByLabel $relatedTableName");
                     if (!array_key_exists($label, $this->listsByLabel[$relatedTableName])) {
                         if ($valueType === '@code') {
                             //
