@@ -226,13 +226,10 @@ class SearchController extends AbstractController
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
-
             // @todo: the search!
-
 //            if ($data['slideshow'])
             {
-                // hack, we just need some images
-
+//                $apiUrl =
                 return $this->redirectToRoute('owner_slideshow',
                     $data + [
                         'pixieCode' => $pixieCode,
@@ -264,12 +261,14 @@ class SearchController extends AbstractController
         $kv = $this->pixieService->getStorageBox($owner->getPixieCode());
         $properties = $kv->getTable($tableName)->getProperties();
         $items = $kv->iterate($tableName, max: 30);
-
+        // hack to not repeat getting this, but really it's apiUrl we want
+        $meiliData = $this->meili($pixieCode, null, tableName: $tableName);
         return $this->render('owner/slideshow.html.twig', [
+            'apiUrl' => $meiliData['apiUrl'],
             '_locale' => $request->getLocale(),
             'properties' => $properties,
             'tableName' => $tableName,
-            'items' => $items,
+//            'items' => $items,
             'owner' => $owner
         ]);
 

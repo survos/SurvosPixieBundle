@@ -199,7 +199,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
             JSON_PRETTY_PRINT));
 
         $consoleTable->render();
-        $io->success($this->getName() . ' success ' . $pixieDbName . "\n$filesFilename");
+        $io->success($this->getName() . "success.\n$filesFilename");
 
         return self::SUCCESS;
     }

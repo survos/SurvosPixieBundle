@@ -118,9 +118,9 @@
                 {{ block(group) }}
 {#                    {% endif %}#}
             {% else %}
-                <text class="bg-danger">
-                    {{ keys|json_encode }}
-                </text>
+{#                <text class="bg-danger">#}
+{#                    {{ keys|json_encode }}#}
+{#                </text>#}
             {% endif %}
         {% endwith %}
 
@@ -166,13 +166,11 @@
         weight: 'material-symbols:scale'
     } %}
     {% if row.dimensions %}
-        {% for x, dimension in row.dimensions %}
+        {% for dimension in row.dimensions %}
             <p class="mb-2 d-flex align-items-center flex-wrap gap-2">
 {#                                {{ ux_icon('tabler:ruler-measure', {width: "30px"}) }}#}
 {#                {{ ux_icon('fluent:slide-size-20-regular') }}#}
                 {{ ux_icon('radix-icons:dimensions') }}
-
-
 
                 {% for d in ['height','width','length','depth','radius'] %}
 

@@ -197,7 +197,6 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 // argh, sqlite thing for arrays
                 foreach ($data as $k => $v) {
                     if (is_string($v) && json_validate($v)) {
-
                         $data->{$k} = json_decode($v);
                         assert($data->{$k}, $k . " is empty");
                     }
