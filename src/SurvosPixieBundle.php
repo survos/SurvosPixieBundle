@@ -12,6 +12,7 @@ use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Command\PixieIndexCommand;
 use Survos\PixieBundle\Command\PixiePrepareCommand;
+use Survos\PixieBundle\Command\PixieSyncCommand;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Controller\SearchController;
 use Survos\PixieBundle\CsvSchema\Parser;
@@ -144,6 +145,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                      PixieExportCommand::class,
                      IterateCommand::class,
                      PixieIndexCommand::class,
+                     PixieSyncCommand::class,
                      PixieMakeCommand::class] as $commandClass) {
             // check https://github.com/zenstruck/console-extra/issues/59
             $builder->autowire($commandClass)

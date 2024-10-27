@@ -23,6 +23,54 @@ bin/console pixie:import musdig/74
 # reads md.config, see that it's musdig, downloads the repo to /data/musdig/74/74.db and 74-translation.db
 
 
+## Storage
+
+This bundle integrates with survos/bunny-bundle to store directories as zip files.  That way, files processed on one machine can easily move to another.
+
+There are 4 directories that are used within the museado project, but they all do the same thing, zip and upload, or download and unzip.
+
+```bash
+bin/console bunny:download data/larco/raw.zip --unzip data/larco/raw
+
+unzip larco-raw.zip -d data/larco/raw/
+
+
+# after some processing...
+bin/console bunny:upload data/larco/json/ --zip data/larco/json.zip
+
+bin/console bunny:download data/glam.zip 
+# downloads to data/glam.zip
+
+bin/console bunny:download data/glam.zip --unzip
+# downloads to data/glam.zip unless it exists, unzips files to data/glam
+
+bin/console bunny:download data/glam.zip --unzip --force
+# downloads to data/glam.zip even if it exists, unzips files to data/glam
+
+bin/console bunny:download data/flickr.pixie.db 
+# downloads to directory data 
+
+bin/console bunny:download data/flickr.pixie.db pixie/
+# downloads to pixie/flickr.pixie.db
+
+bin/console bunny:download data/flickr.pixie.db x.db
+# downloads to x.db
+
+bin/console bunny:download data/flickr.pixie.db pixie/x.db
+# downloads to pixie/x.db
+
+bin/console bunny:download data/glam.zip --unzip --force
+# downloads to data/glam.zip even if it exists, unzips files to data/glam
+
+bin/console bunny:download data/glam.zip zip/my-filename.zip
+# downloads to zip/my-filename.zip
+
+bin/console bunny:download data/glam.zip --unzip ../translation
+# downloads to data/glam.zip, unzips files to ../translation (above the project root).
+
+bin/console bunny:download data/adh.zip --unzip data/adh --cleanup
+
+
 ```
 
 At its core, the idea is to store strings or unstructured data accessible by a key or a filter.

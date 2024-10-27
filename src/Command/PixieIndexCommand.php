@@ -132,17 +132,21 @@ final class PixieIndexCommand extends InvokableServiceCommand
             // first, fetch all the translations
 
 
-            $transKv = $this->eventDispatcher->dispatch(new StorageBoxEvent(
-                $configCode,
-                isTranslation: true,
-                tags: ['fetch']
-            ))->getStorageBox();
 
 //            $transKv = $this->pixieService->getStorageBox($pixieCode, $this->pixieService->getPixieFilename());
 //            $transKv = $this->translationService->getTranslationStorageBox($pixieCode);
 //            $tKvConfig = $tKv->getConfig();
 
-            $transKv->select(TranslationService::ENGINE);
+            if (class_exists('App\\Service\\TranslationService::class')) {
+                $transKv = $this->eventDispatcher->dispatch(new StorageBoxEvent(
+                    $configCode,
+                    isTranslation: true,
+                    tags: ['fetch']
+                ))->getStorageBox();
+                $transKv->select(TranslationService::ENGINE);
+            } else {
+                $transKv = null;
+            }
             foreach ($kv->iterate($tableName) as $idx => $row) {
                 $data = $row->getData();
                 // hack

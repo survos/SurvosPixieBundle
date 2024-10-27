@@ -44,28 +44,27 @@ final class PixieExportCommand extends InvokableServiceCommand
     }
 
     public function __invoke(
-        IO                                                                                          $io,
-        PixieService                                          $pixieService,
-        PixieImportService                                    $pixieImportService,
-        #[Argument(description: 'config code')] string        $pixieCode,
-        #[Argument(description: 'table name')] string         $tableName,
-        #[Option(description: 'output directory/filename')] ?string $dirOrFilename,
-        #[Option(description: 'new key name')] ?string $key,
-        #[Option(description: 'single value (map)')] ?string $value,
-        #[Option(description: 'comma-delimited values key => array')] ?string $values,
-        #[Option(description: "overwrite existing output files")] bool                      $overwrite = false,
-        #[Option(description: "max number of records per table to export")] int                     $limit = 0,
+        IO                                                                      $io,
+        PixieService                                                            $pixieService,
+        PixieImportService                                                      $pixieImportService,
+        #[Argument(description: 'config code')] ?string                          $configCode,
+        #[Argument(description: 'table name')] string                           $tableName,
+        #[Option(description: 'output directory/filename')] ?string             $dirOrFilename,
+        #[Option(description: 'new key name')] ?string                          $key,
+        #[Option(description: 'single value (map)')] ?string                    $value,
+        #[Option(description: 'comma-delimited values key => array')] ?string   $values,
+        #[Option(description: "overwrite existing output files")] bool          $overwrite = false,
+        #[Option(description: "max number of records per table to export")] int $limit = 0,
 
     ): int
     {
+        $configCode ??= getenv('PIXIE_CODE');
         $this->initialized = true;
-        $kv = $pixieService->getStorageBox($pixieCode);
-        $config = $pixieService->getConfig($pixieCode);
-
-        $config = $pixieService->getConfig($pixieCode);
+        $kv = $pixieService->getStorageBox($configCode);
+        $config = $pixieService->getConfig($configCode);
         assert($config, $config->getConfigFilename());
         if (empty($dirOrFilename)) {
-            $dirOrFilename = $pixieService->getSourceFilesDir($pixieCode);
+            $dirOrFilename = $pixieService->getSourceFilesDir($configCode);
         }
 
         assert($kv->tableExists($tableName), "Missing table $tableName: \n".join("\n", $kv->getTableNames()));
@@ -84,7 +83,7 @@ final class PixieExportCommand extends InvokableServiceCommand
             }
         }
 
-        $filename = $pixieCode . '-' . $tableName.'.json';
+        $filename = $configCode . '-' . $tableName.'.json';
 
         file_put_contents($filename, $this->serializer->serialize($recordsToWrite, 'json'));
         $io->success(count($recordsToWrite) . " records written to $filename");
@@ -101,7 +100,7 @@ final class PixieExportCommand extends InvokableServiceCommand
 
         // export?
 
-        $io->success('Pixie:export success ' . $pixieCode);
+        $io->success('Pixie:export success ' . $configCode);
         return self::SUCCESS;
     }
 

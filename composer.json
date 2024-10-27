@@ -1,7 +1,8 @@
 {
     "name": "survos/pixie-bundle",
     "type": "symfony-bundle",
-    "description": "Symfony Bundle to easily allow a SQLite Key Value lookup",
+    "minimum-stability": "dev",
+    "description": "Symfony Bundle to easily allow a SQLite Key Value lookup.  Optionally uses zip and bunny utilities for sync",
     "keywords": [
         "symfony-ux",
         "symfony6"
@@ -9,7 +10,7 @@
     "license": "MIT",
     "require": {
         "ext-pdo": "*",
-        "php": "^8.2",
+        "php": "^8.3",
         "symfony/config": "^6.4 || ^7.0",
         "symfony/dependency-injection": "^6.4 || ^7.0",
         "symfony/http-kernel": "^6.4 || ^7.0",
@@ -47,7 +48,10 @@
         "survos/bootstrap-bundle": "^1.5.374",
         "survos/api-grid-bundle": "^1.5.374",
         "symfony/event-dispatcher": "^7.1",
-        "symfony/messenger": "^7.1"
+        "symfony/messenger": "^7.1",
+        "survos/bunny-bundle": "^1.5",
+        "zenstruck/filesystem": "1.x-dev",
+        "league/flysystem-ziparchive": "3.x-dev"
     },
     "scripts": {
         "coverage": "php -d xpcov.enabled=1 vendor/bin/phpunit --coverage-html coverage"

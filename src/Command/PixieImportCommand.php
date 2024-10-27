@@ -52,6 +52,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
         #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
         #[Option(description: "overwrite records if they already exist")] bool                       $overwrite = false,
+        #[Option(description: "populate translations (default: false)")] ?bool                       $populate = null,
         #[Option(description: "index after import (default: true)")] ?bool                           $index = null,
         #[Option(description: "purge db file first")] bool                                           $reset = false,
         #[Option(description: "Batch size for commit")] int                                          $batch = 500,
@@ -148,6 +149,12 @@ final class PixieImportCommand extends InvokableServiceCommand
         $consoleTable->render();
         $io->success($this->getName() . ' success ' . $pixieDbName);
 
+        if ($populate) {
+            $cli = "pixie:translate --populate $configCode";
+            $this->io()->warning('bin/console ' . $cli);
+            $this->runCommand($cli);
+
+        }
         if ($index) {
             $this->runIndex($configCode, $subCode);
         }

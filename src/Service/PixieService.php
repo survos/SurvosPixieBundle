@@ -4,7 +4,6 @@ namespace Survos\PixieBundle\Service;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
-use App\Metadata\PixieInterface;
 use Psr\Log\LoggerInterface;
 use Survos\BootstrapBundle\Event\KnpMenuEvent;
 use Survos\PixieBundle\CsvSchema\Parser;
@@ -34,6 +33,7 @@ use Survos\WorkflowBundle\Service\WorkflowHelperService;
 
 class PixieService
 {
+    const PIXIE_TRANSLATION='translation';
     // cache, indexed by filename
     private array $storageBoxes = [];
 
@@ -121,7 +121,7 @@ class PixieService
 
             $translationPixieFilename = str_replace('.pixie.db', '-translation.pixie.db', $filename);
             $kv = $this->getStorageBox(
-                PixieInterface::PIXIE_TRANSLATION,
+                self::PIXIE_TRANSLATION,
                 filename: $translationPixieFilename,
             );
         } else {
