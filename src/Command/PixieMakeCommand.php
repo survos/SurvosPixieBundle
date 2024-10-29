@@ -51,44 +51,64 @@ final class PixieMakeCommand extends InvokableServiceCommand
         PixieImportService                                          $pixieImportService,
         #[Argument(description: 'config code')] ?string              $configCode,
         #[Option(description: 'build from source')] ?bool           $build,
+        #[Option(description: 'make from /json')] ?bool           $make,
         #[Option(description: 'dry run, just show commands')] ?bool $dry,
 
     ): int
     {
         $this->initialized = true;
+        $dry = $dry??false; // if null, false
         $configCode ??= getenv('PIXIE_CODE');
         $config = $pixieService->getConfig($configCode);
+        $source = $config->getSource();
         $build = $build??true;
-        $commands = [];
         if ($build) {
-        foreach ($config->getSource()->make as $key => $step) {
-            switch ($step['action']) {
-                case 'fetch':
-                    $io->writeln("fetching {$step['source']} to {$step['target']}");
-                    $this->fetch($step['source'], $step['target'], $dry);
-                    break;
-                case 'bash':
-                    $command = $step['cmd'];
-                    $io->writeln("running $command...");
-                    $dry || $this->runProcess($command);
-
-                case 'cmd':
-                    $command = $step['cmd'];
-                    $command = str_replace('$code$', $configCode, $command);
-                    $io->writeln("running $command...");
-                    $dry || $this->runCommand($command);
-                    break;
-                default:
-                    assert(false, $step['action']);
-//)
-            }
+            $this->process($source->build, $dry);
         }
+        if ($make) {
+            $this->process($source->make, $dry);
         }
-
 
         $io->success($this->getName() . " " .  $configCode);
         return self::SUCCESS;
     }
+
+    private function process(array $steps, bool $dry)
+    {
+    foreach ($steps as $key => $step) {
+        switch ($step['action']) {
+            case 'fetch':
+                $this->io()->writeln("fetching {$step['source']} to {$step['target']}");
+                $dry || $this->fetch($step['source'], $step['target'], $dry);
+                break;
+            case 'bash':
+                $command = $step['cmd'];
+                $this->io()->writeln("running $command...");
+                $dry || $this->runProcess($command);
+
+            case 'unzip':
+                $zip = new \ZipArchive;
+                if ($res = $zip->open($step['source'])) {
+                    $zip->extractTo($step['target']); // , array('pear_item.gif', 'testfromfile.php'));
+                    $zip->close();
+                } else {
+                    $this->io()->error("Cannot open " . $step['source']);
+                }
+                $this->io()->success(sprintf("%s extracted to %s", $step['source'], $step['target']));
+                break;
+
+            case 'cmd':
+                $command = $step['cmd'];
+//                $command = str_replace('$code$', $configCode, $command);
+                $this->io()->writeln("running $command...");
+                $dry || $this->runCommand($command);
+                break;
+            default:
+                assert(false, $step['action']);
+//)
+        }
+    }
+}
 
     private function fetch(string $url, string $destination, ?bool $dry): void
     {

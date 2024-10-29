@@ -291,6 +291,7 @@ class PixieService
     // @todo: add custom dataDir, etc.
     public function getConfig(string $pixieCode): ?Config
     {
+        assert($pixieCode);
         static $configCache = null;
         if (null === $configCache) {
             $configCache = $this->getConfigFiles();
@@ -463,7 +464,9 @@ class PixieService
             }
             {
                 // get the related item from the PK stored in the item, replace it with the actual record, but without the _id?
-                $relatedId = $data[$propertyName];
+                if (!$relatedId = $data[$propertyName]??null) {
+                    continue;
+                }
                 // json from sqlite is stored as a string.
                 if (is_string($relatedId) && json_validate($relatedId)) {
                     $relatedId = json_decode($relatedId);

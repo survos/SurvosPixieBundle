@@ -66,7 +66,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         $this->initialized = true;
         // in bash:  export PIXIE_CODE=aust
         $configCode ??= getenv('PIXIE_CODE');
-
+        $populate ??= true;
         $index = is_null($index) ? true : $index;
         $config = $pixieService->getConfig($configCode);
         assert($config, $config->getConfigFilename());
