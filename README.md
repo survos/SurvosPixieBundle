@@ -4,6 +4,8 @@ A Symfony bundle that leverages Sqlite to create an indexed structured datastore
 
 Inspired by https://gist.github.com/sbrl/c3bfbbbb3d1419332e9ece1bac8bb71c and https://dexie.org/ and the Symfony PDO Cache component.
 
+@todo: finish relations using https://github.com/simonw/til/blob/main/sqlite/related-rows-single-query.md
+
 ## Example
 
 ```bash
