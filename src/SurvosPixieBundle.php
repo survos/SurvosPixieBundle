@@ -13,6 +13,7 @@ use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Command\PixieIndexCommand;
 use Survos\PixieBundle\Command\PixiePrepareCommand;
 use Survos\PixieBundle\Command\PixieSyncCommand;
+use Survos\PixieBundle\Command\PixieTranslateCommand;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Controller\SearchController;
 use Survos\PixieBundle\CsvSchema\Parser;
@@ -23,10 +24,12 @@ use Survos\PixieBundle\EventListener\CsvHeaderEventListener;
 use Survos\PixieBundle\EventListener\TranslationRowEventListener;
 use Survos\PixieBundle\Menu\PixieItemMenu;
 use Survos\PixieBundle\Menu\PixieMenu;
+use Survos\PixieBundle\Service\LibreTranslateService;
 use Survos\PixieBundle\Service\PixieConvertService;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\SqliteService;
+use Survos\PixieBundle\Service\TranslationService;
 use Survos\PixieBundle\Twig\TwigExtension;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
@@ -75,6 +78,14 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->setAutowired(true)
             ->setArgument('$logger', new Reference('logger'))
             ->setArgument('$purgeBeforeImport', $config['purge_before_import'])
+        ;
+
+        /* @ack!! these needs to be in a translation bundle and optionally wired */
+        $builder->register(TranslationService::class)
+            ->setAutowired(true)
+        ;
+        $builder->register(LibreTranslateService::class)
+            ->setAutowired(true)
         ;
 
         $builder->register(PixieConvertService::class)
@@ -143,6 +154,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                      PixiePrepareCommand::class,
                      PixieImportCommand::class,
                      PixieExportCommand::class,
+//                     PixieTranslateCommand::class,
                      IterateCommand::class,
                      PixieIndexCommand::class,
                      PixieSyncCommand::class,
