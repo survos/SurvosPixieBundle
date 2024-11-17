@@ -99,7 +99,6 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
 
         $recordsToWrite=[];
-        $key = $key??'key';
         // now iterate
         foreach ($kv->getTables() as $tableName => $table) {
             if ($tableFilter && ($tableName <> $tableFilter)) {
@@ -149,6 +148,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             }
             foreach ($kv->iterate($tableName) as $idx => $row) {
                 $data = $row->getData();
+                $this->logger->info($row->getKey());
                 // hack
                 $lang = $row->expected_language()??$config->getSource()->locale;
 //                dd($lang, $row);
