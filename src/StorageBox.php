@@ -102,7 +102,9 @@ class StorageBox
             }
         }
 
-        $this->config = self::fix($this->config, $this->templates);
+        if ($this->config) {
+            $this->config = self::fix($this->config, $this->templates);
+        }
         // fix until we fix in the definition parser
         if ($this->config) {
             $this->createTables($this->config);

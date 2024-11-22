@@ -301,8 +301,9 @@ class PixieService
 //            // deserialize
 //        }
 
-
-        $config = StorageBox::fix($configCache[$pixieCode], $this->getTemplates());
+        if ($config = $configCache[$pixieCode]) {
+            $config = StorageBox::fix($config, $this->getTemplates());
+        }
         return $config;
 
         dd($pixieCode, $this->bundleConfig);
@@ -428,7 +429,10 @@ class PixieService
     {
         assert(!$autoCreate);
         if (!$config) {
-            $config = $this->getConfig($pixieCode);
+            if (!$config = $this->getConfig($pixieCode)) {
+                return null;
+            }
+
         }
 
         if (!$dir) {
