@@ -19,7 +19,7 @@ use Symfony\Component\Stopwatch\Stopwatch;
 final class TraceableStorageBox extends StorageBox
 {
 //    private Stopwatch $stopwatch;
-    #[NoReturn] function __construct(private string                    $filename,
+    function __construct(private string                    $filename,
                                      private array                     &$data, // debug data, passed from Pixie
                                      private ?Config $config=null, // for creation only.  Shouldn't be in constructor!
                                      private ?string                   $currentTable = null,

@@ -17,7 +17,6 @@ use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\SqliteService;
 use Survos\PixieBundle\StorageBox;
-use Survos\PixieBundle\StorageBoxInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Yaml\Yaml;
 use function PHPUnit\Framework\assertCount;

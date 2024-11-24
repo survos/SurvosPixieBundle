@@ -7,7 +7,6 @@ namespace Survos\PixieBundle;
 // consider: https://github.com/morris/dop for binding arrays as parameters and sub-queries
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Schema\Schema;
-use JetBrains\PhpStorm\NoReturn;
 use \PDO;
 use Psr\Log\LoggerInterface;
 use Survos\CoreBundle\Service\SurvosUtils;
@@ -55,7 +54,7 @@ class StorageBox
      * @param string $filename The filename that the store is located in.
      * @param array $tablesToCreate The ADDITIONAL tables to create with writing.  Others may already exist.
      */
-    #[NoReturn] function __construct(private string                              $filename,
+    function __construct(private string                              $filename,
                                      array                                       &$data, // debug data, passed from Pixie
                                      private ?Config                             $config = null, // for creation only.  Shouldn't be in constructor!
 //                                     private array                     $tablesToCreate = [],
@@ -887,7 +886,7 @@ class StorageBox
                     // locked
                     throw new \Exception($this->filename . " is locked \n\n" . $exception->getMessage());
                 } else {
-                    dd($exception, $params, $value, $preparedStatements, $tableName);
+                    dd($exception, $value, $preparedStatements, $tableName);
                 }
             }
             if (!$results) {

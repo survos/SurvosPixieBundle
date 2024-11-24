@@ -7,6 +7,7 @@
     ],
     "license": "MIT",
     "type": "symfony-bundle",
+    "prefer-stable": true,
     "require": {
         "ext-pdo": "*",
         "php": "^8.3",
@@ -45,7 +46,9 @@
         "symfony/messenger": "^6.4 || ^7.1",
         "survos/bunny-bundle": "^1.5.396",
         "zenstruck/filesystem": "1.x-dev",
-        "league/flysystem-ziparchive": "3.x-dev"
+        "league/flysystem-ziparchive": "3.x-dev",
+        "psr/log": "^3.0",
+        "survos/scraper-bundle": "^1.5"
     },
     "autoload": {
         "psr-4": {

@@ -31,7 +31,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\String\Slugger\SluggerInterface;
 use Symfony\Contracts\Cache\CacheInterface;
-use function Clue\StreamFilter\fun;
 use function Symfony\Component\String\u;
 
 // see these for scraper bundle: https://foshttpcachebundle.readthedocs.io/en/latest/overview.html

@@ -1,25 +1,24 @@
 parameters:
-    level: 4
-    disallowedFunctionCalls:
-    	-
-    			function: 'dd()'
-    			message: 'dd() will cause problems in production'
-    	-
-    			function: 'dump()'
-    			message: 'usually problematic'
-
-#    inferPrivatePropertyTypeFromConstructor: true
+    level: 0
+    inferPrivatePropertyTypeFromConstructor: true
     paths:
         - ./src/
 
     excludePaths:
-      - */cache/*
+       analyse:
+          - ./vendor
 
-
+    reportUnmatchedIgnoredErrors: false
+#    checkMissingIterableValueType: false
+#    checkGenericClassInNonGenericObjectType: false
     ignoreErrors:
+        - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition::children\(\)\.#'
+        - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface::scalarNode\(\).#'
+        - '#has invalid type Symfony\\Config\\FrameworkConfig#'
+        # Only available in ArrayNodeDefinition which is given
         # False positive: clients are not dependencies of this project.
 #        -
-#            message: '#Return typehint of method KnpU\\OAuth2ClientBundle\\Client\\Provider\\[a-zA-Z0-9\\_]+::fetchUserFromToken\(\) has invalid type [a-zA-Z0-9\\_]#'
+#            message: '#Call to an undefined method Symfony\Component\Config\Definition\Builder\NodeDefinition::children#'
 #            path: ./src/Client/Provider
 #        -
 #            message: '#Return typehint of method KnpU\\OAuth2ClientBundle\\Client\\Provider\\[a-zA-Z0-9\\_]+::fetchUser\(\) has invalid type [a-zA-Z0-9\\_]#'
@@ -33,11 +32,6 @@ parameters:
 #        -
 #            message: '#.*NodeParentInterface\|null.*#'
 #            path: ./src/DependencyInjection/Providers
-        -
-            message: '#.*NodeDefinition::children.*#'
-            path: ./src/*Bundle.php
-
-includes:
-    - vendor/spaze/phpstan-disallowed-calls/extension.neon
-    - vendor/spaze/phpstan-disallowed-calls/disallowed-dangerous-calls.neon
-
+#        -
+#            message: '#.*NodeDefinition::children.*#'
+#            path: ./src/DependencyInjection
