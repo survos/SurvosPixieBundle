@@ -351,7 +351,7 @@ class PixieController extends AbstractController
 
     }
 
-    private function getCounts(StorageBox $kv, string $tableName=null, int $limit=0): array
+    private function getCounts(StorageBox $kv, ?string $tableName=null, int $limit=0): array
     {
         $counts = [];
         foreach ($kv->getIndexes($tableName) as $indexName) {

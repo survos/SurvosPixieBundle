@@ -22,7 +22,7 @@ final class PixieDataCollector extends AbstractDataCollector
     )
     {
     }
-    public function collect(Request $request, Response $response, \Throwable $exception = null): void
+    public function collect(Request $request, Response $response, ?\Throwable $exception = null): void
     {
         $data = $this->pixieService->getData();
 

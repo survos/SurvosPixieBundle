@@ -246,7 +246,7 @@ class TranslationService
                                            $from = 'en',
                                            $to = 'es',
                                   string   $engine = 'libre',
-                                  callable $callable = null
+                                  ?callable $callable = null
     ): ?string
     {
 //        $trans = [];
@@ -505,7 +505,7 @@ class TranslationService
 
     }
 
-    public function getKey( string $sourceLocale, ?string $source, string $engine='libre', string $target=null): ?string
+    public function getKey( string $sourceLocale, ?string $source, string $engine='libre', ?string $target=null): ?string
     {
         if (empty($source)) {
             return null;

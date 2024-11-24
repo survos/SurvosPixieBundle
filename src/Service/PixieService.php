@@ -95,7 +95,7 @@ class PixieService
 
     }
 
-    private function resolveFilename($filename, string $type = null): ?string
+    private function resolveFilename($filename, ?string $type = null): ?string
     {
 
         if ($type && ($filename && !file_exists($filename))) {
@@ -209,7 +209,7 @@ class PixieService
     /**
      * @return array<Config>
      */
-    public function getConfigFiles(string $q = null, ?string $pixieCode = null, int $limit = 0): array
+    public function getConfigFiles(?string $q = null, ?string $pixieCode = null, int $limit = 0): array
     {
 
         $configs = [];
@@ -423,8 +423,8 @@ class PixieService
                                       ?Config $config = null,
                                       bool    $autoCreate = false,
                                       bool    $throwErrorIfMissing = true,
-                                      string  $dir = null,
-                                      string  $subCode = null
+                                      ?string  $dir = null,
+                                      ?string  $subCode = null
     ): ?string
     {
         assert(!$autoCreate);

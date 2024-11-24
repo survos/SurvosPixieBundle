@@ -270,7 +270,7 @@ class StorageBox
 
     // @todo: make this an event listener?
     // given the HEADER array, map the key names, for array_combine or csv getRecords
-    static public function mapHeader(array $header, string $propertyRule, string $tableName = null, array $regexRules = []): array
+    static public function mapHeader(array $header, string $propertyRule, ?string $tableName = null, array $regexRules = []): array
     {
         // $fieldName is the attribute (json) or column name (csv)
         $newHeaders = [];
@@ -383,7 +383,7 @@ class StorageBox
     /* get the DBAL schema.
      *
      */
-    public function inspectSchema(string $filename = null): array
+    public function inspectSchema(?string $filename = null): array
     {
         $filename = $filename ?? $this->getFilename();
 
@@ -671,7 +671,7 @@ class StorageBox
      * @param array $where filter the preload if we know we don't need them all, e.g. translation Keys
      * @return    bool    Whether the key exists in the store or not.
      */
-    public function has(string $key, string $table = null, bool $preloadKeys = false, array $where = []): bool
+    public function has(string $key, ?string $table = null, bool $preloadKeys = false, array $where = []): bool
     {
         $table = $table ?? $this->currentTable;
         $pk = $this->getPrimaryKey($table);
@@ -705,7 +705,7 @@ class StorageBox
             )->fetchColumn() > 0;
     }
 
-    public function getByIndex(int $index, string $table = null): ?Item
+    public function getByIndex(int $index, ?string $table = null): ?Item
     {
         if ($index === -1) {
             $index = rand(0, $this->count($table));
@@ -718,7 +718,7 @@ class StorageBox
 
     }
 
-    public function count(string $table = null, array $where = []): ?int
+    public function count(?string $table = null, array $where = []): ?int
     {
         $table = $table ?? $this->currentTable;
         if (!$this->tableExists($table)) {
@@ -763,7 +763,7 @@ class StorageBox
      * @param string $key The key to store the value under.
      * @return    string    The value to store.
      */
-    public function get(string $key, string $tableName = null, callable $callback = null): ?Item // string|object|array|null
+    public function get(string $key, ?string $tableName = null, ?callable $callback = null): ?Item // string|object|array|null
     {
         $tableName = $tableName ?? $this->currentTable;
         $keyName = $this->getPrimaryKey($tableName);
@@ -796,9 +796,9 @@ class StorageBox
      * @param string $propertyName If set, update the property, not _raw
      */
     public function set(array|object|string $value,
-                        string              $tableName = null,
+                        ?string              $tableName = null,
                         string|int|null     $key = null,
-                        string              $propertyName = null,
+                        ?string              $propertyName = null,
                         string              $mode = 'replace',
                         array               $where = [] // for preload
         // _raw, if patch then read first and merge
@@ -905,7 +905,7 @@ class StorageBox
      * @param string $key The key of the item to delete.
      * @return    bool    Whether it was really deleted or not. Note that if it doesn't exist, then it can't be deleted.
      */
-    public function delete(string $key, string $table = null): bool
+    public function delete(string $key, ?string $table = null): bool
     {
         $tableName = $table ?? $this->currentTable;
         return $this->query(
@@ -988,7 +988,7 @@ class StorageBox
 
     }
 
-    public function iterate(string $table = null,
+    public function iterate(?string $table = null,
                             ?array $where = [],
                             int    $max = 0,
                             array  $order = [],
@@ -1053,7 +1053,7 @@ class StorageBox
         }
     }
 
-    public function iterateOver(string $table = null, callable $callback, ?bool $associative = null, int $depth = 512, int $flags = 0): array
+    public function iterateOver(?string $table, callable $callback, ?bool $associative = null, int $depth = 512, int $flags = 0): array
     {
         $results = [];
         foreach ($this->iterate($table, $associative, $depth, $flags) as $key => $value) {
@@ -1062,7 +1062,7 @@ class StorageBox
         return $results;
     }
 
-    public function getKeys(string $tableName = null): array
+    public function getKeys(?string $tableName = null): array
     {
         $tableName = $tableName ?? $this->currentTable;
         assert($tableName, "no table configured");
@@ -1103,7 +1103,7 @@ class StorageBox
         return count($sth->fetchAll(PDO::FETCH_COLUMN)) > 0;
     }
 
-    public function getCounts(string $column, string $table = null, int $limit = 15): array
+    public function getCounts(string $column, ?string $table = null, int $limit = 15): array
     {
         $tablename = $table ?? $this->currentTable;
         $sql = "SELECT COUNT(rowid) as count, $column as value
@@ -1119,7 +1119,7 @@ GROUP BY $column
         return $sth->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getIndexes(string $table = null): array
+    public function getIndexes(?string $table = null): array
     {
         $sth = $this->db->query($sql = "SELECT * FROM sqlite_master where type='index'");
         $indexes = [];

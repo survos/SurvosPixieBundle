@@ -422,7 +422,7 @@ class Parser
         return [$header, $dottedConfig];
 
     }
-    static public function parseConfigHeader(?string $config, string $originalCode=null): ?Property
+    static public function parseConfigHeader(?string $config, ?string $originalCode=null): ?Property
     {
         if (empty($config)) {
             return null;

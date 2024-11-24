@@ -58,7 +58,7 @@ class LibreTranslateService
     }
 
 
-    public function getAlternatives(string $line, string $engine = null)
+    public function getAlternatives(string $line, ?string $engine = null)
     {
         $alternatives =
             array_unique(
@@ -70,8 +70,8 @@ class LibreTranslateService
     }
 
     public function translate(string   $q, $from = 'en', $to = 'es', $format = 'text',
-                              string   $engine = null,
-                              callable $callable = null
+                              ?string   $engine = null,
+                              ?callable $callable = null
     ): ?string
     {
         static $count = 0;
@@ -348,8 +348,8 @@ class LibreTranslateService
                                  string   $sourceLocale,
                                  string   $targetLocale,
                                  string   $engine = 'libre',
-                                 string   $cacheKeyBase = null,
-                                 callable $callable = null
+                                 ?string   $cacheKeyBase = null,
+                                 ?callable $callable = null
     ):
     array
     {

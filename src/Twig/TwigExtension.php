@@ -42,7 +42,7 @@ class TwigExtension extends AbstractExtension
             }, [
                 'is_safe' => ['html'],
             ]),
-            new TwigFilter('urlize', fn($x, $target='blank', string $label=null) =>
+            new TwigFilter('urlize', fn($x, $target='blank', ?string $label=null) =>
             filter_var($x, FILTER_VALIDATE_URL)
                 ? sprintf('<a target="%s" href="%s">%s</a>', $target, $x, $label ?: $x)
                 : $x, [

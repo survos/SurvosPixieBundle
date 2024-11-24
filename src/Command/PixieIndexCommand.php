@@ -33,7 +33,6 @@ use Zenstruck\Console\InvokableServiceCommand;
 use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\iterator;
 
 #[AsCommand('pixie:index', 'create a Meili index"')]
 final class PixieIndexCommand extends InvokableServiceCommand
@@ -65,8 +64,8 @@ final class PixieIndexCommand extends InvokableServiceCommand
         PixieImportService                                                             $pixieImportService,
         #[Argument(description: 'config code')] ?string                                $configCode,
         #[Argument(description: 'sub code, e.g. musdig inst id')] ?string              $subCode=null,
-        #[Option('dir', description: 'dir to pixie')] string                           $dir=null,
-        #[Option('table', description: 'table name(s?), all if not set')] string       $tableFilter=null,
+        #[Option('dir', description: 'dir to pixie')] ?string                           $dir=null,
+        #[Option('table', description: 'table name(s?), all if not set')] ?string       $tableFilter=null,
 //        #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
         #[Option(description: "reset the meili index")] ?bool                          $reset=null,
         #[Option(description: "wait for tasks to finish")] ?bool                          $wait=null,
