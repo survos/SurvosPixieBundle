@@ -38,17 +38,17 @@
         "phpunit/phpunit": "^11.4",
         "symfony/phpunit-bridge": "^6.4 || ^7.1",
         "symfony/stopwatch": "^6.4 || ^7.1",
-        "survos/workflow-helper-bundle": "^1.5.398",
+        "survos/workflow-helper-bundle": "^1.5.399",
         "symfony/ux-chartjs": "^2.21",
-        "survos/bootstrap-bundle": "^1.5.398",
-        "survos/api-grid-bundle": "^1.5.398",
+        "survos/bootstrap-bundle": "^1.5.399",
+        "survos/api-grid-bundle": "^1.5.399",
         "symfony/event-dispatcher": "^6.4 || ^7.1",
         "symfony/messenger": "^6.4 || ^7.1",
-        "survos/bunny-bundle": "^1.5.398",
+        "survos/bunny-bundle": "^1.5.399",
         "zenstruck/filesystem": "1.x-dev",
         "league/flysystem-ziparchive": "3.x-dev",
         "psr/log": "^3.0",
-        "survos/scraper-bundle": "^1.5.398"
+        "survos/scraper-bundle": "^1.5.399"
     },
     "autoload": {
         "psr-4": {
