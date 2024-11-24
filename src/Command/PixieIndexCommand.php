@@ -143,7 +143,9 @@ final class PixieIndexCommand extends InvokableServiceCommand
                     isTranslation: true,
                     tags: ['fetch']
                 ))->getStorageBox();
-                $transKv->select(TranslationService::ENGINE);
+                // hack until we get a translation bundle working
+                $transKv->select('libre');
+//                $transKv->select(TranslationService::ENGINE);
             } else {
                 $transKv = null;
             }

@@ -27,6 +27,7 @@ class PixieTest extends KernelTestCase
 //    const FILENAME='test.pixie.db';
     const MOVIE_TABLE_NAME='movie';
     const TEST_CODE='imdb';
+    const FILENAME='test.db';
 
     #[Test]
     #[TestWith([0, 0, 0])]

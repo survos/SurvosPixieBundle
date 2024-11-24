@@ -42,6 +42,7 @@ class RowEvent extends Event
         }
     }
 
+
     public function isPreLoad(): bool
     {
         return $this->type === self::PRE_LOAD;

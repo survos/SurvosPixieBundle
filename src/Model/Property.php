@@ -173,7 +173,9 @@ class Property implements \Stringable
     // this should probably be at the field, not property, level, but this way we can translate before having fields.
     public function isTranslatable(): bool
     {
-        return $this->getType() == Field::TYPE_INTRINSIC && in_array($this->getSubType(), Instance::TRANSLATABLE_FIELDS);
+        assert(false);
+        return false;
+//        return $this->getType() == Field::TYPE_INTRINSIC && in_array($this->getSubType(), Instance::TRANSLATABLE_FIELDS);
     }
 
     /**

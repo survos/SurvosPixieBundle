@@ -48,6 +48,7 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\InvokableServiceCommand;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
+use function PHPUnit\Framework\assertNull;
 
 #[AsCommand('pixie:translate', 'Translate the existing fields to a separate ktv')]
 final class PixieTranslateCommand extends InvokableServiceCommand
@@ -357,16 +358,16 @@ final class PixieTranslateCommand extends InvokableServiceCommand
         return self::SUCCESS;
     }
 
-    private
-    function getTranslationArray($entity, $accessor)
+    private function getTranslationArray($entity, $accessor)
     {
-        $updatedRow = [Instance::DB_CODE_FIELD => $entity->getCode()];
-        foreach ($entity->getTranslations() as $translation) {
-            foreach (Instance::TRANSLATABLE_FIELDS as $fieldName) {
-                $translatedValue = $accessor->getValue($translation, $fieldName);
-                $updatedRow['_translations'][$translation->getLocale()][$fieldName] = $translatedValue;
-            }
-        }
+        assertNull($this, "get these from the pixie, not the old class");
+//        $updatedRow = [Instance::DB_CODE_FIELD => $entity->getCode()];
+//        foreach ($entity->getTranslations() as $translation) {
+//            foreach (Instance::TRANSLATABLE_FIELDS as $fieldName) {
+//                $translatedValue = $accessor->getValue($translation, $fieldName);
+//                $updatedRow['_translations'][$translation->getLocale()][$fieldName] = $translatedValue;
+//            }
+//        }
 
         return $updatedRow;
     }

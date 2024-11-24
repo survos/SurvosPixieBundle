@@ -6,7 +6,12 @@ parameters:
 
     excludePaths:
        analyse:
-          - ./vendor
+            - ./vendor
+            - ./src/Service/TranslationService*
+            - ./src/Service/Libre*
+            - ./src/EventListener/TranslationRowEventListener*
+            - ./src/Command/PixieTranslateCommand.php
+            - ./src/Controller/SearchController.php
 
     reportUnmatchedIgnoredErrors: false
 #    checkMissingIterableValueType: false
