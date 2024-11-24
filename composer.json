@@ -1,59 +1,57 @@
 {
     "name": "survos/pixie-bundle",
-    "type": "symfony-bundle",
-    "minimum-stability": "dev",
     "description": "Symfony Bundle to easily allow a SQLite Key Value lookup.  Optionally uses zip and bunny utilities for sync",
     "keywords": [
         "symfony-ux",
         "symfony6"
     ],
     "license": "MIT",
+    "type": "symfony-bundle",
     "require": {
         "ext-pdo": "*",
         "php": "^8.3",
-        "symfony/config": "^6.4 || ^7.0",
-        "symfony/dependency-injection": "^6.4 || ^7.0",
-        "symfony/http-kernel": "^6.4 || ^7.0",
+        "symfony/config": "^6.4 || ^7.1",
+        "symfony/dependency-injection": "^6.4 || ^7.1",
+        "symfony/http-kernel": "^6.4 || ^7.1",
         "twig/twig": "^3.4",
         "survos/installer": "^1.5",
-        "symfony/yaml": "^6.4|^7.1",
+        "symfony/yaml": "^6.4 || ^7.1",
         "doctrine/dbal": "^3.0|^4.0",
-        "symfony/property-access": "^7.1",
+        "symfony/property-access": "^6.4 || ^7.1",
         "halaxa/json-machine": "^1.1",
-        "league/csv": "^9.16",
-        "symfony/twig-bundle": "^7.1",
-        "symfony/routing": "^7.1",
-        "symfony/serializer": "^7.1",
+        "league/csv": "^9.9",
+        "symfony/twig-bundle": "^6.4 || ^7.1",
+        "symfony/routing": "^6.4 || ^7.1",
+        "symfony/serializer": "^6.4 || ^7.1",
         "symfony/serializer-pack": "^1.3",
         "zenstruck/console-extra": "^1.4",
-        "symfony/ux-icons": "^2.18",
-        "symfony/http-client-contracts": "^3.6@dev",
-        "symfony/http-client": "7.2.x-dev"
+        "symfony/ux-icons": "^2.21",
+        "symfony/http-client-contracts": "^3.5",
+        "symfony/http-client": "^6.4 || ^7.1"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.0",
+        "symfony/browser-kit": "^6.4 || ^7.1",
+        "symfony/framework-bundle": "^6.4 || ^7.1",
+        "symfony/var-dumper": "^6.4 || ^7.1",
+        "phpunit/phpunit": "^11.4",
+        "symfony/phpunit-bridge": "^6.4 || ^7.1",
+        "symfony/stopwatch": "^6.4 || ^7.1",
+        "survos/workflow-helper-bundle": "^1.5",
+        "symfony/ux-chartjs": "^2.21",
+        "survos/bootstrap-bundle": "^1.4",
+        "survos/api-grid-bundle": "^1.5",
+        "symfony/event-dispatcher": "^6.4 || ^7.1",
+        "symfony/messenger": "^6.4 || ^7.1",
+        "survos/bunny-bundle": "^1.5",
+        "zenstruck/filesystem": "1.x-dev",
+        "league/flysystem-ziparchive": "3.x-dev"
     },
     "autoload": {
         "psr-4": {
             "Survos\\PixieBundle\\": "src/",
             "Survos\\PixieBundle\\Tests\\": "tests/"
         }
-    },
-    "require-dev": {
-        "phpstan/phpstan": "^1.10",
-        "symfony/browser-kit": "^6.4 || ^7.0",
-        "symfony/framework-bundle": "^6.4 || ^7.0",
-        "symfony/var-dumper": "^6.4 || ^7.0",
-        "phpunit/phpunit": "^10.5",
-        "symfony/phpunit-bridge": "^7.1",
-        "symfony/stopwatch": "^7.1",
-        "spaze/phpstan-disallowed-calls": "^3.4",
-        "survos/workflow-helper-bundle": "^1.5.395",
-        "symfony/ux-chartjs": "^2.18",
-        "survos/bootstrap-bundle": "^1.5.395",
-        "survos/api-grid-bundle": "^1.5.395",
-        "symfony/event-dispatcher": "^7.1",
-        "symfony/messenger": "^7.1",
-        "survos/bunny-bundle": "^1.5.395",
-        "zenstruck/filesystem": "1.x-dev",
-        "league/flysystem-ziparchive": "3.x-dev"
     },
     "scripts": {
         "coverage": "php -d xpcov.enabled=1 vendor/bin/phpunit --coverage-html coverage"
@@ -63,5 +61,6 @@
             "survos/installer": true,
             "endroid/installer": true
         }
-    }
+    },
+    "minimum-stability": "dev"
 }
