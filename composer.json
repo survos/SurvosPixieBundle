@@ -53,7 +53,7 @@
         "survos/scraper-bundle": "^1.5",
         "friendsofphp/php-cs-fixer": "^3.64",
         "meilisearch/meilisearch-php": "^1.11",
-        "symfony/security-bundle": "^7.1"
+        "symfony/security-bundle": "^6.4 || ^7.1"
     },
     "autoload": {
         "psr-4": {
