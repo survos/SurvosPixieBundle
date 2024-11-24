@@ -10,6 +10,7 @@
   <php>
     <ini name="display_errors" value="1"/>
     <ini name="error_reporting" value="-1"/>
+    <env name="SYMFONY_DEPRECATIONS_HELPER" value="max[self]=0&amp;max[direct]=0"/>
 
     <!-- kernel.project_dir relative path?  Or just the TestKernel -->
     <server name="KERNEL_CLASS" value="Survos\PixieBundle\Tests\TestKernel" />
