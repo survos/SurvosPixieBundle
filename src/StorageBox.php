@@ -1091,7 +1091,7 @@ class StorageBox
         return $this->getConfig()->getTables();
     }
 
-    public function getTable(string $tableName): Table
+    public function getTable(string $tableName): ?Table
     {
         return $this->getConfig()->getTables()[$tableName];
 
