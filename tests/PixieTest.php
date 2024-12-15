@@ -40,7 +40,7 @@ class PixieTest extends KernelTestCase
 
     #[Test]
     #[TestWith(['education', 'config/packages/pixie/education.yaml'])] // , 'data/education', 'pixie/education.pixie.db'])]
-    public function configPath(string $code, ?string $config=null, string $dataDir=null, ?string $db=null): void
+    public function configPath(string $code, ?string $config=null, ?string $dataDir=null, ?string $db=null): void
     {
         /** @var PixieService $pixieService */
         $pixieService = static::getContainer()->get(PixieService::class);

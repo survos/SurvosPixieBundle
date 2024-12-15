@@ -17,7 +17,7 @@ class ParserTest extends TestCase
     #[DataProvider('csvTests')]
     #[Test]
     #[TestDox('read and parse data from csv files')]
-    public function testParser(array $test, string $name=null, string $basic=null): void
+    public function testParser(array $test, ?string $name=null, ?string $basic=null): void
     {
         $key = $test['name'] ?? json_encode($test);
             $csvString = $test['source'];
@@ -61,7 +61,7 @@ class ParserTest extends TestCase
     }
 
     #[DataProvider('parserTests')]
-    public function testDottedConfig(string $dottedConfig, Property $property, string $alias = null): void
+    public function testDottedConfig(string $dottedConfig, Property $property, ?string $alias = null): void
     {
 
         $actual = Parser::parseConfigHeader($dottedConfig);
