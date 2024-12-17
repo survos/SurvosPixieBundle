@@ -11,6 +11,7 @@ use App\Message\TranslationMessage;
 use App\Metadata\PixieInterface;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Event\FacetEvent;
+use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\GridGroupBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Event\StorageBoxEvent;
@@ -54,6 +55,7 @@ class TranslationService
 //        #[AutowireMethodOf(service: PixieService::class)] \Closure $getFilename,
 //        private PixieService $pixieService, // can't inject, mess circular dependency
         private MessageBusInterface                           $bus,
+        private SurvosUtils $survosUtils,
         #[Autowire('%kernel.enabled_locales%')] private array $supportedLocales,
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly SluggerInterface $slugger,
@@ -439,7 +441,7 @@ class TranslationService
     public function getStringTranslationDir()
     {
         $translationDir = $this->bag->get('data_dir') . 'translations/';
-        return AppService::createDir($translationDir);
+        return SurvosUtils::createDir($translationDir);
     }
 
     public function getTranslationCacheManager(): PdoCacheService
@@ -515,15 +517,15 @@ class TranslationService
             assert( Languages::exists($target), $target);
         }
         assert(in_array($engine, ['libre','deep-l','google']), "Invalid engine: $engine");
-        $source = AppService::slugify($source, maxLength: 1024);
+        $source = SurvosUtils::slugify($source, maxLength: 1024);
         assert(in_array($engine, ['libre', 'deepl']), "bad engine: " . $engine);
         // if the base has an underscore, it means it's really a key, like for the facets.
-        if ($source == AppService::slugify($source)) {
+        if ($source == SurvosUtils::slugify($source)) {
             $base = $source;
         } else {
             $base = strlen($source) < 24 ? AppService::slugify($source, 1024)
                 : hash('xxh3', $source);
-            assert(AppService::slugify($base) == $base); // how did we get a ':' in the key?
+            assert(SurvosUtils::slugify($base) == $base); // how did we get a ':' in the key?
         }
 //        if (!$base) {
 //        }

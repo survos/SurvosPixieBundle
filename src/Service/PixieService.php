@@ -301,7 +301,7 @@ class PixieService
 //            // deserialize
 //        }
 
-        if ($config = $configCache[$pixieCode]) {
+        if ($config = $configCache[$pixieCode]??null) {
             $config = StorageBox::fix($config, $this->getTemplates());
         }
         return $config;
