@@ -39,19 +39,18 @@ class LibreTranslateService
     public function __construct(
 //        private CacheInterface $Cache,
 // see pools in cache.yaml
-        private CacheInterface            $translationCache,
-        private InstanceRepository        $instanceRepository,
-        private PropertyAccessorInterface $accessor,
-        private LoggerInterface           $logger,
-        private ParameterBagInterface     $bag,
-        private EntityManagerInterface    $entityManager,
-        protected PdoCacheService         $cacheService,
-        private HttpClientInterface       $client,
-        private TranslatorInterface       $translator,
-        private CacheInterface            $liveTranslationCache,
-        private ScraperService            $scraperService,
+        private readonly CacheInterface            $translationCache,
+        private readonly InstanceRepository        $instanceRepository,
+        private readonly PropertyAccessorInterface $accessor,
+        private readonly LoggerInterface           $logger,
+        private readonly ParameterBagInterface     $bag,
+        private readonly EntityManagerInterface    $entityManager,
+        private readonly HttpClientInterface       $client,
+        private readonly TranslatorInterface       $translator,
+        private readonly CacheInterface            $liveTranslationCache,
+        private readonly ScraperService            $scraperService,
         #[Autowire("%env(DEEPL_API_KEY)%")]
-        private string                    $deepLApiKey
+        private readonly string $deepLApiKey
     )
     {
 //        $this->scraperService->setDir('/tmp');
@@ -125,12 +124,12 @@ class LibreTranslateService
                         // if deepl, it should be in the cache (testing)
                         if ($engine == 'deepl') {
                             $this->logger->warning("Missing " . $alternative);
-                            $count += strlen($alternative);
+                            $count += strlen((string) $alternative);
 //                            $translatedLine = $this->translateLine($alternative, from: $from, to: $to, format: $format, engine: 'libre', transCache: $transCache);
                             continue;
                             dd($alternative, $engine, $transCache->getFilename());
                         } else {
-                            $count += strlen($alternative);
+                            $count += strlen((string) $alternative);
                             assert(false);
 //                            $this->logger->warning("About to call translateLine with " . substr($alternative, 0, 60));
                             $translatedLine = $this->translateLine($alternative, from: $from, to: $to,
@@ -152,7 +151,7 @@ class LibreTranslateService
 //            $translatedText[] = '';
         }
 //        $this->logger->warning("Count now at " . $count);
-        return trim(join("\n", $translatedText));
+        return trim(implode("\n", $translatedText));
 
 
 //        if (count(explode("\n", $q)) > 1 ) {
@@ -251,8 +250,8 @@ class LibreTranslateService
 //                } else {
 //                }
             } else {
-                $value = trim($value);
-                $new[$key] = trim($this->translate($value, to: $targetLocale, engine: $engine));
+                $value = trim((string) $value);
+                $new[$key] = trim((string) $this->translate($value, to: $targetLocale, engine: $engine));
 //                $new[$key] = '!' . $targetLocale . '  ' .  $value;
             }
         }

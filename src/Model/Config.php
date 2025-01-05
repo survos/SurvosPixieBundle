@@ -13,7 +13,7 @@ class Config
     const string VISIBILITY_UNLISTED = 'unlisted';
     const string TYPE_AGGREGATOR = 'agg';
     public function __construct(
-        private string|float|null $version=null,
+        private readonly string|float|null $version=null,
         public ?string $code=null,
         public ?Source $source=null,
         private array $files=[],
@@ -26,9 +26,9 @@ class Config
          */
         public array $templates=[],
         private ?string $configFilename=null,
-        private string $type=self::TYPE_MUSEUM,
+        private readonly string $type=self::TYPE_MUSEUM,
         private string $visibility=self::VISIBILITY_PUBLIC,
-        private array           $data=[],
+        private readonly array           $data=[],
         public ?string $dataDir = null, // set in service, kinda hacky
         public ?string $pixieFilename = null // set in service, kinda hacky, the sqlite file
 

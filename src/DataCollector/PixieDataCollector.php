@@ -18,7 +18,7 @@ final class PixieDataCollector extends AbstractDataCollector
 {
 
     public function __construct(
-        private PixieService $pixieService,
+        private readonly PixieService $pixieService,
     )
     {
     }
@@ -30,6 +30,7 @@ final class PixieDataCollector extends AbstractDataCollector
 //        dd($this->data);
     }
 
+    #[\Override]
     public function getName(): string
     {
         return self::class;

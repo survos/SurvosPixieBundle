@@ -57,11 +57,11 @@ final class PixieMakeCommand extends InvokableServiceCommand
     ): int
     {
         $this->initialized = true;
-        $dry = $dry??false; // if null, false
+        $dry ??= false; // if null, false
         $configCode ??= getenv('PIXIE_CODE');
         $config = $pixieService->getConfig($configCode);
         $source = $config->getSource();
-        $build = $build??true;
+        $build ??= true;
         if ($build) {
             $this->process($source->build, $dry);
         }
@@ -75,7 +75,7 @@ final class PixieMakeCommand extends InvokableServiceCommand
 
     private function process(array $steps, bool $dry)
     {
-    foreach ($steps as $key => $step) {
+    foreach ($steps as $step) {
         switch ($step['action']) {
             case 'fetch':
                 $this->io()->writeln("fetching {$step['source']} to {$step['target']}");
@@ -116,7 +116,7 @@ final class PixieMakeCommand extends InvokableServiceCommand
             mkdir($destination, 0777, true);
         }
         if (str_ends_with($destination, '/')) {
-            $destination = $destination . pathinfo($url, PATHINFO_BASENAME);
+            $destination .= pathinfo($url, PATHINFO_BASENAME);
         }
         if (!file_exists($destination)) {
             $this->io()->writeln("Fetching $url...");

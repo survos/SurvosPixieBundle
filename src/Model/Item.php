@@ -7,7 +7,7 @@ class Item implements \Stringable
     public function __construct(
         private object $data,
         public ?string $key=null,
-        private ?string $table=null,
+        private readonly ?string $table=null,
         public ?string $pixieCode=null,// for workflow?
         private ?string $marking=null,
         private ?array $currentPlaces=[] // if not singleState
@@ -49,7 +49,7 @@ class Item implements \Stringable
 
     public function __toString(): string
     {
-        return $this->getKey();
+        return (string) $this->getKey();
     }
 
     public function getMarking(): ?string

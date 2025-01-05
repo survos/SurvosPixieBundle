@@ -54,22 +54,22 @@ class StorageBox
      * @param string $filename The filename that the store is located in.
      * @param array $tablesToCreate The ADDITIONAL tables to create with writing.  Others may already exist.
      */
-    function __construct(private string                              $filename,
+    function __construct(private readonly string                              $filename,
                                      array                                       &$data, // debug data, passed from Pixie
                                      private ?Config                             $config = null, // for creation only.  Shouldn't be in constructor!
 //                                     private array                     $tablesToCreate = [],
 //                                     private ?array                     $regexRules = [],
                                      private ?string                             $currentTable = null,
-                                     private ?int                                $version = 1,
-                                     private string                              $valueType = 'json', // eventually jsonb
-                                     private bool                                $temporary = false, // nyi
+                                     private readonly ?int                                $version = 1,
+                                     private readonly string                              $valueType = 'json', // eventually jsonb
+                                     private readonly bool                                $temporary = false, // nyi
                                      private readonly ?LoggerInterface           $logger = null,
                                      private readonly ?PropertyAccessorInterface $accessor = null,
                                      private readonly ?SerializerInterface $serializer=null,
                                      private array                               $formatters = [],
                                      private readonly ?Stopwatch                 $stopwatch = null,
                                      private readonly ?string                    $pixieCode = null, //
-                                     private array $templates=[],
+                                     private readonly array $templates=[],
     )
     {
         $path = $this->filename;
@@ -277,7 +277,7 @@ class StorageBox
 //        $regexRules = $this->regexRules[$tableName] ?? [];
 //        dd(tableName: $tableName, regex: $regexRules);
         foreach ($header as $idx => $fieldName) {
-            $newFieldName = trim($fieldName);
+            $newFieldName = trim((string) $fieldName);
             if (empty($newFieldName)) {
                 $newFieldName = "col-$idx";
             }
@@ -285,11 +285,11 @@ class StorageBox
 //                assert($regex, $regex);
 //                dump($regex, $this->regexRules);
 //                assert(preg_match($regex, ''), $regex);
-                if (preg_match($regex, $fieldName, $mm)) {
+                if (preg_match($regex, (string) $fieldName, $mm)) {
                     $newFieldName = $value; // @todo: apply a function or rule
                     if (in_array($newFieldName, $newHeaders)) {
                         throw new \Exception("$newFieldName already matched! $fieldName\n" .
-                            join("\n", array_filter($newHeaders, fn($header) => preg_match($regex, $header)))
+                            implode("\n", array_filter($newHeaders, fn($header) => preg_match($regex, (string) $header)))
                         );
                     }
                     break; // match first rule only
@@ -310,7 +310,7 @@ class StorageBox
                     'snake' => u($newFieldName)->snake()->toString(),
                     'camel' => u($newFieldName)->camel()->toString()
                 };
-                assert(!str_contains(' ', $newFieldName), "invalid $propertyRule property code: [$newFieldName]");
+                assert(!str_contains(' ', (string) $newFieldName), "invalid $propertyRule property code: [$newFieldName]");
                 $newHeaders[] = $newFieldName;
 //            }
         }
@@ -330,7 +330,7 @@ class StorageBox
         $tables = $this->getTableNames(); // not cached!
         assert(count($tables), "no tables in $this->filename");
         if (!in_array($tableName, $tables)) {
-            throw new \LogicException("$tableName $this->filename is not in tables:\n\n" . join("\n", $tables));
+            throw new \LogicException("$tableName $this->filename is not in tables:\n\n" . implode("\n", $tables));
         };
         $this->currentTable = $tableName;
         return $this;
@@ -357,7 +357,7 @@ class StorageBox
 
     public function getPrimaryKey(string $tableName): ?string
     {
-        $tableName = $tableName ?? $this->currentTable;
+        $tableName ??= $this->currentTable;
         assert($tableName);
         // https://stackoverflow.com/questions/10472103/sqlite-query-to-find-primary-keys
         // use <> 0 if multiple
@@ -385,7 +385,7 @@ class StorageBox
      */
     public function inspectSchema(?string $filename = null): array
     {
-        $filename = $filename ?? $this->getFilename();
+        $filename ??= $this->getFilename();
 
         static $tables = [];
         if (array_key_exists($filename, $tables) && count($tables[$filename])) {
@@ -410,7 +410,7 @@ class StorageBox
             //
             $table = new Table($schemaTable->getName(),
                 $schemaTable->getColumns(),
-                pkName: join('-', $primaryIndex->getColumns()));
+                pkName: implode('-', $primaryIndex->getColumns()));
 //                foreach ($schemaTable->getColumns() as $column) {
 //                    $tables[$schemaTable->getName()]['columns'][] = $column->getName();
 //                }
@@ -452,17 +452,17 @@ class StorageBox
             }
 
             // pk is first unique key (or first key).  option to use rowid?
-            if (!$primaryIndex && str_starts_with($indexName, '&')) {
+            if (!$primaryIndex && str_starts_with((string) $indexName, '&')) {
                 $primaryIndex = $indexId;
             }
-            if (str_contains($indexName, '|')) {
-                [$indexName, $type] = explode('|', $indexName);
+            if (str_contains((string) $indexName, '|')) {
+                [$indexName, $type] = explode('|', (string) $indexName);
             } else {
                 $type = 'TEXT';
             }
 
             // break the string up into the index model
-            $index = new Index($indexName, $type, isUnique: str_starts_with($indexName, '&'));
+            $index = new Index($indexName, $type, isUnique: str_starts_with((string) $indexName, '&'));
             $indexes[] = $index;
         }
 
@@ -486,7 +486,7 @@ class StorageBox
     ): void
     {
         $columns = [];
-        $indexes = $this->getIndexDefinitions($table->getIndexes());
+        $indexes = static::getIndexDefinitions($table->getIndexes());
         // by this point, the table properties are already objects
         // really it's propertyDataArray
 
@@ -533,7 +533,7 @@ class StorageBox
          * @var Index $index
          */
 
-        foreach ($properties as $idx => $property) {
+        foreach ($properties as $property) {
             $name = $property->getCode();
             $index = $propertyIndexes[$name] ?? null;
             // @todo: handle auto-increment
@@ -585,8 +585,8 @@ class StorageBox
 //        array_unshift($columns, $primaryKey);
 
         $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n); \n\n%s", $tableName,
-            join(",\n", array_values($columns)),
-            join(";\n", array_values($indexSql))
+            implode(",\n", array_values($columns)),
+            implode(";\n", array_values($indexSql))
         );
 //        dd($sql);
 //        dd($columns, $indexSql, $sql, $primaryKey);
@@ -659,6 +659,8 @@ class StorageBox
                 assert(false, $sql . " {$this->filename} " . $exception->getMessage());
             }
         }
+
+//        dd($this->filename, $sql, $variables);
         $statement = $preparedStatements[$this->filename][$sql];
         $statement->execute($variables);
 
@@ -673,7 +675,7 @@ class StorageBox
      */
     public function has(string $key, ?string $table = null, bool $preloadKeys = false, array $where = []): bool
     {
-        $table = $table ?? $this->currentTable;
+        $table ??= $this->currentTable;
         $pk = $this->getPrimaryKey($table);
 
         if ($preloadKeys) {
@@ -708,7 +710,7 @@ class StorageBox
     public function getByIndex(int $index, ?string $table = null): ?Item
     {
         if ($index === -1) {
-            $index = rand(0, $this->count($table));
+            $index = random_int(0, $this->count($table));
         }
         $pk = $this->getPrimaryKey($table);
         $query = $this->query("select $pk from $table LIMIT 1 OFFSET $index");
@@ -720,13 +722,13 @@ class StorageBox
 
     public function count(?string $table = null, array $where = []): ?int
     {
-        $table = $table ?? $this->currentTable;
+        $table ??= $this->currentTable;
         if (!$this->tableExists($table)) {
             return null;
         }
         assert(!$this->db->inTransaction(), "already in a transaction");
-        $table = $table ?? $this->currentTable;
-        if (str_starts_with($table, '@')) {
+        $table ??= $this->currentTable;
+        if (str_starts_with((string) $table, '@')) {
             return null;
         }
         assert($table);
@@ -765,7 +767,7 @@ class StorageBox
      */
     public function get(string $key, ?string $tableName = null, ?callable $callback = null): ?Item // string|object|array|null
     {
-        $tableName = $tableName ?? $this->currentTable;
+        $tableName ??= $this->currentTable;
         $keyName = $this->getPrimaryKey($tableName);
         $results = $this->query(
             sprintf("SELECT * FROM %s WHERE $keyName = :key;", $tableName),
@@ -805,7 +807,7 @@ class StorageBox
     ): mixed
     {
         $previousTable = $this->currentTable;
-        $tableName = $tableName ?? $this->currentTable;
+        $tableName ??= $this->currentTable;
         assert($tableName, "missing tableName in call");
         if (!$propertyName) {
             assert(is_object($value) || is_iterable($value), "if property is not set, must be iterable");
@@ -848,12 +850,12 @@ class StorageBox
                 $value = (array)$value;
             }
             if (is_array($value) && !array_key_exists($keyName, $value)) {
-                throw new \LogicException("Missing key $keyName in $tableName:\n " . join("\n", array_keys($value)));
+                throw new \LogicException("Missing key $keyName in $tableName:\n " . implode("\n", array_keys($value)));
                 dd($table, $value, $keyName, $tableName);
             }
             $value = (array)$value; // if JSON
             assert(array_key_exists($keyName, $value),
-                "$keyName missing $tableName in " . join(',', array_keys($value)));
+                "$keyName missing $tableName in " . implode(',', array_keys($value)));
             if (!$key) {
                 $key = is_array($value) ? $value[$keyName] : $value->$keyName;
 //            $accessor->getValue($value, $keyName);
@@ -936,7 +938,7 @@ class StorageBox
     {
         $pk = $this->getPrimaryKey($table);
         // @todo: only prepare the statement once
-        $sql = "select " . ($keyOnly ? $pk : join(',', $columns)) .
+        $sql = "select " . ($keyOnly ? $pk : implode(',', $columns)) .
             " from " . ($table ?? $this->currentTable);
         $params = [];
 
@@ -950,7 +952,7 @@ class StorageBox
                 $pkKeys[] = ":" . ($keyName = "key$idx");
                 $params[$keyName] = $pkValue;
             }
-            $sql .= "and $pk in (" . join(',', $pkKeys) . ")";
+            $sql .= "and $pk in (" . implode(',', $pkKeys) . ")";
         }
 
 
@@ -999,7 +1001,7 @@ class StorageBox
                             ?array $pks = null,
     ): \Generator
     {
-        $table = $table ?? $this->currentTable;
+        $table ??= $this->currentTable;
         assert($table, "no table configured");
         $pkName = $this->getPrimaryKey($table);
         $keyOnly = true;
@@ -1018,14 +1020,14 @@ class StorageBox
         try {
 //            dump($sql, $params, $flags);
             $all = $sth->fetchAll($flags);
-        } catch (\Exception $exception) {
+        } catch (\Exception) {
             dd($sql, $params);
         }
         if (count($all) === 0) {
             return;
         }
 
-        foreach ($all as $idx => $row)
+        foreach ($all as $row)
 //        foreach ($sth as $idx => $row)
 //        while ($row = $sth->fetch(PDO::FETCH_ASSOC))
         {
@@ -1038,7 +1040,7 @@ class StorageBox
             // value is deprecated!
             if ($value = $row['_raw'] ?? null) {
 //            dump($value);
-                $value = json_decode($value, $associative, $depth, $flags);
+                $value = json_decode((string) $value, $associative, $depth, $flags);
                 unset($row['_raw']);
                 $value = array_merge((array)$value, $row);
             }
@@ -1064,7 +1066,7 @@ class StorageBox
 
     public function getKeys(?string $tableName = null): array
     {
-        $tableName = $tableName ?? $this->currentTable;
+        $tableName ??= $this->currentTable;
         assert($tableName, "no table configured");
         $primaryKey = $this->getPrimaryKey($tableName);
         $sth = $this->query("select $primaryKey from $tableName");
@@ -1106,10 +1108,7 @@ class StorageBox
     public function getCounts(string $column, ?string $table = null, int $limit = 15): array
     {
         $tablename = $table ?? $this->currentTable;
-        $sql = "SELECT COUNT(rowid) as count, $column as value
-FROM $tablename
-GROUP BY $column
-";
+        $sql = "SELECT COUNT(rowid) as count, $column as value FROM $tablename GROUP BY $column";
         $sql .= " ORDER BY COUNT(rowid) DESC";
         if ($limit) {
             $sql .= " LIMIT " . $limit;

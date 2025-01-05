@@ -91,9 +91,7 @@ class Parser
 
     static public function parseQueryString($data): array
     {
-        $data = preg_replace_callback('/(?:^|(?<=&))[^=[]+/', function ($match) {
-            return bin2hex(urldecode($match[0]));
-        }, $data);
+        $data = preg_replace_callback('/(?:^|(?<=&))[^=[]+/', fn($match) => bin2hex(urldecode((string) $match[0])), (string) $data);
 
         parse_str($data, $values);
 
@@ -120,7 +118,7 @@ class Parser
     static public function createConfigFromMap(array $map=[], $headers=[]): Schema    {
         $schema = new Schema();
         // create the map from the headers\
-        foreach ($headers as $idx => $header) {
+        foreach ($headers as $header) {
             $property = Parser::parseConfigHeader($header, u($header)->snake()->toString());
 //            dd($property, $column);
             // if the last character is a symbol, process it
@@ -170,7 +168,7 @@ class Parser
                         // @todo: multiple rules based on pattern, like scurity?
                         $outputSchema[$property->getCode()] = $property->__toString();
                     }
-                } catch (\Exception $exception) {
+                } catch (\Exception) {
                     assert(false, sprintf("Error matching %s to %s", $regEx, $columnCode));
                     continue;
                 }
@@ -350,7 +348,7 @@ class Parser
 
 //        dd($zipper, $valueRules, $schema);
         $flat = $zipper->flatMap(function ($pair, $index) use ($valueRules, $schema) {
-            list($value, $type) = $pair;
+            [$value, $type] = $pair;
             foreach ($valueRules as $valueRule => $newValue) {
                 if ($value == $valueRule) {
                     $value = $newValue;
@@ -404,7 +402,7 @@ class Parser
      */
     protected function getConfigValue($key, $default)
     {
-        return isset($this->config[$key]) ? $this->config[$key] : $default;
+        return $this->config[$key] ?? $default;
     }
 
     // parse header:dotted.config to [header, dotted.config]
@@ -438,8 +436,8 @@ class Parser
         [$header, $dottedConfig] = self::parseDottedConfig($dottedConfig);
 
         $settings = self::parseQueryString($settingsString);
-        if ($dottedConfig && str_contains($dottedConfig, '.')) {
-            [$type, $values] = explode('.', $dottedConfig, 2);
+        if ($dottedConfig && str_contains((string) $dottedConfig, '.')) {
+            [$type, $values] = explode('.', (string) $dottedConfig, 2);
             $parameters = $values; // what's after the .
         } else {
 //            $type = null;
@@ -448,10 +446,10 @@ class Parser
         }
 
 
-        $lastChar = $type ? substr($type, -1) : null;
+        $lastChar = $type ? substr((string) $type, -1) : null;
         if (in_array($lastChar, ['#'])) {
 //            $header = $header ? rtrim($header, $lastChar) : null;
-            $type = $type ? rtrim($type, $lastChar): null; // hack!
+            $type = $type ? rtrim((string) $type, $lastChar): null; // hack!
 //            $subType = $subType ? rtrim($subType, $lastChar): null; // hack!
             $indexType = 'INDEX';
 //            $settings['index'] = 'INDEX';
@@ -484,12 +482,12 @@ class Parser
         }
 
         // old way, but now we gobble these characters :-(
-        $lastChar = $header ? substr($header, -1) : null;
+        $lastChar = $header ? substr((string) $header, -1) : null;
         if (in_array($lastChar, ['|', '$', ',', '/'])) {
 //            $parameters = null;
 //            dump(dottedConfig: $dottedConfig, config: $config, type: $type);
 //            $type = "array$lastChar";
-            $header = $header ? rtrim($header, $lastChar) : null;
+            $header = $header ? rtrim((string) $header, $lastChar) : null;
             $subType = $subType ? rtrim($subType, $lastChar): null; // hack!
 //            $subType = $type; // for rel.mat, the subtype is 'mat'
 //            dd(type: $type);
@@ -500,7 +498,7 @@ class Parser
         }
         if ($type) {
             // long form?
-            if (preg_match('/(array)(.)/', $type, $m)) {
+            if (preg_match('/(array)(.)/', (string) $type, $m)) {
                 $settings['delim'] = $m[2];
 //                $parameters = $m[2];
                 $type = $m[1];
@@ -589,8 +587,8 @@ class Parser
         $parameters = [];
 
 
-        if (strpos($type, ':') !== false) {
-            list($type, $parameters) = explode(':', $type, 2);
+        if (str_contains($type, ':')) {
+            [$type, $parameters] = explode(':', $type, 2);
         }
 
         return [$type, $parameters];

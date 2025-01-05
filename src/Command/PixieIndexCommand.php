@@ -69,6 +69,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //        #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
         #[Option(description: "reset the meili index")] ?bool                          $reset=null,
         #[Option(description: "wait for tasks to finish")] ?bool                          $wait=null,
+        #[Option(description: "populate translations")] ?bool                          $translations=null,
         #[Option(description: "max number of records per table to export")] int        $limit = 0,
         #[Option(description: "extra data (YAML), e.g. --extra=[core:obj]")] string    $extra = '',
         #[Option('batch', description: "max number of records to batch to meili")] int $batchSize = 1000,
@@ -86,6 +87,12 @@ final class PixieIndexCommand extends InvokableServiceCommand
             return self::FAILURE;
         }
 
+        if ($translations) {
+            $io->error("bin/console pixie:translation --index $configCode");
+            return self::FAILURE;
+
+        }
+
         $this->initialized = true;
         $kv = $pixieService->getStorageBox($configCode, $subCode);
         $pixieDbName = $pixieService->getPixieFilename($configCode, $subCode);
@@ -94,7 +101,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
         $config = $pixieService->getConfig($configCode);
 
         if ($tableFilter) {
-            assert($kv->tableExists($tableFilter), "Missing table $tableFilter: \n".join("\n", $kv->getTableNames()));
+            assert($kv->tableExists($tableFilter), "Missing table $tableFilter: \n".implode("\n", $kv->getTableNames()));
         }
 
 
@@ -148,7 +155,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             } else {
                 $transKv = null;
             }
-            foreach ($kv->iterate($tableName) as $idx => $row) {
+            foreach ($kv->iterate($tableName) as $row) {
                 $data = $row->getData();
                 $this->logger->info($row->getKey() . "\n\n" . json_encode($row, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES));
                 // hack

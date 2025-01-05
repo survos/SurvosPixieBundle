@@ -2,16 +2,16 @@
 
 namespace Survos\PixieBundle\Message;
 
-final class PixieTransitionMessage
+final readonly class PixieTransitionMessage
 {
 
     public function __construct(
-        public readonly string $pixieCode,
-        public readonly string $key,
-        public readonly string $table,
-        public readonly string $transition,
-        public readonly string $workflow,
-        public readonly ?string $transport=null,
+        public string $pixieCode,
+        public string $key,
+        public string $table,
+        public string $transition,
+        public string $workflow,
+        public ?string $transport=null,
     ) {
         assert($this->table);
     }

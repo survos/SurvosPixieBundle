@@ -9,6 +9,7 @@ use App\Entity\Project;
 use App\Event\FetchTranslationEvent;
 use App\Message\TranslationMessage;
 use App\Metadata\PixieInterface;
+use App\Service\PdoCacheService;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Event\FacetEvent;
 use Survos\CoreBundle\Service\SurvosUtils;
@@ -47,19 +48,21 @@ class TranslationService
     const TRANSLATION_KEY = '_translations'; // in the base pixie table, where the translations are stored by locale
 
     public function __construct(
-        private LibreTranslateService                         $libreTranslateService,
+        private readonly LibreTranslateService                         $libreTranslateService,
         protected ParameterBagInterface                       $bag,
-        private ScraperService                                $scraperService,
-        private CacheInterface                                $translationCache,
-        private LoggerInterface                               $logger,
+        private readonly ScraperService                                $scraperService,
+        private readonly CacheInterface                                $translationCache,
+        private readonly LoggerInterface                               $logger,
+private PdoCacheService $pdoCacheService,
 //        #[AutowireMethodOf(service: PixieService::class)] \Closure $getFilename,
 //        private PixieService $pixieService, // can't inject, mess circular dependency
-        private MessageBusInterface                           $bus,
-        private SurvosUtils $survosUtils,
-        #[Autowire('%kernel.enabled_locales%')] private array $supportedLocales,
+        private readonly MessageBusInterface                           $bus,
+        private readonly SurvosUtils $survosUtils,
+        #[Autowire('%kernel.enabled_locales%')]
+        private readonly array $supportedLocales,
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly SluggerInterface $slugger,
-        private ?Stopwatch $stopwatch,
+        private readonly ?Stopwatch $stopwatch,
     )
     {
         $this->scraperService->setDir('../cache/')->setSqliteFilename('libre');
@@ -85,7 +88,7 @@ class TranslationService
         if (!array_key_exists('label', $translatableFields)) {
             $translatableFields[] = 'label';
         }
-        foreach ($rows as $count => $row) {
+        foreach ($rows as $row) {
 //            AppService::assertKeyExists('id', $row);
 //            $id = $row['id'];
             foreach ($translatableFields as $translatableField) {
@@ -180,7 +183,7 @@ class TranslationService
             );
 
             $tStr = [];
-            foreach ($translatedStrings as $tKey => $tItem) {
+            foreach ($translatedStrings as $tItem) {
                 $tStr[$tItem->hash()] = $tItem->text();
             }
         }
@@ -268,8 +271,8 @@ class TranslationService
                 $sourceKeyName = 'text';
                 $params = [
                     'text' => trim($q),
-                    'source_lang' => strtoupper($from),
-                    'target_lang' => strtoupper($to),
+                    'source_lang' => strtoupper((string) $from),
+                    'target_lang' => strtoupper((string) $to),
                 ];
                 $engineCallable = fn($data) => dd($data);
                 break;
@@ -360,7 +363,7 @@ class TranslationService
         ]);
         if ($value) {
             $maxLen = 90;
-            $this->logger->info(sprintf(__METHOD__ . " %s %s: %s", $engine, substr($q, 0, $maxLen), substr($value, 0, $maxLen)));
+            $this->logger->info(sprintf(__METHOD__ . " %s %s: %s", $engine, substr((string) $q, 0, $maxLen), substr((string) $value, 0, $maxLen)));
         }
         return $value;
     }

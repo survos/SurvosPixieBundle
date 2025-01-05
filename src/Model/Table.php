@@ -16,17 +16,17 @@ class Table
          * @var array<Property|string>
          */
         private array   $properties=[],
-        private array   $patches=[],
-        /** @var array<string> */ private array   $extras=[],
-        /** @var array<string> */ private array   $uses=[],
-        /** @var array<string> */  private array   $translatable =[],
+        private readonly array   $patches=[],
+        /** @var array<string> */ private readonly array   $extras=[],
+        /** @var array<string> */ private readonly array   $uses=[],
+        /** @var array<string> */  private readonly array   $translatable =[],
         private ?string $indexes=null, // the super-succint dexie-style index defintion, e.g. "id|int,department"
         private ?string $pkName=null,
-        private ?string $extends=null,
+        private readonly ?string $extends=null,
         private ?string $workflow=null,
         private ?bool   $has_images=null,
         private ?int    $total=null, // if known, speeds up count, especially JSON
-        private ?string $parent=null, // one ManyToOne, e.g. Artwork or Objekt in the 'image' table
+        private readonly ?string $parent=null, // one ManyToOne, e.g. Artwork or Objekt in the 'image' table
     )
     {
     }

@@ -9,7 +9,7 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\Event\SubmitEvent;
 
-final class TranslationRowEventListener
+final readonly class TranslationRowEventListener
 {
 
     public function __construct(

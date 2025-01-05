@@ -71,7 +71,7 @@ final class IterateCommand extends InvokableServiceCommand
         // do we need the Config?  Or is it all in the StorageBox?
         $kv = $pixieService->getStorageBox($pixieCode);
         $config = $pixieService->getConfig($pixieCode);
-        assert($kv->tableExists($tableName), "Missing table $tableName: \n".join("\n", $kv->getTableNames()));
+        assert($kv->tableExists($tableName), "Missing table $tableName: \n".implode("\n", $kv->getTableNames()));
 
         $table = $config->getTables()[$tableName];
         $workflow = null;
@@ -79,11 +79,11 @@ final class IterateCommand extends InvokableServiceCommand
             $workflow = $this->workflowHelperService->getWorkflowByCode($table->getWorkflow());
             if ($marking) {
                 $places=array_values($workflow->getDefinition()->getPlaces());
-                assert(in_array($marking, $places), "invalid marking:\n\n$marking: use\n\n" . join("\n", $places));
+                assert(in_array($marking, $places), "invalid marking:\n\n$marking: use\n\n" . implode("\n", $places));
             }
             if ($transition) {
                 $transitions  = array_unique(array_map(fn(Transition $transition) => $transition->getName(), $workflow->getDefinition()->getTransitions()));
-                assert(in_array($transition, $transitions), "invalid transition:\n\n$transition: use\n\n" . join("\n", $transitions));
+                assert(in_array($transition, $transitions), "invalid transition:\n\n$transition: use\n\n" . implode("\n", $transitions));
             }
 
             /* eh, nice idea, maybe someday
@@ -127,7 +127,7 @@ final class IterateCommand extends InvokableServiceCommand
             foreach ($kv->iterate(where: $where) as $key => $item) {
                 $idx++;
                 if ($dump) {
-                    $values = array_map(fn($key) => substr($item->{$key}(), 0, 40),$headers);
+                    $values = array_map(fn($key) => substr((string) $item->{$key}(), 0, 40),$headers);
                     $table->addRow($values);
                     $table->render();
                 }
@@ -166,7 +166,7 @@ final class IterateCommand extends InvokableServiceCommand
                             config: $config,
                             context: [
 //                                'storageBox' => $kv,
-                                'tags' => explode(",", $tags),
+                                'tags' => explode(",", (string) $tags),
                                 'transition' => $transition,
                                 'transport' => $transport
                             ])

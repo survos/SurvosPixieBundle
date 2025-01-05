@@ -27,8 +27,8 @@ use \JsonMachine\Items;
 class PixieImportService
 {
     public function __construct(
-        private PixieService                      $pixieService,
-        private LoggerInterface                   $logger,
+        private readonly PixieService                      $pixieService,
+        private readonly LoggerInterface                   $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
         public bool                               $purgeBeforeImport = false,
         private array                             $listsByLabel = []
@@ -67,7 +67,7 @@ class PixieImportService
             $files->notName($ignore);
         }
         $files->depth("<3");
-        assert($files->count(), "No files (ignoring " . join(',', $ignore) . ") in {$this->pixieService->getDataRoot()} $dirOrFilename");
+        assert($files->count(), "No files (ignoring " . implode(',', $ignore) . ") in {$this->pixieService->getDataRoot()} $dirOrFilename");
 
         $fileMap = [];
         foreach ($files as $splFile) {
@@ -111,7 +111,7 @@ class PixieImportService
         // $fn is the csv filename
         foreach (array_values($config->getFiles()) as $tableName) {
 
-            if ($pattern && !str_contains($tableName, $pattern)) {
+            if ($pattern && !str_contains((string) $tableName, $pattern)) {
                 continue;
             }
 //            AppService::assertKeyExists($tableName, $filesByTablename, "Missing table $tableName look for filename, not table");
@@ -155,7 +155,7 @@ class PixieImportService
                 $kv->map($rules, [$tableName]);
                 $kv->select($tableName);
 
-                list($ext, $iterator, $headers) =
+                [$ext, $iterator, $headers] =
                     $this->setupHeader($config, $tableName, $kv, $fn);
                 assert(count($kv->getTables()), "no tables in $pixieCode");
 
@@ -179,7 +179,7 @@ class PixieImportService
                 $dataRules = [];
                 foreach ($headers as $header => $origHeader) {
                     foreach ($table->getPatches() as $headerRegex => $regexRules) {
-                        if (preg_match($headerRegex, $header, $mm)) {
+                        if (preg_match($headerRegex, (string) $header, $mm)) {
                             $dataRules[$header] ??= [];
                             $dataRules[$header] += $regexRules;
                         }
@@ -398,7 +398,7 @@ class PixieImportService
         );
 //        if (str_contains($kv->getFilename(), 'edu')) dd($kv->getFilename());
         return $kv;
-        return array($splFile, $tableName, $mm, $fileMap, $fn, $tables, $tableData, $kv);
+        return [$splFile, $tableName, $mm, $fileMap, $fn, $tables, $tableData, $kv];
 //        dd($fileMap, $tablesToCreate);
     }
 
@@ -508,7 +508,7 @@ class PixieImportService
             if ($property->isRelation()) {
                 $relatedTable = $config->getTable($relatedTableName);
                 if ($delim = $property->getDelim()) {
-                    $values = array_map('trim', explode($delim, $row[$propertyCode]));
+                    $values = array_map('trim', explode($delim, (string) $row[$propertyCode]));
                     if ($property->getValueType() == '@pk') {
                         // @todo: make a many-to-many table.  For now, a simple array
                         $row[$propertyCode] = $values;
@@ -628,7 +628,7 @@ class PixieImportService
         }
         foreach ($row as $k => $v) {
             foreach ($dataRules[$k] ?? [] as $dataRegexRule => $substitution) {
-                $match = preg_match($dataRegexRule, $v, $mm);
+                $match = preg_match($dataRegexRule, (string) $v, $mm);
                 if ($match) {
                     if ($substitution === '') {
                         $row[$k] = null;

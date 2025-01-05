@@ -116,7 +116,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
 
         $explodeRules = [];
         foreach ($config->getTables() as $tableName => $table) {
-            foreach ($table->getRules() as $idx=>$rule) {
+            foreach ($table->getRules() as $rule) {
                 // rules? or properties?  This is before properties are set.
                 $lastChar = $rule[-1];
                 if (in_array($lastChar, [',', '|', ';'])) {
@@ -158,7 +158,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
                                 fn($x) => ctype_digit(trim($x))?
                                     (int)$x :
                                     trim($x),
-                                explode($explode, $row[$var]));
+                                explode($explode, (string) $row[$var]));
                         }
                         if (!array_key_exists($var, $this->openFiles[$tableName]['fields'])) {
                             $this->openFiles[$tableName]['fields'][$var] = 0;
@@ -181,7 +181,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
         $consoleTable = new Table($io);
         $consoleTable->setHeaders(['table', 'count']);
         $filesData = [];
-        foreach ($this->openFiles as $tbl=>$openFile) {
+        foreach ($this->openFiles as $openFile) {
             fwrite($openFile['stream'], "\n]\n");
             fclose($openFile['stream']);
 

@@ -142,7 +142,7 @@ final class PixieSyncCommand extends InvokableServiceCommand
             foreach ($finder->in($dir) as $file) {
 
             }
-            $options = array('add_path' => $dir, 'remove_all_path' => TRUE);
+            $options = ['add_path' => $dir, 'remove_all_path' => TRUE];
 //            $zip->addPattern($dir);
             $this->io()->writeln($dir);
             dump($options);

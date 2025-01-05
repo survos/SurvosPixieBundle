@@ -37,12 +37,12 @@ class PixieController extends AbstractController
     const TRANSITION_RESET='_reset';
 
     public function __construct(
-        private ParameterBagInterface  $bag,
-        private PixieService           $pixieService,
-        private ?UrlGeneratorInterface  $urlGenerator=null,
-        private ?MessageBusInterface $bus=null,
-        private ?WorkflowHelperService $workflowHelperService = null,
-        private ?ChartBuilderInterface $chartBuilder = null,
+        private readonly ParameterBagInterface  $bag,
+        private readonly PixieService           $pixieService,
+        private readonly ?UrlGeneratorInterface  $urlGenerator=null,
+        private readonly ?MessageBusInterface $bus=null,
+        private readonly ?WorkflowHelperService $workflowHelperService = null,
+        private readonly ?ChartBuilderInterface $chartBuilder = null,
     )
     {
 
@@ -230,8 +230,8 @@ class PixieController extends AbstractController
 
     private function flattenArray(array $array): array
     {
-        foreach ($array as $idx => $row) {
-            foreach ($row as $var => $value) {
+        foreach ($array as $row) {
+            foreach ($row as $value) {
                 if (is_iterable($value)) {
 
 //                    $row[$var] = $this->flattenArray($value);  json_encode($value, JSON_UNESCAPED_SLASHES);
@@ -288,7 +288,7 @@ class PixieController extends AbstractController
         if ($_format == 'json') {
             $flattenRows = [];
             $idx = 0;
-            foreach ($iterator as $key => $item) {
+            foreach ($iterator as $item) {
                 $row = (array)$item->getData();
 //                assert($row, "Invalid data in $key " . $kv->getFilename());
                 $idx++;
@@ -404,7 +404,6 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int $limit = 50
     ): array|Response
     {
-
         return $this->render('@SurvosPixie/pixie/index.html.twig', [
             'dir' => $this->pixieService->getConfigDir(),
         ]);
@@ -481,9 +480,9 @@ class PixieController extends AbstractController
             $values[] = $count['count'];
             // @todo: composer require phpcolor/bootstrap-colors
             $colors[] = sprintf('rgb(%d, %d, %d)',
-                rand(0, 255),
-                rand(0, 255),
-                rand(0, 255)
+                random_int(0, 255),
+                random_int(0, 255),
+                random_int(0, 255)
             );
         }
         if (!$chartBuilder) {
@@ -549,7 +548,7 @@ class PixieController extends AbstractController
                     if ($chartData) {
                         $charts[$property->getCode()] = $chartData;
                     }
-                } catch (\Exception $e) {
+                } catch (\Exception) {
                     // probably a migration is needed.
                 }
             }

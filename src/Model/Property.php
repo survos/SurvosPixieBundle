@@ -9,27 +9,27 @@ class Property implements \Stringable
 
     // since these are tied to grid-group, we can have relations and categories, though they are mostly used by Museado
 
-    final public const TYPE_DATABASE = 'db'; // fixed properties, we need to pass it valid subtypes
-    final public const TYPE_RELATION = 'rel'; // related to another grid
-    final public const TYPE_CLASSIFICATION = 'cat'; // single relation within this grid, pass in valid subtypes
-    final public const TYPE_LIST = 'list'; // single relation within this grid
-    final public const TYPE_ATTRIBUTE = 'att';
-    final public const TYPE_REFERENCE = 'ref'; // @todo: handle images and media.  Maybe json?
+    final public const string TYPE_DATABASE = 'db'; // fixed properties, we need to pass it valid subtypes
+    final public const string TYPE_RELATION = 'rel'; // related to another grid
+    final public const string TYPE_CLASSIFICATION = 'cat'; // single relation within this grid, pass in valid subtypes
+    final public const string TYPE_LIST = 'list'; // single relation within this grid
+    final public const string TYPE_ATTRIBUTE = 'att';
+    final public const string TYPE_REFERENCE = 'ref'; // @todo: handle images and media.  Maybe json?
 
     // these are really attribute types only
-    final public const PROPERTY_TEXT = 'textarea';
-    final public const PROPERTY_STRING = 'string';
-    final public const PROPERTY_INT = 'int';
-    final public const PROPERTY_NUMERIC = 'num';
-    final public const PROPERTY_BOOL = 'bool';
-    final public const PROPERTY_DATE = 'date';
-    final public const PROPERTY_ARRAY = 'array';
+    final public const string PROPERTY_TEXT = 'textarea';
+    final public const string PROPERTY_STRING = 'string';
+    final public const string PROPERTY_INT = 'int';
+    final public const string PROPERTY_NUMERIC = 'num';
+    final public const string PROPERTY_BOOL = 'bool';
+    final public const string PROPERTY_DATE = 'date';
+    final public const string PROPERTY_ARRAY = 'array';
 
-    final public const ATTRIBUTE_TYPES = [self::PROPERTY_INT, self::PROPERTY_TEXT, self::PROPERTY_STRING];
+    final public const array ATTRIBUTE_TYPES = [self::PROPERTY_INT, self::PROPERTY_TEXT, self::PROPERTY_STRING];
 
-    final public const SETTING_MAP_POSITION = 'map_position';
-    final public const SETTING_MAX = 'max';
-    final public const SETTING_MIN = 'min';
+    final public const string SETTING_MAP_POSITION = 'map_position';
+    final public const string SETTING_MAX = 'max';
+    final public const string SETTING_MIN = 'min';
 
     private ?int $orderIdx = null;
 

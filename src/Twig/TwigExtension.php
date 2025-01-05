@@ -12,14 +12,15 @@ use Twig\TwigFunction;
 class TwigExtension extends AbstractExtension
 {
     public function __construct(
-        private PixieService $pixieService,
-        private ?RequestStack $requestStack=null,
+        private readonly PixieService $pixieService,
+        private readonly ?RequestStack $requestStack=null,
 //        #[Autowire('locale')] private string $locale
     )
     {
 
     }
 
+    #[\Override]
     public function getFilters(): array
     {
         return [
@@ -51,6 +52,7 @@ class TwigExtension extends AbstractExtension
         ];
     }
 
+    #[\Override]
     public function getFunctions(): array
     {
         return [

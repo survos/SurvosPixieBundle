@@ -281,7 +281,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->ifString()
             ->then(function (string $v): array { dd($v); return ['name' => $v]; })
             ->ifArray()
-            ->then(function ($v) {dd($v); })
+            ->then(function ($v): void {dd($v); })
             ->ifString()
             ->then(fn($propData) => dd(Parser::parseConfigHeader($propData)))
             ->end()
@@ -307,7 +307,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                 ->ifString()
                     ->then(function (string $v): array { dd($v); return ['name' => $v]; })
                 ->ifArray()
-                    ->then(function ($v) {dd($v); })
+                    ->then(function ($v): void {dd($v); })
                 ->ifString()
                     ->then(fn($propData) => dd(Parser::parseConfigHeader($propData)))
             ->end();

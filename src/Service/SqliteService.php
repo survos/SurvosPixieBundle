@@ -24,9 +24,7 @@ class SqliteService
 
         if (!file_exists($sourceReferences)) {
             // https://write.corbpie.com/sqlite3-with-php-creating-a-database-and-connecting-to-it/
-            $db = new PDO('sqlite:' . $sourceReferences, '', '', array(
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            ));
+            $db = new PDO('sqlite:' . $sourceReferences, '', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         }
         $connectionParams = [
             'path' => $sourceReferences,

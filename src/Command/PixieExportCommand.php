@@ -67,14 +67,14 @@ final class PixieExportCommand extends InvokableServiceCommand
             $dirOrFilename = $pixieService->getSourceFilesDir($configCode);
         }
 
-        assert($kv->tableExists($tableName), "Missing table $tableName: \n".join("\n", $kv->getTableNames()));
+        assert($kv->tableExists($tableName), "Missing table $tableName: \n".implode("\n", $kv->getTableNames()));
 
         $recordsToWrite=[];
-        $key = $key??'key';
+        $key ??= 'key';
         // now iterate
         $table = $config->getTables()[$tableName]; // to get views, key
         $count = 0;
-        foreach ($kv->iterate($tableName) as $idx => $row) {
+        foreach ($kv->iterate($tableName) as $row) {
             // dispatch a export event
 
             $recordsToWrite[$row->{$key}()] = $value ? $row->{$value}() : $row;

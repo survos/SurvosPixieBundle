@@ -38,19 +38,20 @@ class PixieService
     private array $storageBoxes = [];
 
     public function __construct(
-        private bool                                        $isDebug, private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly bool                                        $isDebug, private readonly EventDispatcherInterface $eventDispatcher,
         private array                                       $data = [],
-        private string                                      $extension = "pixie.db",
-        private string                                      $dbDir = 'pixie',
-        private string                                      $dataRoot = 'data', //
-        private string                                      $configDir = 'config/packages/pixie',
+        private readonly string                                      $extension = "pixie.db",
+        private readonly string                                      $dbDir = 'pixie',
+        private readonly string                                      $dataRoot = 'data', //
+        private readonly string                                      $configDir = 'config/packages/pixie',
         private array                                       $bundleConfig = [],
-        #[Autowire('%kernel.project_dir%')] private ?string $projectDir = null,
-        private ?LoggerInterface                            $logger = null,
-        private ?Stopwatch                                  $stopwatch = null,
-        private ?PropertyAccessorInterface                  $accessor = null,
-        private ?SerializerInterface                        $serializer = null,
-        private ?WorkflowHelperService                      $workflowHelperService = null,
+        #[Autowire('%kernel.project_dir%')]
+        private readonly ?string $projectDir = null,
+        private readonly ?LoggerInterface                            $logger = null,
+        private readonly ?Stopwatch                                  $stopwatch = null,
+        private readonly ?PropertyAccessorInterface                  $accessor = null,
+        private readonly ?SerializerInterface                        $serializer = null,
+        private readonly ?WorkflowHelperService                      $workflowHelperService = null,
         private ?DenormalizerInterface                      $denormalizer = null,
     )
     {
@@ -214,7 +215,7 @@ class PixieService
 
         $configs = [];
         foreach ($this->bundleConfig['pixies'] as $code => $pixie) {
-            if ($q && !str_contains($code, $q)) {
+            if ($q && !str_contains((string) $code, $q)) {
                 continue;
             }
             if ($pixieCode && $code !== $pixieCode) {
@@ -343,7 +344,7 @@ class PixieService
                     $property = new Property(
                         index: $propData['index'] ?? null,
                         code: $propData['name'] ?? dd($propData),
-                        generated: isset($propData['generated']) ? $propData['generated'] : true,
+                        generated: $propData['generated'] ?? true,
                         initial: $propData['initial'] ?? null,
                         type: $propData['type'] ?? null // maybe default type based on code?
                     );

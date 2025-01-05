@@ -10,10 +10,10 @@ class StorageBoxEvent extends Event
     private StorageBox $storageBox;
 
     public function __construct(
-        private string $pixieCode,
-        private ?string $filename=null,
-        private bool $isTranslation=false,
-        private array $tags=[]
+        private readonly string $pixieCode,
+        private readonly ?string $filename=null,
+        private readonly bool $isTranslation=false,
+        private readonly array $tags=[]
     ) {
 
     }
