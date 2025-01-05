@@ -6,6 +6,22 @@ Inspired by https://gist.github.com/sbrl/c3bfbbbb3d1419332e9ece1bac8bb71c and ht
 
 @todo: finish relations using https://github.com/simonw/til/blob/main/sqlite/related-rows-single-query.md
 
+## Translations
+
+A parallel file with a -translation suffix stores the source strings and translation strings.  The source table is populated during the import process, or with 
+
+The --translate dispatches the requests for translations.  The --index currently MUST happen in pixie translate (not the normal pixie:index) in order for the translations from the translations table populate the regular pixie file (in the _transations block)
+
+![img.png](img.png)
+
+@todo: move the option to populate source pixie to the index command, and/or have an option that the translations are dynamically populated.
+
+```bash
+bin/console pixie:translate --populate cleveland 
+bin/console pixie:translate --translate cleveland --transport=trans 
+bin/console pixie:translate --index cleveland
+```
+
 ## Example
 
 ```bash

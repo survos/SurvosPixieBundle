@@ -209,9 +209,9 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 SurvosUtils::cleanNullsOfObject($data);
                 // argh, sqlite thing for arrays
                 foreach ($data as $k => $v) {
-                    if (is_string($v) && json_validate($v)) {
+                    if (is_string($v) && strlen($v) && json_validate($v)) {
                         $data->{$k} = json_decode($v);
-                        assert($data->{$k}, $k . " is empty");
+//                        assert($data->{$k}, $k . " is empty [$v] $tableName $configCode $v" . json_encode($data, JSON_PRETTY_PRINT));
                     }
                 }
 
