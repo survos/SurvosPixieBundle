@@ -39,15 +39,9 @@ class LibreTranslateService
     public function __construct(
 //        private CacheInterface $Cache,
 // see pools in cache.yaml
-        private readonly CacheInterface            $translationCache,
-        private readonly InstanceRepository        $instanceRepository,
-        private readonly PropertyAccessorInterface $accessor,
         private readonly LoggerInterface           $logger,
         private readonly ParameterBagInterface     $bag,
-        private readonly EntityManagerInterface    $entityManager,
         private readonly HttpClientInterface       $client,
-        private readonly TranslatorInterface       $translator,
-        private readonly CacheInterface            $liveTranslationCache,
         private readonly ScraperService            $scraperService,
         #[Autowire("%env(DEEPL_API_KEY)%")]
         private readonly string $deepLApiKey

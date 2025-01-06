@@ -53,7 +53,6 @@ class TranslationService
         private readonly ScraperService                                $scraperService,
         private readonly CacheInterface                                $translationCache,
         private readonly LoggerInterface                               $logger,
-private PdoCacheService $pdoCacheService,
 //        #[AutowireMethodOf(service: PixieService::class)] \Closure $getFilename,
 //        private PixieService $pixieService, // can't inject, mess circular dependency
         private readonly MessageBusInterface                           $bus,
@@ -66,8 +65,6 @@ private PdoCacheService $pdoCacheService,
     )
     {
         $this->scraperService->setDir('../cache/')->setSqliteFilename('libre');
-        $scraperCache = $this->getTranslationCacheManager()->getOtherCache('libre-scraper');
-        $this->scraperService->setCache($scraperCache); // force sqlite?  Hac
 
     }
 
