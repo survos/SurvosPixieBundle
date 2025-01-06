@@ -1,0 +1,13 @@
+
+<h1>{{ data.id|default('~') }}</h1>
+
+<table>
+
+    {% for key, value in data %}
+        <tr>
+            <th>{{ key }}</th>
+            <td>{{ value|json_encode }}</td>
+        </tr>
+    {% endfor %}
+
+</table>

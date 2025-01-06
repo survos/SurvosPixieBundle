@@ -40,6 +40,7 @@
     <div class="search_builder">
 
         {# this would be better separated  #}
+{#        :facet_columns="attrs"#}
         <twig:api_grid
             :class="class"
             :apiGetCollectionUrl="apiUrl"
@@ -47,7 +48,6 @@
             :filter="filter"
             :buttons="buttons|default([])"
             :columns="columns|merge(attrs)"
-            :facet_columns="attrs"
             :globals="globals"
     >
         <twig:block name="thumbnail">

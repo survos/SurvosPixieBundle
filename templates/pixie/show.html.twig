@@ -27,6 +27,16 @@
     } %}
     <div class="inner-page">
 
+{#        {{ component('SurvosPixie:db', {pixieCode: pixieCode}) }}#}
+
+{#        <twig:pixie:db :pixieCode="pixieCode" />#}
+{#        <twig:SurvosPixie:db :pixieCode="pixieCode" />#}
+{#        </twig:SurvosPixie:db>#}
+        {{ dump(row, row.data) }}
+        <twig:pixie:row
+                :data="row.data">
+        </twig:pixie:row>
+
         {# <div class="section-item">
             <div class="item__image">
                 {% for imageField in ['thumbnail','is_shown_by'] %}

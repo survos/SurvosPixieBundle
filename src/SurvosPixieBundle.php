@@ -4,6 +4,7 @@
 
 namespace Survos\PixieBundle;
 
+use Survos\ApiGrid\Components\ItemGridComponent;
 use Survos\ApiGrid\Controller\GridController;
 use Survos\CoreBundle\Traits\HasAssetMapperTrait;
 use Survos\PixieBundle\Command\IterateCommand;
@@ -14,6 +15,8 @@ use Survos\PixieBundle\Command\PixieIndexCommand;
 use Survos\PixieBundle\Command\PixiePrepareCommand;
 use Survos\PixieBundle\Command\PixieSyncCommand;
 use Survos\PixieBundle\Command\PixieTranslateCommand;
+use Survos\PixieBundle\Components\DatabaseComponent;
+use Survos\PixieBundle\Components\RowComponent;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Controller\SearchController;
 use Survos\PixieBundle\CsvSchema\Parser;
@@ -87,6 +90,15 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
         $builder->register(LibreTranslateService::class)
             ->setAutowired(true)
         ;
+
+        foreach ([DatabaseComponent::class, RowComponent::class] as $componentClass) {
+            $builder->register($componentClass)
+                ->setPublic(true)
+                ->setAutowired(true)
+                ->setAutoconfigured(true)
+            ;
+        }
+
 
         $builder->register(PixieConvertService::class)
             ->setAutowired(true)

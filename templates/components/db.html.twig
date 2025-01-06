@@ -1,0 +1,9 @@
+<h1>{{ config.pixieFilename }}</h1>
+
+<h3>Table Configuration</h3>
+
+
+{% for code, table in config.tables %}
+    <twig:SurvosPixie:table :table="table">
+    </twig:SurvosPixie:table>
+{% endfor %}
