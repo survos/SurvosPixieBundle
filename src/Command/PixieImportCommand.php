@@ -25,7 +25,7 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
 
-#[AsCommand('pixie:import', 'Import csv to Pixie, a file or directory of files"', aliases: ['import','p:imp'])]
+#[AsCommand('pixie:import', 'Import csv to Pixie, a file or directory of files"', aliases: ['import', 'p:imp'])]
 final class PixieImportCommand extends InvokableServiceCommand
 {
     use RunsCommands;
@@ -36,9 +36,9 @@ final class PixieImportCommand extends InvokableServiceCommand
     private $total = 0; // hack to bypass count for large JSON files, e.g. smk
 
     public function __construct(
-        private LoggerInterface       $logger,
-        private ParameterBagInterface $bag,
-        private readonly PixieService $pixieService,
+        private LoggerInterface                            $logger,
+        private ParameterBagInterface                      $bag,
+        private readonly PixieService                      $pixieService,
         #[Autowire('%env(SITE_BASE_URL)%')] private string $baseUrl,
     )
     {
@@ -47,22 +47,22 @@ final class PixieImportCommand extends InvokableServiceCommand
     }
 
     public function __invoke(
-        IO                                                                                           $io,
-        PixieService                                                                                 $pixieService,
-        PixieImportService                                                                           $pixieImportService,
-        #[Argument(description: 'config code')] ?string                                              $configCode,
-        #[Argument(description: 'sub code, e.g. musdig inst id')] ?string        $subCode=null,
+        IO                                                                                            $io,
+        PixieService                                                                                  $pixieService,
+        PixieImportService                                                                            $pixieImportService,
+        #[Argument(description: 'config code')] ?string                                               $configCode,
+        #[Argument(description: 'sub code, e.g. musdig inst id')] ?string                             $subCode = null,
         #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
-        #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
-        #[Option(description: "overwrite records if they already exist")] bool                       $overwrite = false,
-        #[Option(description: "populate translation source keys (--queue)")] ?bool                       $populate = true,
-        #[Option(description: "index after import (default: true)")] ?bool                           $index = null,
-        #[Option(description: "purge db file first")] bool                                           $reset = false,
-        #[Option(description: "Batch size for commit")] int                                          $batch = 500,
-        #[Option(description: "total if known (slow to calc)")] int                                  $total = 0,
-        #[Option('start', description: "starting at (offset)")] int                                  $startingAt = 0,
-        #[Option(description: "table search pattern")] string                                        $pattern = '',
-        #[Option(description: 'tags (for listeners)')] ?string                                       $tags = null,
+        #[Option(description: "max number of records per table to import")] ?int                      $limit = null,
+        #[Option(description: "overwrite records if they already exist")] bool                        $overwrite = false,
+        #[Option(description: "queue translations")] ?bool                                            $populate = false,
+        #[Option(description: "index after import (default: true)")] ?bool                            $index = null,
+        #[Option(description: "purge db file first")] bool                                            $reset = false,
+        #[Option(description: "Batch size for commit")] int                                           $batch = 500,
+        #[Option(description: "total if known (slow to calc)")] int                                   $total = 0,
+        #[Option('start', description: "starting at (offset)")] int                                   $startingAt = 0,
+        #[Option(description: "table search pattern")] string                                         $pattern = '',
+        #[Option(description: 'tags (for listeners)')] ?string                                        $tags = null,
 
     ): int
     {
@@ -116,7 +116,7 @@ final class PixieImportCommand extends InvokableServiceCommand
 
         $limit = $this->pixieService->getLimit($limit);
         // ack, what is the different between createKv and getStorageBox()?
-        $pixieImportService->import($configCode, $subCode,  null,
+        $pixieImportService->import($configCode, $subCode, null,
             limit: $limit,
             startingAt: $startingAt,
             context: [

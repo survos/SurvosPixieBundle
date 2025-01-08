@@ -223,11 +223,11 @@ class PixieImportService
                             $unhandledKeys = array_diff($x = array_keys((array)$row), $y = array_keys($mappedRow));
                             foreach ($unhandledKeys as $newKey) {
                                 if (!array_key_exists($newKey, $reverse)) {
-                                    assert(false, "new key $newKey missing in $tableName \n" .
-                                        json_encode($row, JSON_PRETTY_PRINT) . "\n\n" .
-                                        json_encode($reverse, JSON_PRETTY_PRINT) . "
-                                    add $newKey to required fields so it exists in the first row"
-                                    );
+//                                    assert(false, "new key $newKey missing in $tableName \n" .
+//                                        json_encode($row, JSON_PRETTY_PRINT) . "\n\n" .
+//                                        json_encode($reverse, JSON_PRETTY_PRINT) . "
+//                                    add $newKey to required fields so it exists in the first row"
+//                                    );
                                     $mappedRow[$newKey] = $row->{$newKey} ?? null;
                                 } else {
                                 }

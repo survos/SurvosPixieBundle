@@ -260,6 +260,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 dd($recordsToWrite, $e->getMessage());
             }
             $this->meiliService->waitForTask($task);
+            $this->io()->writeln(sprintf("<href=%s?$configCode>Open</>", $this->baseUrl));
 
             // wait, so we can update owner
             // export property counts to kv
@@ -299,7 +300,6 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
 
         $io->success(sprintf("%s success %s %s",  $this->getName(), $configCode, $pixieDbName));
-        $this->io()->writeln(sprintf("<href=%s?$configCode>Open</>", $this->baseUrl));
         return self::SUCCESS;
     }
 
