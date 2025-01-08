@@ -251,7 +251,7 @@ class PixieImportService
                     if (!$row->{$pkName} ?? null) {
                         // e.g. empty excel rows.  Could handle in the grid:excel-to-csv
                         $this->logger->error("Empty pk, skipping row " . $idx);
-                        dd($row, $pkName, $idx);
+//                        dd($row, $pkName, $idx);
                         continue;
                     }
                     SurvosUtils::assertKeyExists($pkName, $row, "in $fn");
