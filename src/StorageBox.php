@@ -647,7 +647,7 @@ class StorageBox
      * @param array $variables Optional. The variables to substitute into the SQL query.
      * @return    \PDOStatement        The result of the query, as a PDOStatement.
      */
-    protected function query(string $sql, array $variables = []): \PDOStatement
+    public function query(string $sql, array $variables = []): \PDOStatement
     {
         static $preparedStatements = [];
         // cache prepared statements

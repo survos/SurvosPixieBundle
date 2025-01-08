@@ -32,7 +32,8 @@
 {#        <twig:pixie:db :pixieCode="pixieCode" />#}
 {#        <twig:SurvosPixie:db :pixieCode="pixieCode" />#}
 {#        </twig:SurvosPixie:db>#}
-        {{ dump(row, row.data) }}
+        {{ dump(row.data) }}
+        this assume we get the data from the
         <twig:pixie:row
                 :data="row.data">
         </twig:pixie:row>

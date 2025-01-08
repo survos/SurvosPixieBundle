@@ -525,7 +525,8 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                         $sourceLocale,
                         $sourceLocale);
 
-                    if (!$tKv->has($sourceKeys['hash'])) {
+                    if (!$tKv->has($hash = $sourceKeys['hash'])) {
+                        dd("$hash missing from source!  It should happen during import");
                         $sourceKeys['table_name'] = $tableName;
                         $sourceKeys['prop'] = $translatableField;
                         $tKv->set($sourceKeys, 'source');

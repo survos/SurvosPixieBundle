@@ -60,7 +60,7 @@ final class TraceableStorageBox extends StorageBox
     }
 
     #[\Override]
-    protected function query(string $sql, array $variables = []): \PDOStatement
+    public function query(string $sql, array $variables = []): \PDOStatement
     {
         return $this->innerSearchService(__FUNCTION__, \func_get_args());
     }

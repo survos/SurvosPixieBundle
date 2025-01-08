@@ -44,14 +44,16 @@ final class PixieIndexCommand extends InvokableServiceCommand
     private ProgressBar $progressBar;
 
     public function __construct(
+        #[Autowire('%env(SITE_BASE_URL)%')] private string $baseUrl,
+        #[Autowire('%kernel.enabled_locales%')] private array $enabledLocales,
         private LoggerInterface       $logger,
         private ParameterBagInterface $bag,
         private readonly PixieService $pixieService,
         private SerializerInterface $serializer,
         private EventDispatcherInterface $eventDispatcher,
+
         private ?MeiliService $meiliService = null,
         private ?SluggerInterface $asciiSlugger = null,
-        #[Autowire('%kernel.enabled_locales%')] private array $enabledLocales=[],
     )
     {
 
@@ -68,6 +70,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
         #[Option('table', description: 'table name(s?), all if not set')] ?string       $tableFilter=null,
 //        #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
         #[Option(description: "reset the meili index")] ?bool                          $reset=null,
+        #[Option(name:'trans-table', description: "use the translation table instead of _trans")] ?bool $transTable=null,
         #[Option(description: "wait for tasks to finish")] ?bool                          $wait=null,
         #[Option(description: "populate translations")] ?bool                          $translations=null,
         #[Option(description: "max number of records per table to export")] int        $limit = 0,
@@ -160,6 +163,12 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 $this->logger->info($row->getKey() . "\n\n" . json_encode($row, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES));
                 // hack
                 $lang = $row->expected_language()??$config->getSource()->locale;
+
+                // maybe someday, not worth it now to refactor
+                if ($transTable) {
+//                    $this->
+                }
+
 //                dd($lang, $row);
 //                foreach ($table->getTranslatable() as $translatableProperty) {
 //                    $toTranslate[] = $row->{$translatableProperty}();
@@ -244,8 +253,12 @@ final class PixieIndexCommand extends InvokableServiceCommand
             }
             $progressBar->finish();
 
-            $task = $index->addDocuments($recordsToWrite, $primaryKey);
-            $recordsToWrite = [];
+            try {
+                $task = $index->addDocuments($recordsToWrite, $primaryKey);
+                $recordsToWrite = [];
+            } catch (\Exception $e) {
+                dd($recordsToWrite, $e->getMessage());
+            }
             $this->meiliService->waitForTask($task);
 
             // wait, so we can update owner
@@ -286,6 +299,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
 
         $io->success(sprintf("%s success %s %s",  $this->getName(), $configCode, $pixieDbName));
+        $this->io()->writeln(sprintf("<href=%s?$configCode>Open</>", $this->baseUrl));
         return self::SUCCESS;
     }
 

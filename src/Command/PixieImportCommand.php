@@ -14,6 +14,7 @@ use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Yaml\Yaml;
@@ -36,7 +37,9 @@ final class PixieImportCommand extends InvokableServiceCommand
 
     public function __construct(
         private LoggerInterface       $logger,
-        private ParameterBagInterface $bag, private readonly PixieService $pixieService,
+        private ParameterBagInterface $bag,
+        private readonly PixieService $pixieService,
+        #[Autowire('%env(SITE_BASE_URL)%')] private string $baseUrl,
     )
     {
 
@@ -52,7 +55,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
         #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
         #[Option(description: "overwrite records if they already exist")] bool                       $overwrite = false,
-        #[Option(description: "populate translations (default: false)")] ?bool                       $populate = null,
+        #[Option(description: "populate translation source keys (--queue)")] ?bool                       $populate = true,
         #[Option(description: "index after import (default: true)")] ?bool                           $index = null,
         #[Option(description: "purge db file first")] bool                                           $reset = false,
         #[Option(description: "Batch size for commit")] int                                          $batch = 500,
@@ -112,7 +115,10 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
 
         $limit = $this->pixieService->getLimit($limit);
-        $pixieImportService->import($configCode, $subCode,  null, limit: $limit, startingAt: $startingAt,
+        // ack, what is the different between createKv and getStorageBox()?
+        $pixieImportService->import($configCode, $subCode,  null,
+            limit: $limit,
+            startingAt: $startingAt,
             context: [
                 'tags' => $tags ? explode(",", $tags) : [],
             ],
@@ -150,7 +156,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         $io->success($this->getName() . ' success ' . $pixieDbName);
 
         if ($populate) {
-            $cli = "pixie:translate --populate $configCode";
+            $cli = "pixie:translate --queue $configCode";
             $this->io()->warning('bin/console ' . $cli);
             $this->runCommand($cli);
 
@@ -158,6 +164,9 @@ final class PixieImportCommand extends InvokableServiceCommand
         if ($index) {
             $this->runIndex($configCode, $subCode);
         }
+
+        // hyperlink syntax: <href=THE_LINK_URL> THE_LINK_TEXT </>
+        $this->io()->writeln(sprintf("<href=%s?$configCode</>", $this->baseUrl));
         return self::SUCCESS;
     }
 

@@ -5,6 +5,8 @@ namespace Survos\PixieBundle\Controller;
 use App\Entity\Core;
 use App\Entity\Instance;
 use League\Csv\Reader;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
@@ -39,6 +41,7 @@ class PixieController extends AbstractController
     public function __construct(
         private readonly ParameterBagInterface  $bag,
         private readonly PixieService           $pixieService,
+        private EventDispatcherInterface $eventDispatcher,
         private readonly ?UrlGeneratorInterface  $urlGenerator=null,
         private readonly ?MessageBusInterface $bus=null,
         private readonly ?WorkflowHelperService $workflowHelperService = null,
@@ -145,8 +148,8 @@ class PixieController extends AbstractController
         }
         $conf = $this->pixieService->getConfig($pixieCode);
 
-        assert($item, "no item in $pixieCode.$tableName in for $key");
-
+        $tKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($pixieCode, isTranslation: true))->getStorageBox();
+        // the fields themselves should have the hash codes, the _translations has the translations
         $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
         // what a pain, we need to store this somewhere else!
 
@@ -156,6 +159,18 @@ class PixieController extends AbstractController
         if (!$item) {
             throw new NotFoundHttpException("No item $key in $tableName / $pixieCode");
         }
+        $keys = [];
+        foreach ($table->getTranslatable() as $field) {
+            if ($key = $item->$field()) {
+                foreach ($tKv->iterate('libre', ['hash' => $key]) as $tItem) {
+                    dump($field, $tItem->text());
+                }
+                $keys[] = $item->$field();
+            }
+        }
+//        dd($keys, $item->getData(), $table->getTranslatable());
+        assert($item, "no item in $pixieCode.$tableName in for $key");
+
 
         if ($request?->get('_route') == 'pixie_transition') {
             if ($transition == self::TRANSITION_RESET) {

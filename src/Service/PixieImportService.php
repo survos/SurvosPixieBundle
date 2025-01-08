@@ -15,6 +15,7 @@ use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\Event\ImportFileEvent;
 use Survos\PixieBundle\Event\RowEvent;
+use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\StorageBox;
@@ -93,6 +94,8 @@ class PixieImportService
         if (!$kv) {
             $kv = $this->createKv($fileMap, $config, $pixieCode, $subCode);
         }
+        $tKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($pixieCode, isTranslation: true))->getStorageBox();
+        $tKv->select('source'); // we don't do anything with translations during import
         assert(count($kv->getTables()), "no tables in $pixieCode");
         $validTableNames = $config->getTables();
         // so that they're ordered as they are in the config, and coll and loc are loaded before obj
@@ -110,13 +113,14 @@ class PixieImportService
 //        foreach ($kv->getFiles())
         // $fn is the csv filename
         foreach (array_values($config->getFiles()) as $tableName) {
-
             if ($pattern && !str_contains((string) $tableName, $pattern)) {
                 continue;
             }
 //            AppService::assertKeyExists($tableName, $filesByTablename, "Missing table $tableName look for filename, not table");
             $filenames = $filesByTablename[$tableName];
             foreach ($filenames as $fn) {
+
+
 //        foreach ($fileMap as $fn => $tableName) {
                 if (empty($tableName)) {
                     $this->logger && $this->logger->warning("Skipping $fn, no map to tables");
@@ -185,7 +189,7 @@ class PixieImportService
                         }
                     }
                 }
-
+                $tKv->beginTransaction();
                 $kv->beginTransaction(); // so that events that populate related tables are persisted.  Meh.
                 $event = $this->eventDispatcher->dispatch(new RowEvent(
                     $config->code, $tableName,
@@ -205,7 +209,7 @@ class PixieImportService
                     // if it's json, remap the keys.
                     $reverse = array_flip($headers);
                     // mapped Header stuff has moved to pixie:prepare
-                    if (false)
+//                    if (false)
                         if ($ext === 'json') {
                             $mappedRow = [];
                             // if new values after first row
@@ -230,7 +234,8 @@ class PixieImportService
                             }
                             // if there are new headers, add them
 //                        dd(row: $row, mappedRow: $mappedRow, );
-                            $row = $mappedRow;
+//                            $row = $mappedRow;
+                            $row = (object)$mappedRow;
                         }
                     assert($row);
 
@@ -258,7 +263,6 @@ class PixieImportService
                         dd($row, $idx, $tableName);
                         continue;
                     }
-
                     $event = $this->eventDispatcher->dispatch(new RowEvent(
                         $config->code,
                         $tableName,
@@ -269,12 +273,10 @@ class PixieImportService
                         storageBox: $kv,
                         context: $context));
                     $row = $event->row;
-
-
                     // handling relations could be its own RowEvent too, for now it's here
 //                dd($row);
 //                    dump(beforeHandleRelations: $row);
-                    $row = $this->handleRelations($kv, $config, $pixieCode, $table, $row);
+                    $row = $this->handleRelations($kv, $tKv, $config, $pixieCode, $table, $row);
 //                    dd(afterRelations: $row);
                     $event->row = $row;
 //                $tableName=='obj' && dd($row['classification'], $event->row['classification']);
@@ -302,27 +304,19 @@ class PixieImportService
                         continue;
                     }
 
-                    // add the source strings
+                    // add the source strings to the translation table
+
+
 //                $event = new FetchTranslationObjectEvent($row, )
 //                    $sourceString = $row[$tKey];
                     if (count($table->getTranslatable())) {
+
                         $sourceLocale = $config->getSource()->locale ?? $row['locale'] ?? null;
                         if (!$sourceLocale) {
                             dd($row);
                         }
                         if (class_exists(FetchTranslationObjectEvent::class)) {
-                            // NO!  This clutters the translations, maybe okay for debugging,
-                            // all the 'labels' for lists are also translatable.
-//                            $tableName=='obj' && dd($row);
-//                            $keys = $table->getTranslatable();
-//                            foreach ($table->getProperties() as $property) {
-//                                if ($listTableName = $property->getListTableName()) {
-//                                    $listCode = $property->getCode();
-//                                    if (!in_array($listCode, $keys)) {
-////                                        $keys[] = $listCode;
-//                                    }
-//                                }
-//                            }
+                            // for source table, Not libre, which happens during pixie:trans --queue
                             $event = $this->eventDispatcher->dispatch(
                                 new FetchTranslationObjectEvent(
                                     $row, // or $item?
@@ -333,7 +327,12 @@ class PixieImportService
                                     key: $row[$table->getPkName()],
                                     keys: $table->getTranslatable()
                                 ));
-//                            dump($row);
+                            foreach ($event->translationModels as $transModel) {
+                                if (!$tKv->has($transModel->getHash())) {
+                                    $tKv->set($transModel->toArray());
+                                }
+                            }
+//                            dd($row, $transModel, $transModel->toArray());
                             $row = $event->getNormalizedData();
 //                            $event->getTable()=='obj' && dd($row);
 //                            $tableName=='obj' && dd($row, $event->getTable());
@@ -355,6 +354,9 @@ class PixieImportService
                 $kv->commit();
                 $count = $kv->count();
                 $this->logger->info($kv->getFilename() . '/' . $kv->getSelectedTable() . " now has " . $count);
+                if ($tKv->inTransaction()) {
+                    $tKv->commit();
+                }
             }
         }
         if ($kv->inTransaction()) {
@@ -473,6 +475,7 @@ class PixieImportService
                 }
             }
         }
+//        dd($headers, $ext);
 
         return [$ext, $iterator, $headers];
     }
@@ -484,6 +487,7 @@ class PixieImportService
      * @return array $row modified row, side effect of creating lists.
      */
     public function handleRelations(?StorageBox $kv,
+                                    ?StorageBox $tKv,
                                     Config      $config,
                                     string      $pixieCode,
                                     Table       $table,
@@ -578,9 +582,16 @@ class PixieImportService
                                             keys: ['label']
                                         )
                                     );
+//                                    dump($event->translationModel);
+                                    foreach ($event->translationModels as $translationModel) {
+                                        if (!$tKv->has($translationModel->getHash(), 'source')) {
+                                            $tKv->set($translationModel->toArray(), 'source');
+                                        }
+
+                                    }
                                     // the label and _translations have been set
                                     $relatedRow = $event->getNormalizedData();
-                                    $relatedId = $relatedRow['label.hash'];;
+                                    $relatedId = $relatedRow['label'];;
                                     // replace the key with the translation key
 
 //                                dump(relatedBefore: $relatedRow);

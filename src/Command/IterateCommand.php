@@ -36,13 +36,14 @@ final class IterateCommand extends InvokableServiceCommand
 
     private bool $initialized = false; // so the event listener can be called from outside the command
     private ProgressBar $progressBar;
+
     public function __construct(
-        private LoggerInterface          $logger,
-        private ParameterBagInterface    $bag,
-        private readonly PixieService $pixieService,
-        private ?WorkflowHelperService   $workflowHelperService=null,
-        private ?EventDispatcherInterface $eventDispatcher=null,
-        private ?MessageBusInterface $bus=null,
+        private LoggerInterface           $logger,
+        private ParameterBagInterface     $bag,
+        private readonly PixieService     $pixieService,
+        private ?WorkflowHelperService    $workflowHelperService = null,
+        private ?EventDispatcherInterface $eventDispatcher = null,
+        private ?MessageBusInterface      $bus = null,
     )
     {
 
@@ -50,39 +51,43 @@ final class IterateCommand extends InvokableServiceCommand
     }
 
     public function __invoke(
-        IO                                                    $io,
-        PixieService                                          $pixieService,
-        PixieImportService                                    $pixieImportService,
-        #[Argument(description: 'config code')] string        $pixieCode,
-        #[Argument(description: 'table name')] string         $tableName,
-        #[Autowire('%env(DEFAULT_TRANSPORT)%')] ?string $defaultTransport=null,
-        #[Option(description: 'workflow transition')] ?string $transition=null,
+        IO                                                                            $io,
+        PixieService                                                                  $pixieService,
+        PixieImportService                                                            $pixieImportService,
+        #[Argument(description: 'config code')] string                                $pixieCode,
+        #[Argument(description: 'table name')] string                                 $tableName,
+        #[Autowire('%env(DEFAULT_TRANSPORT)%')] ?string                               $defaultTransport = null,
+        #[Option(description: 'workflow transition')] ?string                         $transition = null,
         // marking CAN be null, which is why we should set it when inserting
-        #[Option(description: 'workflow marking')] ?string    $marking=null,
-        #[Option(description: 'message transport')] ?string   $transport=null,
-        #[Option(description: 'tags (for listeners)')] ?string   $tags=null,
-        #[Option(name: 'index', description: 'index after flush')] ?bool $indexAfterFlush = false,
-        #[Option] int                                         $limit = 0,
-        #[Option] string                                         $dump = '',
+        #[Option(description: 'workflow marking')] ?string                            $marking = null,
+        #[Option(description: 'message transport')] ?string                           $transport = null,
+        #[Option(description: 'tags (for listeners)')] ?string                        $tags = null,
+        #[Option(name: 'index', description: 'index after flush')] ?bool              $indexAfterFlush = false,
+        #[Option] int                                                                 $limit = 0,
+        #[Option] string                                                              $dump = '',
+        #[Option('trans', "use the translation pixie, not the normal data one")] bool $trans = false,
 
     ): int
     {
         $transport ??= $defaultTransport;
         // do we need the Config?  Or is it all in the StorageBox?
         $kv = $pixieService->getStorageBox($pixieCode);
+        if ($trans) {
+//            $tKv = $pixieService->getTra
+        }
         $config = $pixieService->getConfig($pixieCode);
-        assert($kv->tableExists($tableName), "Missing table $tableName: \n".implode("\n", $kv->getTableNames()));
+        assert($kv->tableExists($tableName), "Missing table $tableName: \n" . implode("\n", $kv->getTableNames()));
 
         $table = $config->getTables()[$tableName];
         $workflow = null;
         if ($workflowName = $table->getWorkflow()) {
             $workflow = $this->workflowHelperService->getWorkflowByCode($table->getWorkflow());
             if ($marking) {
-                $places=array_values($workflow->getDefinition()->getPlaces());
+                $places = array_values($workflow->getDefinition()->getPlaces());
                 assert(in_array($marking, $places), "invalid marking:\n\n$marking: use\n\n" . implode("\n", $places));
             }
             if ($transition) {
-                $transitions  = array_unique(array_map(fn(Transition $transition) => $transition->getName(), $workflow->getDefinition()->getTransitions()));
+                $transitions = array_unique(array_map(fn(Transition $transition) => $transition->getName(), $workflow->getDefinition()->getTransitions()));
                 assert(in_array($transition, $transitions), "invalid transition:\n\n$transition: use\n\n" . implode("\n", $transitions));
             }
 
@@ -112,7 +117,7 @@ final class IterateCommand extends InvokableServiceCommand
             $idx = 0;
             $stamps = [];
             if ($transport) {
-                $stamps[] =  new TransportNamesStamp($transport);
+                $stamps[] = new TransportNamesStamp($transport);
             }
             if ($dump) {
                 $headers = explode(',', $dump);
@@ -127,7 +132,7 @@ final class IterateCommand extends InvokableServiceCommand
             foreach ($kv->iterate(where: $where) as $key => $item) {
                 $idx++;
                 if ($dump) {
-                    $values = array_map(fn($key) => substr((string) $item->{$key}(), 0, 40),$headers);
+                    $values = array_map(fn($key) => substr((string)$item->{$key}(), 0, 40), $headers);
                     $table->addRow($values);
                     $table->render();
                 }
@@ -166,7 +171,7 @@ final class IterateCommand extends InvokableServiceCommand
                             config: $config,
                             context: [
 //                                'storageBox' => $kv,
-                                'tags' => explode(",", (string) $tags),
+                                'tags' => explode(",", (string)$tags),
                                 'transition' => $transition,
                                 'transport' => $transport
                             ])
@@ -176,11 +181,10 @@ final class IterateCommand extends InvokableServiceCommand
                 }
 
 
-
                 // if it's an event that changes the values, like a cleanup, we need to update the row.
                 // if it's just dispatching an event, then we don't.
                 // @todo: update
-                if ($limit && $idx >= ($limit-1)) {
+                if ($limit && $idx >= ($limit - 1)) {
                     break;
                 }
                 $progressBar->advance();
@@ -204,9 +208,9 @@ final class IterateCommand extends InvokableServiceCommand
         );
 
         if ($indexAfterFlush) { // || $transport==='sync') { @todo: check for tags, e.g. create-owners
-                $cli = "pixie:index $pixieCode  --reset"; // trans simply _gets_ existing translations
-                $this->io()->warning('bin/console ' . $cli);
-                $this->runCommand($cli);
+            $cli = "pixie:index $pixieCode  --reset"; // trans simply _gets_ existing translations
+            $this->io()->warning('bin/console ' . $cli);
+            $this->runCommand($cli);
         }
 
         $io->success($this->getName() . ' success ' . $kv->getFilename());
