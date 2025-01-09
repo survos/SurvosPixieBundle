@@ -11,6 +11,7 @@ class Dimension
         public ?float $width=null,
         public ?float $height=null,
         public ?float $depth=null,
+        public ?float $length=null,
         public ?float $diameter=null,
         public ?float $thickness=null,
     )

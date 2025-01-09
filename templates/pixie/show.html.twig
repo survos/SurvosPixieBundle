@@ -171,6 +171,7 @@
         depth: 'iconoir:depth',
         height: 'circum:line-height',
         width: 'material-symbols:width',
+        length: 'material-symbols:width',
         weight: 'material-symbols:scale'
     } %}
     {% if row.dimensions %}
@@ -229,6 +230,9 @@
         <p>
             universal fields, can be used anywhere in the template with <code>row.var</code>
         </p>
+        <pre>
+            {{ row.data|json_pretty }}
+        </pre>
         <ul class="list-group">
             {% for var in keys|default([]) %}
                 <li class="list-group-item px-0 py-1 border-0">
