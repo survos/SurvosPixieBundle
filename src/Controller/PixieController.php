@@ -159,15 +159,15 @@ class PixieController extends AbstractController
         if (!$item) {
             throw new NotFoundHttpException("No item $key in $tableName / $pixieCode");
         }
-        $keys = [];
-        foreach ($table->getTranslatable() as $field) {
-            if ($key = $item->$field()) {
-                foreach ($tKv->iterate('libre', ['hash' => $key]) as $tItem) {
-                    dump($field, $tItem->text());
-                }
-                $keys[] = $item->$field();
-            }
-        }
+//        $keys = [];
+//        foreach ($table->getTranslatable() as $field) {
+//            if ($key = $item->$field()) {
+//                foreach ($tKv->iterate('libre', ['hash' => $key]) as $tItem) {
+//                    dump($field, $tItem->text());
+//                }
+//                $keys[] = $item->$field();
+//            }
+//        }
 //        dd($keys, $item->getData(), $table->getTranslatable());
         assert($item, "no item in $pixieCode.$tableName in for $key");
 
