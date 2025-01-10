@@ -56,6 +56,9 @@
         <twig:block name="thumbnail">
             <div class="size-125 position-relative">
                 {% set thumb = row.thumbnail|default(row.image_url|default(false)) %}
+                {% if not thumb %}
+                    {% set thumb = row.images[0].thumbnail %}
+                {% endif %}
                 {% if thumb %}
                     {% if row.image_count|default(1) > 1 %}
                         {# @todo: make a badge in the image somewhere. #}
@@ -83,6 +86,7 @@
                         {% else %}
                         <code>
                             {{ attr.name }}
+
                         </code>
                         {% endif %}
 

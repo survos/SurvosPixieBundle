@@ -260,7 +260,6 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 dd($recordsToWrite, $e->getMessage());
             }
             $this->meiliService->waitForTask($task);
-            $this->io()->writeln(sprintf("<href=%s?$configCode>Open</>", $this->baseUrl));
 
             // wait, so we can update owner
             // export property counts to kv
@@ -274,15 +273,17 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 $kv->getFilename(),
                 $tableName, $stats));
 
-            $table = new Table($this->io());
-            $table->setHeaders(['attributes', 'value']);
+            if ($this->io()->isVerbose()) {
+                $table = new Table($this->io());
+                $table->setHeaders(['attributes', 'value']);
 //            $io->write(json_encode($stats, JSON_PRETTY_PRINT));
-            foreach ($index->getSettings() as $var=>$value) {
-                if (str_contains($var, 'Attributes')) {
-                    $table->addRow([$var, json_encode($value)]);
+                foreach ($index->getSettings() as $var=>$value) {
+                    if (str_contains($var, 'Attributes')) {
+                        $table->addRow([$var, json_encode($value)]);
+                    }
                 }
+                $table->render();
             }
-            $table->render();
             if ($io->isVerbose()) {
 //                $io->write(json_encode($index->getSettings(), JSON_PRETTY_PRINT));
             }
@@ -290,6 +291,11 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //            $filename = $pixieCode . '-' . $tableName.'.json';
 //            file_put_contents($filename, $this->serializer->serialize($recordsToWrite, 'json'));
 //            $io->success(count($recordsToWrite) . " indexed meili $indexName");
+
+            $locale = $config->getSource()->locale;
+            $homeUrl =  $this->baseUrl . "/$locale?$configCode&tableName=$tableName";
+            $this->io()->writeln(sprintf("<href=%s>Open %s</>",$homeUrl, $homeUrl));
+
         }
 
 //        dump($configData, $config->getVersion());
@@ -300,6 +306,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
 
         $io->success(sprintf("%s success %s %s",  $this->getName(), $configCode, $pixieDbName));
+
         return self::SUCCESS;
     }
 

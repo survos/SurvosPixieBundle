@@ -32,6 +32,7 @@
 {#        <twig:pixie:db :pixieCode="pixieCode" />#}
 {#        <twig:SurvosPixie:db :pixieCode="pixieCode" />#}
 {#        </twig:SurvosPixie:db>#}
+{#        {{ dump(row.data) }}#}
         <twig:pixie:row
                 :data="row.data">
         </twig:pixie:row>
@@ -54,12 +55,21 @@
 
 
 
-        <div class="card mb-4 walters-main">
+        <div class="card mb-4 pixie-main">
             <div class="card-body p-4">
                 <div class="row g-4">
-                    <div class="walters-left col-xl-3 col-lg-4 col-md-8 mx-auto">
+                    <div class="pixie-left col-xl-3 col-lg-4 col-md-8 mx-auto">
                         <div class="card shadow-sm">
                             <div class="card-body p-1 text-center">
+                                {% for i in row.images|slice(0, 1) %}
+                                    <li>
+                                        {% set value = i.image %}
+                                        {% if value %}
+                                            <img src="{{ value }}" class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>
+                                            {# <br /><b>{{ value }}</b> #}
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
                                 {% for imageField in ['thumbnail'] %}
                                     {% set value = attribute(row,imageField) %}
                                     {% if value %}
@@ -206,7 +216,7 @@
 
         {% for ww in attribute(row, 'weight')|default([]) %}
             <p>
-                <span class="badge bg-light text-muted mb-0"
+                <span class="badge bg-light text-muted mb-0">
                 {{ ux_icon(dimIcons.weight) }}
                 {#                        {% for w in ww %} #}
                 {{ ww.amount }} {{ ww.units }}
@@ -422,6 +432,7 @@
 {% endblock %}
 
 {% block image %}
+    @image
     {#    (images are handled separately) #}
 {% endblock %}
 
