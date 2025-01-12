@@ -24,7 +24,7 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
 
-#[AsCommand('pixie:prepare', 'process /raw to /json')]
+#[AsCommand('pixie:prepare', 'process /raw to /json via the rules key')]
 final class PixiePrepareCommand extends InvokableServiceCommand
 {
     use RunsCommands;
