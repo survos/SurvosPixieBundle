@@ -4,6 +4,7 @@ namespace Survos\PixieBundle\Service;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
+use App\Metadata\PixieInterface;
 use Psr\Log\LoggerInterface;
 use Survos\BootstrapBundle\Event\KnpMenuEvent;
 use Survos\PixieBundle\CsvSchema\Parser;
@@ -117,20 +118,25 @@ class PixieService
     #[AsEventListener(event: StorageBoxEvent::class, priority: 50)]
     public function storageBoxListener(StorageBoxEvent $event): void
     {
+        $mode = $event->getMode();
         if ($event->isTranslation()) {
-            $filename = $this->getPixieFilename($event->getPixieCode());
-
-            $translationPixieFilename = str_replace('.pixie.db', '-translation.pixie.db', $filename);
-            $kv = $this->getStorageBox(
-                self::PIXIE_TRANSLATION,
-                filename: $translationPixieFilename,
-            );
-        } else {
-            $kv = $this->getStorageBox(
-                $event->getPixieCode(),
-            );
-
+            $mode = PixieInterface::PIXIE_TRANSLATION;
         }
+//        assert(!$event->isTranslation(), "use mode");
+        $filename = $this->getPixieFilename($event->getPixieCode());
+        if ($suffix = match($mode) {
+            'data' => null,
+            'translation' => PixieInterface::PIXIE_TRANSLATION,
+            'image' => PixieInterface::PIXIE_IMAGE
+        }) {
+            $filename = str_replace('.pixie.db', '-' . $suffix . '.pixie.db', $filename);
+        }
+
+        $kv = $this->getStorageBox(
+            $suffix??$event->getPixieCode(),
+            filename: $suffix ? $filename : null,
+        );
+//        dd($kv);
         $event->setStorageBox($kv);
     }
 

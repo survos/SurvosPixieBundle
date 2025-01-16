@@ -270,15 +270,15 @@ class PixieConvertService
                         storageBox: $kv,
                         context: $context));
                     $row = $event->row;
-
-
                     // handling relations could be its own RowEvent too, for now it's here
-//                dd($row);
 //                    $row = $this->handleRelations($kv, $config, $pixieCode, $table, $row);
 //                    $event->row = $row;
 //                $tableName=='obj' && dd($row['classification'], $event->row['classification']);
 
 //                $tableName == 'obj' && dd($row);
+                    if ($event->type === RowEvent::DISCARD) {
+                        continue;
+                    }
 
                     if ($callback) {
                         // this actually does the writing.

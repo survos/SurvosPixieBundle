@@ -101,6 +101,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
 //        }
 
         $pixieDbName = $pixieService->getPixieFilename($configCode, $subCode);
+
         if (!file_exists($dirName = pathinfo($pixieDbName, PATHINFO_DIRNAME))) {
             mkdir($dirName, 0777, true);
         }
@@ -126,6 +127,8 @@ final class PixiePrepareCommand extends InvokableServiceCommand
             }
         }
         $limit = $this->pixieService->getLimit($limit);
+        $this->progressBar = new ProgressBar($this->io()->output(), $limit);
+
         $pixieConvertService->convert($configCode, $subCode,  null, limit: $limit, startingAt: $startingAt,
 //            context: [
 //                'tags' => $tags ? explode(",", $tags) : [],
@@ -147,6 +150,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
                         'count' => 0];
                     $this->openFiles[$tableName] = $openFile;
                 }
+                $this->progressBar->advance();
 
                 // we need to know the fields that are being used
                 foreach ($row as $var=>$val) {
@@ -177,6 +181,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
                 return $limit ? !$finished : true; // break if we've hit the limit.
             });
         // close and report.
+        $this->progressBar->finish();
 
         $consoleTable = new Table($io);
         $consoleTable->setHeaders(['table', 'count']);

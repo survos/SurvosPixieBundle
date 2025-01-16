@@ -4,6 +4,7 @@
 
 namespace Survos\PixieBundle;
 
+use App\Command\PixieMediaCommand;
 use Survos\ApiGrid\Components\ItemGridComponent;
 use Survos\ApiGrid\Controller\GridController;
 use Survos\CoreBundle\Traits\HasAssetMapperTrait;
@@ -168,6 +169,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                      PixieExportCommand::class,
 //                     PixieTranslateCommand::class,
                      IterateCommand::class,
+                     PixieMediaCommand::class,
                      PixieIndexCommand::class,
                      PixieSyncCommand::class,
                      PixieMakeCommand::class] as $commandClass) {

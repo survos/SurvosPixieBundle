@@ -12,10 +12,17 @@ class StorageBoxEvent extends Event
     public function __construct(
         private readonly string $pixieCode,
         private readonly ?string $filename=null,
+        /** @deprecated "Use mode instead" */
         private readonly bool $isTranslation=false,
+        private readonly string $mode='data', # data|translation|image
         private readonly array $tags=[]
     ) {
 
+    }
+
+    public function getMode(): string
+    {
+        return $this->mode;
     }
 
     public function isTranslation(): bool

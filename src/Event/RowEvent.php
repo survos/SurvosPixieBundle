@@ -30,6 +30,7 @@ class RowEvent extends Event
         public ?string $type=self::LOAD, // defaults to regular row load
         public ?string $action=null,
         public ?StorageBox $storageBox=null, // so we can update other tables
+        public ?StorageBox $imageStorageBox=null,
         public ?Config $config=null, // to loop through tables and such
         public array $context = []
     )

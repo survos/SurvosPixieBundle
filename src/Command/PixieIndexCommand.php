@@ -93,7 +93,6 @@ final class PixieIndexCommand extends InvokableServiceCommand
         if ($translations) {
             $io->error("bin/console pixie:translation --index $configCode");
             return self::FAILURE;
-
         }
 
         $this->initialized = true;
@@ -146,10 +145,17 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //            $transKv = $this->translationService->getTranslationStorageBox($pixieCode);
 //            $tKvConfig = $tKv->getConfig();
 
+            $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent(
+                $configCode,
+                mode: PixieInterface::PIXIE_IMAGE,
+                tags: ['fetch'] //??
+            ))->getStorageBox();
+
+
             if (class_exists('App\\Service\\TranslationService::class')) {
                 $transKv = $this->eventDispatcher->dispatch(new StorageBoxEvent(
                     $configCode,
-                    isTranslation: true,
+                    mode: PixieInterface::PIXIE_TRANSLATION,
                     tags: ['fetch']
                 ))->getStorageBox();
                 // hack until we get a translation bundle working
@@ -224,7 +230,12 @@ final class PixieIndexCommand extends InvokableServiceCommand
                     }
                 }
 
-//                $tableName=='obj' && dd($data->mat);
+                // insert images
+
+//                ($data->table=='obj') && ($data->id==266) && dd($data);
+//                ($data->imageCodes??false) && dd($data);
+//                ($data->imageCount??0) && dd($data);
+//                ($data->imageCount??0) && dd($data, $data->images, $data->imageCodes);
 
                 $recordsToWrite[] = $data;
 //                $row->getKey() == 56185 && dd(dataToWrite: $data, row: $row;

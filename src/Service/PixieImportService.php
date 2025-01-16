@@ -6,6 +6,7 @@ namespace Survos\PixieBundle\Service;
 
 use App\Event\FetchTranslationEvent;
 use App\Event\FetchTranslationObjectEvent;
+use App\Metadata\PixieInterface;
 use App\Service\SourceService;
 use League\Csv\Info;
 use League\Csv\Reader;
@@ -94,7 +95,15 @@ class PixieImportService
         if (!$kv) {
             $kv = $this->createKv($fileMap, $config, $pixieCode, $subCode);
         }
-        $tKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($pixieCode, isTranslation: true))->getStorageBox();
+        $iKv = $this->eventDispatcher->dispatch(
+            new StorageBoxEvent($pixieCode,
+                mode: PixieInterface::PIXIE_IMAGE)
+        )->getStorageBox();
+
+        $tKv = $this->eventDispatcher->dispatch(
+            new StorageBoxEvent($pixieCode,
+            mode: PixieInterface::PIXIE_TRANSLATION)
+        )->getStorageBox();
         $tKv->select('source'); // we don't do anything with translations during import
         assert(count($kv->getTables()), "no tables in $pixieCode");
         $validTableNames = $config->getTables();
@@ -169,8 +178,8 @@ class PixieImportService
                 if (isset($headers)) {
                     if (count($headers) !== count(array_unique($headers))) {
 //                        dd($headers, array_unique($headers));
-                        asort($headers);
-                        dd($headers);
+//                        asort($headers);
+//                        dd($headers);
                     }
                 }
 //                    assert(),
@@ -197,7 +206,9 @@ class PixieImportService
                     config: $config,
                     action: self::class,
                     type: RowEvent::PRE_LOAD,
-                    storageBox: $kv, context: $context));
+                    storageBox: $kv,
+                    imageStorageBox: $iKv,
+                    context: $context));
 
                 $pk = $kv->getPrimaryKey($tableName);
                 // this is the json/csv iterator
@@ -341,6 +352,7 @@ class PixieImportService
 
                     assert($row['license'] ?? '' <> 'Copyrighted', "invalid license");
                     try {
+//                        if ($row['imageCodes']??false) { dd($row); }
                         $kv->set($row, $tableName);
                     } catch (\Exception $e) {
                         dd($kv->getFilename(), $kv, $e, $kv->getSelectedTable(), row: $row);

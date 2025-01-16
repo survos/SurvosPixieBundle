@@ -55,6 +55,12 @@
 
 
 
+        {{ dump(row.data) }}
+        {% for i in row.data.imagesBySize|default([]) %}
+            <li>
+                {{ dump(i) }}
+            </li>
+        {% endfor %}
         <div class="card mb-4 pixie-main">
             <div class="card-body p-4">
                 <div class="row g-4">
