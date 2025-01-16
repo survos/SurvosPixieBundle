@@ -146,6 +146,9 @@ class PixieController extends AbstractController
         } else {
             $item = $kv->get($key, $tableName);
         }
+        if (!$item) {
+            throw $this->createNotFoundException("no key $key in $tableName");
+        }
         $conf = $this->pixieService->getConfig($pixieCode);
 
         $tKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($pixieCode, isTranslation: true))->getStorageBox();

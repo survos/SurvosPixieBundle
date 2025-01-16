@@ -54,35 +54,39 @@
         </section> #}
 
 
-
-        {{ dump(row.data) }}
-        {% for i in row.data.imagesBySize|default([]) %}
-            <li>
-                {{ dump(i) }}
-            </li>
+        {% set images = row.data(true).images %}
+        <h3>{{ row.imageCount }} images</h3>
+        {% for size, ii in images %}
+{#            {%  set value = img.url %}#}
+            <img src="{{ ii.thumb }}" style="max-width: 100px"
+                 title="{{ ii.code }}"
+                 class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>
         {% endfor %}
+
+
+{#        {% for size, ii in row.data(true).images %}#}
+{#            {{ dump(size, ii) }}#}
+{#            <h3>{{ size }}</h3>#}
+{#            {% for idx, img in ii %}#}
+{#                {%  set value = img.url %}#}
+{#                <img src="{{ value }}"#}
+
+{#                     class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>#}
+{#            {% endfor %}#}
+{#        {% endfor %}#}
         <div class="card mb-4 pixie-main">
             <div class="card-body p-4">
                 <div class="row g-4">
                     <div class="pixie-left col-xl-3 col-lg-4 col-md-8 mx-auto">
                         <div class="card shadow-sm">
                             <div class="card-body p-1 text-center">
-                                {% for i in row.images|slice(0, 1) %}
-                                    <li>
-                                        {% set value = i.image %}
-                                        {% if value %}
-                                            <img src="{{ value }}" class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>
-                                            {# <br /><b>{{ value }}</b> #}
-                                        {% endif %}
-                                    </li>
-                                {% endfor %}
-                                {% for imageField in ['thumbnail'] %}
-                                    {% set value = attribute(row,imageField) %}
-                                    {% if value %}
-                                        <img src="{{ value }}" class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>
-                                        {# <br /><b>{{ value }}</b> #}
-                                    {% endif %}
-                                {% endfor %}
+{#                                {% for imageField in ['thumbnail'] %}#}
+{#                                    {% set value = attribute(row,imageField) %}#}
+{#                                    {% if value %}#}
+{#                                        <img src="{{ value }}" class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>#}
+{#                                        #}{# <br /><b>{{ value }}</b> #}
+{#                                    {% endif %}#}
+{#                                {% endfor %}#}
 
                                 {# if printable or qr requested #}
                                 <div class="d-print-block d-none">
