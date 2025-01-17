@@ -199,6 +199,7 @@ class PixieImportService
                     }
                 }
                 $tKv->beginTransaction();
+                $iKv->beginTransaction();
                 $kv->beginTransaction(); // so that events that populate related tables are persisted.  Meh.
                 $event = $this->eventDispatcher->dispatch(new RowEvent(
                     $config->code, $tableName,
@@ -282,6 +283,7 @@ class PixieImportService
                         index: $idx,
                         action: self::class,
                         storageBox: $kv,
+                        imageStorageBox: $iKv,
                         context: $context));
                     $row = $event->row;
                     // handling relations could be its own RowEvent too, for now it's here
@@ -377,9 +379,14 @@ class PixieImportService
 
         $event = $this->eventDispatcher->dispatch(new RowEvent(
             $config->code, $tableName, null,
+            imageStorageBox: $iKv,
             action: self::class,
             type: RowEvent::POST_LOAD,
             storageBox: $kv));
+
+        if ($iKv->inTransaction()) {
+            $iKv->commit();
+        }
 
         return $kv;
 //        dd($fileMap);

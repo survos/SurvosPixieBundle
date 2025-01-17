@@ -17,7 +17,7 @@
         collection_id: ux_icon("tdesign:collection"),
         mat: ux_icon('et:hazardous'),
     } %}
-{#    #        collection_id: ux_icon("bi:collection"),#}
+    {#    #        collection_id: ux_icon("bi:collection"), #}
     {% if appIcons is defined %}
         {% set attrIcons = attrIcons|merge(appIcons) %}
     {% endif %}
@@ -43,132 +43,138 @@
     <div class="search_builder">
 
         {# this would be better separated  #}
-{#        :facet_columns="attrs"#}
+        {#        :facet_columns="attrs" #}
         <twig:api_grid
-            :class="class"
-            :apiGetCollectionUrl="apiUrl"
-            :caller="_self"
-            :filter="filter"
-            :buttons="buttons|default([])"
-            :columns="columns|merge(attrs)"
-            :globals="globals"
-    >
-        <twig:block name="thumbnail">
-            <div class="size-125 position-relative">
-                {% set thumb = row.thumbnail|default(row.image_url|default(false)) %}
-                {% if not thumb %}
-                    {% set thumb = row.images[0].thumbnail %}
-                {% endif %}
-                {% if thumb %}
-                    {% if row.image_count|default(1) > 1 %}
-                        {# @todo: make a badge in the image somewhere. #}
-                        <span class="position-absolute fs-6 top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ row.image_count }}</span>
-                    {% endif %}
-            <img class="img-thumbnail h-100 object-fit-cover size-100"
-                 src="{{ thumb }}" />
-                {% endif %}
-            </div>
-        </twig:block>
-
-        <twig:block name="chevron">
-            @
-            &nbsp;
-        </twig:block>
-        <twig:block name="attrs">
-            <ul class="list-inline">
-            {% for attr in globals.attrs %}
-                {% set value = row[attr.name]|default(false) %}
-                {% if value %}
-                    <li class="list-inline-itemxx" title="{{ attr.name }}">
-                    {% set icon = globals.icons[attr.name]??false %}
-                    {% if icon %}
-                        {{ icon }}
-                        {% else %}
-                        <code>
-                            {{ attr.name }}
-
-                        </code>
+                :class="class"
+                :apiGetCollectionUrl="apiUrl"
+                :caller="_self"
+                :filter="filter"
+                :buttons="buttons|default([])"
+                :columns="columns|merge(attrs)"
+                :globals="globals"
+        >
+            <twig:block name="thumbnail">
+                <div class="size-125 position-relative">
+                    {% if row.images|length %}
+                    {% set image = row.images[0] %}
+                    {#                {% for image in row.images??[]|slice(0, 1) %} #}
+                    {% set thumb = image.thumb %}
+                    {% if thumb %}
+                        {% if row.image_count|default(1) > 1 %}
+                            {# @todo: make a badge in the image somewhere. #}
+                            <span class="position-absolute fs-6 top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ row.image_count }}</span>
                         {% endif %}
+                        <img class="img-thumbnail h-100 object-fit-cover size-100"
+                             src="{{ thumb }}"/>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                {#            {% endfor %} #}
+            </twig:block>
 
-                <span class="{{ attr.name }}" title="{{ attr.name }}">
+            <twig:block name="chevron">
+                @
+                &nbsp;
+            </twig:block>
+            <twig:block name="attrs">
+                <ul class="list-inline">
+                    {% for attr in globals.attrs %}
+                        {% set value = row[attr.name]|default(false) %}
+                        {% if value %}
+                            <li class="list-inline-itemxx" title="{{ attr.name }}">
+                                {% set icon = globals.icons[attr.name]??false %}
+                                {% if icon %}
+                                    {{ icon }}
+                                {% else %}
+                                    <code>
+                                        {{ attr.name }}
+
+                                    </code>
+                                {% endif %}
+
+                                <span class="{{ attr.name }}" title="{{ attr.name }}">
                     {{ row[attr.name] }}
                 </span>
-                </li>
-                {% endif %}
-            {% endfor %}
-            </ul>
-        </twig:block>
-        <twig:block name="tombstone">
-            <div class="tombstone custom-heading text-truncate-four-lines">
-                {# really the translatable fields #}
-                {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}, globals.showParams) %}
-                {% set pixieItemUrl = path(globals.showPath, lrp) %}
-                <div >
-                    {% set label = row.label_hash %}
-{#                    <code>{{ row.label_hash }}</code>#}
-                    <a href="{{ pixieItemUrl }}">
-{#                        <code>{{ row.label }}</code>#}
-                        {#  @todo: require label! add display? #}
-{#                        <b class="line-limit-1">{{ row.label|default('~') }}</b>#}
-                        <b class="line-limit-1">{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>
-                    </a>
-                </div>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </twig:block>
+            <twig:block name="tombstone">
+                <div class="tombstone custom-heading text-truncate-four-lines">
+                    {# really the translatable fields #}
+                    {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}, globals.showParams) %}
+                    {% set pixieItemUrl = path(globals.showPath, lrp) %}
+                    <div>
+                        {#                    {% set label = row.label_hash %} #}
+                        {#                    <code>{{ row.label_hash }}</code> #}
+                        <a href="{{ pixieItemUrl }}">
+                            {#                        <code>{{ row.label }}</code> #}
+                            {#  @todo: require label! add display? #}
+                            {#                        <b class="line-limit-1">{{ row.label|default('~') }}</b> #}
+                            <b class="line-limit-1">{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>
+                        </a>
+                    </div>
 
-                <div class="line-limit-2">
-                    {{ row.description|default('') }}
-                </div>
-                {% if row.citation|default(false) %}
-                    <span class="d-lg-block d-none">
+                    <div class="line-limit-2">
+                        {{ row.description|default('') }}
+                    </div>
+                    {% if row.citation|default(false) %}
+                        <span class="d-lg-block d-none">
+                    {% set citation = row.citation|replace({'https://':'', 'http://':'', 'www.':''}) %}
+                            {#                        <code>{{ row.citation }}</code> #}
                     <a href="{{ row.citation }}" target="_blank" title="{{ row.citation }}">
-                        {{ row.credit|default(row.citation) }}
+                        {{ row.credit|default(citation) }}
                     </a>
                     </span>
-                {% endif %}
-{#                {{ globals.icons|json_encode|raw }}#}
-            </div>
-
-{#                @tombstone links#}
-            <div class='d-flex justify-content-between align-items-center gap-2'>
-{#                'rights',#}
-                {% for x in ['url','github','api','wiki','ds1','citation'] %}
-                    {% if row[x]??false %}
-                        {% set label = row[x]|replace({'https://':'', 'http://':'', 'www.':''}) %}
-                        <a class="d-flex align-items-center gap-2" href="{{ row[x] }}" title="{{ label }}" target="_blank">
-                            {#                        {{ globals|json_encode }}#}
-
-                            {% if x in globals.icons|keys %}
-                                {{ globals.icons[x]|default(x) }}
-                            {% else %}
-                                {{ x }}
-                            {% endif %}
-{#                                {% if (x=='citation') and (label|length < 22) %}#}
-{#                                {{ label }}#}
-{#                                {% endif %}#}
-                        </a>
                     {% endif %}
-                {% endfor %}
-            </div>
-        </twig:block>
+                    {#                {{ globals.icons|json_encode|raw }} #}
+                </div>
 
-        <twig:block name="pixie_key">
-            {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}) %}
-            {% set pixieItemUrl = path('pixie_show_record', lrp) %}
-            <a href="{{ pixieItemUrl }}">
-                <code>{{ row.id|default(row.code|default('~')) }}</code>
-            </a>
-        </twig:block>
-        <twig:block name="id">
-            <div style="width: 40px">
+                {#                @tombstone links #}
+                <div class='d-flex justify-content-between align-items-center gap-2'>
+                    {#                'rights', #}
+                    {% for x in ['url','github','api','wiki','ds1','citation'] %}
+                        {% if row[x]??false %}
+                            {% set label = row[x]|replace({'https://':'', 'http://':'', 'www.':''}) %}
+                            <a class="d-flex align-items-center gap-2" href="{{ row[x] }}" title="{{ label }}"
+                               target="_blank">
+                                {#                        {{ globals|json_encode }} #}
 
-                {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}, globals.showParams) %}
-                {% set pixieItemUrl = path(globals.showPath, lrp) %}
+                                {% if x in globals.icons|keys %}
+                                    {{ globals.icons[x]|default(x) }}
+                                {% else %}
+
+                                    {{ x }}
+                                {% endif %}
+                                {#                                {% if (x=='citation') and (label|length < 22) %} #}
+                                {#                                {{ label }} #}
+                                {#                                {% endif %} #}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </twig:block>
+
+            <twig:block name="pixie_key">
+                {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}) %}
+                {% set pixieItemUrl = path('pixie_show_record', lrp) %}
                 <a href="{{ pixieItemUrl }}">
-                    {{ row.id }}
+                    <code>{{ row.id|default(row.code|default('~')) }}</code>
                 </a>
-            </div>
+            </twig:block>
+            <twig:block name="id">
+                <div style="width: 40px">
 
-        </twig:block>
-    </twig:api_grid>
+                    {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}, globals.showParams) %}
+                    {% set pixieItemUrl = path(globals.showPath, lrp) %}
+                    <a href="{{ pixieItemUrl }}">
+                        {{ row.id }}
+                    </a>
+                </div>
+
+            </twig:block>
+        </twig:api_grid>
     </div>
 
 

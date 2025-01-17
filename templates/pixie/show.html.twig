@@ -54,7 +54,8 @@
         </section> #}
 
 
-        {% set images = row.data(true).images %}
+        {% set images = row.data(true).images|default([]) %}
+        {{ 'num_of_img'|trans(count=row.imageCount|default(0)) }}
         <h3>{{ row.imageCount }} images</h3>
         {% for size, ii in images %}
 {#            {%  set value = img.url %}#}
