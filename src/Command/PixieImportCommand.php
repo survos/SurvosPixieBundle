@@ -56,6 +56,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: "max number of records per table to import")] ?int                      $limit = null,
         #[Option(description: "overwrite records if they already exist")] bool                        $overwrite = false,
         #[Option(description: "queue translations")] ?bool                                            $populate = false,
+        #[Option(description: "persist images to -images.pixie.db")] ?bool                                            $persist = false,
         #[Option(description: "index after import (default: true)")] ?bool                            $index = null,
         #[Option(description: "purge db file first")] bool                                            $reset = false,
         #[Option(description: "Batch size for commit")] int                                           $batch = 500,

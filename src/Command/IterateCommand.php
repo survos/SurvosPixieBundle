@@ -144,14 +144,19 @@ final class IterateCommand extends InvokableServiceCommand
                         continue;
                     } else {
                         // if there's a workflow and a transition, dispatch a transition message, otherwise a simple row event
-                        $envelope = $this->bus->dispatch($message = new PixieTransitionMessage(
-                            $pixieCode,
-                            $key,
-                            $tableName,
-                            $transition,
-                            $workflowName,
-                            $transport
-                        ), $stamps);
+                        try {
+                            $envelope = $this->bus->dispatch($message = new PixieTransitionMessage(
+                                $pixieCode,
+                                $key,
+                                $tableName,
+                                $transition,
+                                $workflowName,
+                                $transport
+                            ), $stamps);
+                        } catch (\Exception $e) {
+                            $this->logger->warning($e->getMessage());
+                            dd($message);
+                        }
                     }
                 } else {
                     // no workflow, so dispatch the row event and let the listeners handle it.
