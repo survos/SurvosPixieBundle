@@ -5,6 +5,16 @@
     .w-100 {
         max-width: 100px;
     }
+
+    /*https://www.educative.io/answers/how-to-enlarge-an-image-on-hover-in-html*/
+    /*//This is used to control the animation speed and its duration*/
+      img{
+          transition: property duration timing-function delay|initial|inherit;
+      }
+    /*//This property is used to change the properties of the image on hover*/
+      img:hover{
+          transform: none|transform-functions| initial|inherit;
+      }
 </style>
 {% endblock %}
 
@@ -63,50 +73,37 @@
 
 
         {% set images = row.data(true).images|default([]) %}
-        {{ 'num_of_img'|trans(count=row.imageCount|default(0)) }}
-{#        <h3>{{ row.imageCount }} images</h3>#}
-{#        {% for size, ii in images %}#}
-{#            {%  set value = img.url %}#}
-{#            <img src="{{ ii.thumb }}" style="max-width: 100px"#}
-{#                 title="{{ ii.code }}"#}
-{#                 class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>#}
-{#        {% endfor %}#}
+        {{ 'num_of_img'|trans(count=row.image_count|default(0)) }}
+        <div>
 
-
-{#        {% for size, ii in row.data(true).images %}#}
-{#            {{ dump(size, ii) }}#}
-{#            <h3>{{ size }}</h3>#}
-{#            {% for idx, img in ii %}#}
-{#                {%  set value = img.url %}#}
-{#                <img src="{{ value }}"#}
-
-{#                     class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>#}
-{#            {% endfor %}#}
-{#        {% endfor %}#}
-
-        <div id="carousel-indicators-thumb-vertical" class="carousel slide carousel-fade" data-bs-ride="carousel">
-            <div class="carousel-indicators carousel-indicators-vertical carousel-indicators-thumb">
-                {% for i in row.images|default([]) %}
-                    <button type="button" data-bs-target="#carousel-indicators-thumb-vertical" data-bs-slide-to="{{ loop.index }}" class="ratio ratio-4x3 active" style="background-image: url(...)"></button>
-                    {% set imageUrl = i.orig %}
-                    {#                                        #}{# candidate for gLightbox or a slideshow or carousel or something #}
-                    <div class="carousel-item {{ loop.first ? 'active' }}">
-                        <img class="d-block w-100" alt="" src="{{ i.orig }}" />
-                    </div>
-
-                {% endfor %}
-            </div>
-            <div class="carousel-inner">
-                {% for i in row.images|default([]) %}
-                    {% set imageUrl = i.orig %}
-                    {#                                        #}{# candidate for gLightbox or a slideshow or carousel or something #}
-                    <div class="carousel-item {{ loop.first ? 'active' }}">
-                        <img class="d-block w-100" alt="" src="{{ i.orig }}" />
-                    </div>
-
-                {% endfor %}
-            </div>
+        {% for i in row.images|default([]) %}
+                <img style="max-width: 75px" class="d-blockxx w-100" alt="" src="{{ i.thumb }}" />
+        {% endfor %}
         </div>
+
+{#        <div id="carousel-indicators-thumb-xvertical" class="carousel slide carousel-fade" data-bs-ride="carousel">#}
+{#            <div class="carousel-indicators carousel-indicators-vertical carousel-indicators-thumb">#}
+{#                {% for i in row.images|default([]) %}#}
+{#                    <button type="button" data-bs-target="#carousel-indicators-thumb-vertical" data-bs-slide-to="{{ loop.index }}" class="ratio ratio-4x3 active" style="background-image: url(...)"></button>#}
+{#                    {% set imageUrl = i.orig %}#}
+{#                    #}{#                                        #}{##}{# candidate for gLightbox or a slideshow or carousel or something #}
+{#                    <div class="xcarousel-item {{ loop.first ? 'active' }}">#}
+{#                        <img class="d-block w-100" alt="" src="{{ i.orig }}" />#}
+{#                        <img style="max-width: 75px" class="d-block w-100" alt="" src="{{ i.thumb }}" />#}
+{#                    </div>#}
+{#                {% endfor %}#}
+{#            </div>#}
+{#            <div class="carousel-inner">#}
+{#                {% for i in row.images|default([]) %}#}
+{#                    {% set imageUrl = i.orig %}#}
+{#                    #}{#                                        #}{##}{# candidate for gLightbox or a slideshow or carousel or something #}
+{#                    <div class="carousel-itemx {{ loop.first ? 'active' }}">#}
+{#                        <img style="max-width: 200px" class="d-block w-100" alt="" src="{{ i.orig }}" />#}
+{#                    </div>#}
+
+{#                {% endfor %}#}
+{#            </div>#}
+{#        </div>#}
 
         <div class="card mb-4 pixie-main">
             <div class="card-body p-4">
