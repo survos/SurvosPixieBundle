@@ -55,7 +55,8 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
         #[Option(description: "max number of records per table to import")] ?int                      $limit = null,
         #[Option(description: "overwrite records if they already exist")] bool                        $overwrite = false,
-        #[Option(description: "queue translations")] ?bool                                            $populate = false,
+        #[Option(description: "queue 'source' strings in translation db")] ?bool                                            $populate = true,
+        #[Option(description: "dispatch translation requests")] ?bool                                            $translate=null,
         #[Option(description: "persist images to -images.pixie.db")] ?bool                                            $persist = false,
         #[Option(description: "index after import (default: true)")] ?bool                            $index = null,
         #[Option(description: "purge db file first")] bool                                            $reset = false,
@@ -71,6 +72,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         // in bash:  export PIXIE_CODE=aust
         $configCode ??= getenv('PIXIE_CODE');
         $populate ??= true;
+        $translate ??= false;
         $index = is_null($index) ? true : $index;
         $config = $pixieService->getConfig($configCode);
         assert($config, $config->getConfigFilename());
@@ -156,14 +158,20 @@ final class PixieImportCommand extends InvokableServiceCommand
         $consoleTable->render();
         $io->success($this->getName() . ' success ' . $pixieDbName);
 
+        // this is queuing the source strings to 'source', not the translations
+        if ($index) {
+            $this->runIndex($configCode, $subCode);
+        }
+        // this only queues source translations, so unrelated to indexing
         if ($populate) {
             $cli = "pixie:translate --queue $configCode";
             $this->io()->warning('bin/console ' . $cli);
             $this->runCommand($cli);
-
         }
-        if ($index) {
-            $this->runIndex($configCode, $subCode);
+        if ($translate) {
+            $cli = "pixie:translate --translate $configCode";
+            $this->io()->warning('bin/console ' . $cli);
+            $this->runCommand($cli);
         }
 
         // hyperlink syntax: <href=THE_LINK_URL> THE_LINK_TEXT </>

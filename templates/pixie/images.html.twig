@@ -1,0 +1,53 @@
+{% extends '@SurvosPixie/pixie/layout.html.twig' %}
+
+{% block title %}{{ pixieCode }} Tables{% endblock %}
+
+{% block body %}
+    Images
+
+    {% set columns = {
+        image: [
+            {name: 'marking', title: '@'},
+        'key',
+        'imageUrl',
+        ],
+        resized: [
+            {name:'url',block:'imageUrl'},
+            'marking',
+            'size',
+            'imageKey',
+            'key',
+        ]
+    } %}
+
+    {% for tableName, table in iKv.tables %}
+        <h3>{{ tableName }} {{ iKv.count(tableName) }}</h3>
+        <li>
+        <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
+            Browse {{ tableName }}
+        </a>
+            <twig:simple_datatables
+                    :caller="_self"
+                    :data="iKv.iterate(tableName, max=app.request.get('perPage', 200))"
+                    :columns="columns[tableName]"
+            >
+                <twig:block name="imageUrl">
+                    {% set url = attribute(row, field_name) %}
+                    <a href="{{ url }}" target="_blank">
+                        {{ url }}
+                    </a>
+                </twig:block>
+                <twig:block name="url">
+                    {% set url = attribute(row, field_name) %}
+                    <a href="{{ url }}" target="_blank">
+                        {{ url }}
+                    </a>
+                </twig:block>
+                <twig:block name="debug">
+                    {{ dump(row.data(true)) }}
+                    {{ row.data|length ? row.data|json_encode }}
+                </twig:block>
+            </twig:simple_datatables>
+        </li>
+    {% endfor %}
+{% endblock %}

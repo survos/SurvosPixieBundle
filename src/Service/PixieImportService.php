@@ -104,7 +104,7 @@ class PixieImportService
             new StorageBoxEvent($pixieCode,
             mode: PixieInterface::PIXIE_TRANSLATION)
         )->getStorageBox();
-        $tKv->select('source'); // we don't do anything with translations during import
+        $tKv->select(TranslationService::SOURCE); // we don't do anything with translations during import
         assert(count($kv->getTables()), "no tables in $pixieCode");
         $validTableNames = $config->getTables();
         // so that they're ordered as they are in the config, and coll and loc are loaded before obj
@@ -340,6 +340,7 @@ class PixieImportService
                                     key: $row[$table->getPkName()],
                                     keys: $table->getTranslatable()
                                 ));
+
                             foreach ($event->translationModels as $transModel) {
                                 if (!$tKv->has($transModel->getHash())) {
                                     $tKv->set($transModel->toArray());
@@ -606,7 +607,6 @@ class PixieImportService
                                         if (!$tKv->has($translationModel->getHash(), 'source')) {
                                             $tKv->set($translationModel->toArray(), 'source');
                                         }
-
                                     }
                                     // the label and _translations have been set
                                     $relatedRow = $event->getNormalizedData();

@@ -4,6 +4,8 @@ namespace Survos\PixieBundle\Controller;
 
 use App\Entity\Core;
 use App\Entity\Instance;
+use App\Metadata\PixieInterface;
+use App\Service\TranslationService;
 use League\Csv\Reader;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Survos\PixieBundle\Event\StorageBoxEvent;
@@ -46,6 +48,7 @@ class PixieController extends AbstractController
         private readonly ?MessageBusInterface $bus=null,
         private readonly ?WorkflowHelperService $workflowHelperService = null,
         private readonly ?ChartBuilderInterface $chartBuilder = null,
+        private ?TranslationService $translationService=null,
     )
     {
 
@@ -468,6 +471,38 @@ class PixieController extends AbstractController
     {
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
             return [
+            'kv' => $this->pixieService->getStorageBox($pixieCode),
+            'config' => $this->pixieService->getConfig($pixieCode),
+            'pixieCode' => $pixieCode,
+        ];
+    }
+
+    #[Route('/schema/{pixieCode}', name: 'pixie_translations')]
+    #[Template('@SurvosPixie/pixie/translations.html.twig')]
+    public function translations(
+        string                   $pixieCode,
+    ): array
+    {
+        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
+        $tKv = $this->translationService->getTranslationStorageBox($pixieCode);
+        return [
+            'tKv' => $tKv,
+            'kv' => $this->pixieService->getStorageBox($pixieCode),
+            'config' => $this->pixieService->getConfig($pixieCode),
+            'pixieCode' => $pixieCode,
+        ];
+    }
+
+    #[Route('/schema/{pixieCode}', name: 'pixie_images')]
+    #[Template('@SurvosPixie/pixie/images.html.twig')]
+    public function images(
+        string                   $pixieCode,
+    ): array
+    {
+        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
+        $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($pixieCode, mode: PixieInterface::PIXIE_IMAGE))->getStorageBox();
+        return [
+            'iKv' => $iKv,
             'kv' => $this->pixieService->getStorageBox($pixieCode),
             'config' => $this->pixieService->getConfig($pixieCode),
             'pixieCode' => $pixieCode,

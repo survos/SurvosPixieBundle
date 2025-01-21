@@ -1,0 +1,42 @@
+{% extends '@SurvosPixie/pixie/layout.html.twig' %}
+
+{% block title %}{{ pixieCode }} Tables{% endblock %}
+
+{% block body %}
+    Translations
+    {% set columns = {
+        libre: [
+            {name: 'marking', title: '@'},
+        'hash',
+        'key',
+        'target',
+        'text',
+        ],
+        source: [
+            'source',
+            'text',
+            'hash',
+            'field',
+            'debug',
+        ]
+    } %}
+
+    {% for tableName, table in tKv.tables %}
+        <h3>{{ tableName }} {{ tKv.count(tableName) }}</h3>
+        <li>
+        <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
+            Browse {{ tableName }}
+        </a>
+            <twig:simple_datatables
+                    :caller="_self"
+                    :data="tKv.iterate(tableName, max=app.request.get('perPage', 200))"
+                    :columns="columns[tableName]"
+            >
+                <twig:block name="debug">
+{#                    {{ dump(row.data(true)) }}#}
+                    {{ row.data|length ? row.data|json_encode }}
+                </twig:block>
+            </twig:simple_datatables>
+        </li>
+    {% endfor %}
+{% endblock %}

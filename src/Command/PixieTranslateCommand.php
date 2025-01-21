@@ -124,7 +124,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
 
         if ($translate) {
             // we could have a workflow, then dispatch, queue, etc.
-            $tKv->select('source');
+            $tKv->select(TranslationService::SOURCE);
 
             // @todo: sql fragments so we aren't looping over everything!  in source. maybe.
             // insert into guests values ('bob', json('["apples", "oranges"]'));
@@ -529,7 +529,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                         dd("$hash missing from source!  It should happen during import");
                         $sourceKeys['table_name'] = $tableName;
                         $sourceKeys['prop'] = $translatableField;
-                        $tKv->set($sourceKeys, 'source');
+                        $tKv->set($sourceKeys, TranslationService::SOURCE);
                     }
 
                     foreach ($locales as $targetLocale) {

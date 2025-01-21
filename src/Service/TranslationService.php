@@ -9,6 +9,7 @@ use App\Entity\Project;
 use App\Event\FetchTranslationEvent;
 use App\Message\TranslationMessage;
 use App\Metadata\PixieInterface;
+use App\Model\Translation;
 use App\Service\PdoCacheService;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Event\FacetEvent;
@@ -42,8 +43,7 @@ class TranslationService
     const HASH_NAME = 'xxh3';
     const ENGINE='libre';
     const SOURCE='source';
-    const NOT_TRANSLATED='untranslated';
-    const TRANSLATED='translated';
+    const NOT_TRANSLATED=Translation::PLACE_UNTRANSLATED;
 
     const TRANSLATION_KEY = '_translations'; // in the base pixie table, where the translations are stored by locale
 
@@ -524,7 +524,7 @@ class TranslationService
             $base = $source;
         } else {
             $base = strlen($source) < 24 ? AppService::slugify($source, 1024)
-                : hash('xxh3', $source);
+                : hash(self::HASH_NAME, $source);
             assert(SurvosUtils::slugify($base) == $base); // how did we get a ':' in the key?
         }
 //        if (!$base) {

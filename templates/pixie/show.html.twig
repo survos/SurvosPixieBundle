@@ -1,4 +1,12 @@
 {% extends '@SurvosPixie/pixie/layout.html.twig' %}
+{% block stylesheets %}
+    {{ parent() }}
+<style>
+    .w-100 {
+        max-width: 100px;
+    }
+</style>
+{% endblock %}
 
 {% block title %}{{ pixieCode }}:{{ row.tableName }}:{{ row.key }}{% endblock %}
 
@@ -56,13 +64,13 @@
 
         {% set images = row.data(true).images|default([]) %}
         {{ 'num_of_img'|trans(count=row.imageCount|default(0)) }}
-        <h3>{{ row.imageCount }} images</h3>
-        {% for size, ii in images %}
+{#        <h3>{{ row.imageCount }} images</h3>#}
+{#        {% for size, ii in images %}#}
 {#            {%  set value = img.url %}#}
-            <img src="{{ ii.thumb }}" style="max-width: 100px"
-                 title="{{ ii.code }}"
-                 class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>
-        {% endfor %}
+{#            <img src="{{ ii.thumb }}" style="max-width: 100px"#}
+{#                 title="{{ ii.code }}"#}
+{#                 class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>#}
+{#        {% endfor %}#}
 
 
 {#        {% for size, ii in row.data(true).images %}#}
@@ -75,6 +83,31 @@
 {#                     class="p-2 w-100 img-fluid rounded-2 object-fit-cover"/>#}
 {#            {% endfor %}#}
 {#        {% endfor %}#}
+
+        <div id="carousel-indicators-thumb-vertical" class="carousel slide carousel-fade" data-bs-ride="carousel">
+            <div class="carousel-indicators carousel-indicators-vertical carousel-indicators-thumb">
+                {% for i in row.images|default([]) %}
+                    <button type="button" data-bs-target="#carousel-indicators-thumb-vertical" data-bs-slide-to="{{ loop.index }}" class="ratio ratio-4x3 active" style="background-image: url(...)"></button>
+                    {% set imageUrl = i.orig %}
+                    {#                                        #}{# candidate for gLightbox or a slideshow or carousel or something #}
+                    <div class="carousel-item {{ loop.first ? 'active' }}">
+                        <img class="d-block w-100" alt="" src="{{ i.orig }}" />
+                    </div>
+
+                {% endfor %}
+            </div>
+            <div class="carousel-inner">
+                {% for i in row.images|default([]) %}
+                    {% set imageUrl = i.orig %}
+                    {#                                        #}{# candidate for gLightbox or a slideshow or carousel or something #}
+                    <div class="carousel-item {{ loop.first ? 'active' }}">
+                        <img class="d-block w-100" alt="" src="{{ i.orig }}" />
+                    </div>
+
+                {% endfor %}
+            </div>
+        </div>
+
         <div class="card mb-4 pixie-main">
             <div class="card-body p-4">
                 <div class="row g-4">
@@ -99,12 +132,11 @@
                                 </div>
                                 <div class="d-flex align-items-center gap-2 justify-content-center px-2 pt-0 pb-1 thumb-main">
                                     {# this is kinda hacky, should probably be in javascript #}
-                                    {% for i in row.thumbnail_urls|default([]) %}
-                                        {% set imageUrl = i.url %}
-                                        {# candidate for gLightbox or a slideshow or carousel or something #}
+                                    {% for i in row.images|default([]) %}
+                                        {% set imageUrl = i.orig %}
+{#                                        #}{# candidate for gLightbox or a slideshow or carousel or something #}
                                         <a class="thumb_items" href="{{ imageUrl }}" target="_blank">
-                                            {# really should change the main image #}
-                                            <img class="img-fluid d-block" src="{{ imageUrl }}" style="max-width: 70px"/>
+{#                                            <img class="img-fluid d-block" src="{{ i.thumb }}" style="max-width: 70px"/>#}
                                         </a>
                                     {% endfor %}
                                 </div>

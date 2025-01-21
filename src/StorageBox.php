@@ -850,6 +850,7 @@ class StorageBox
                 $value = (array)$value;
             }
             if (is_array($value) && !array_key_exists($keyName, $value)) {
+                dump($keyName, $value);
                 throw new \LogicException("Missing key $keyName in $tableName:\n " . implode("\n", array_keys($value)));
                 dd($table, $value, $keyName, $tableName);
             }
@@ -926,7 +927,8 @@ class StorageBox
         $this->query("DELETE FROM $this->currentTable;");
     }
 
-    public function getSql(string $table, array $where = [],
+    public function getSql(string $table,
+                           array $where = [],
                            array  $order = [],
                            int    $startingAt = 0,
                            int    $max = 0,
@@ -962,6 +964,9 @@ class StorageBox
         foreach ($where as $key => $value) {
             if ($value === null) {
                 $sql .= " and ($key IS NULL)";
+            } elseif (is_array($value)) {
+                $sql .= " and " . $key . " in (:$key)";
+                $params[$key] = $value;
             } else {
                 $sql .= " and " . $key . " = :$key";
                 $params[$key] = $value;
