@@ -119,6 +119,7 @@
                     <div class="line-limit-2">
                         {{ row.description|default('') }}
                     </div>
+{#                    {{ row.dimensions_string|default('') }}#}
                     {% if row.citation|default(false) %}
                         <span class="d-lg-inline-block d-none">
                     {% set citation = row.citation|replace({'https://':'', 'http://':'', 'www.':''}) %}

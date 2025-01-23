@@ -112,8 +112,11 @@
                             {% set images = row.data(true).images|default([]) %}
                             {{ 'num_of_img'|trans(count=row.image_count|default(0)) }}
                             </h5>
+                                {% if images|length %}
                             <div class="mb-2">
-                                <img id="imageOrig" class="img-fluid rounded-2" src="https://coleccion.museolarco.org/public/uploads/ML011742/ML011742a_1733288716.webp" alt="" />
+                                <img id="imageOrig" class="img-fluid rounded-2"
+                                     src="{{ images[0].orig }}"
+                                     alt="" />
                             </div>
                             <div class="d-flex flex-wrap gap-2 align-items-center">
 
@@ -123,6 +126,7 @@
                                 </a>
                             {% endfor %}
                             </div>
+                                {% endif %}
 {#                                {% for imageField in ['thumbnail'] %}#}
 {#                                    {% set value = attribute(row,imageField) %}#}
 {#                                    {% if value %}#}
@@ -236,6 +240,7 @@
         length: 'material-symbols:width',
         weight: 'material-symbols:scale'
     } %}
+    {{ row.dimensions_string|default('') }}
     {% if row.dimensions %}
         {% for dimension in row.dimensions %}
             <p class="mb-2 d-flex align-items-center flex-wrap gap-2">
@@ -485,7 +490,6 @@
 {% endblock %}
 
 {% block image %}
-    @image
     {#    (images are handled separately) #}
 {% endblock %}
 
