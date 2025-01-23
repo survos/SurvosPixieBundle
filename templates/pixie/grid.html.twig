@@ -120,7 +120,7 @@
                         {{ row.description|default('') }}
                     </div>
                     {% if row.citation|default(false) %}
-                        <span class="d-lg-block d-none">
+                        <span class="d-lg-inline-block d-none">
                     {% set citation = row.citation|replace({'https://':'', 'http://':'', 'www.':''}) %}
                             {#                        <code>{{ row.citation }}</code> #}
                     <a href="{{ row.citation }}" target="_blank" title="{{ row.citation }}">
@@ -129,19 +129,20 @@
                     </span>
                     {% endif %}
                     {#                {{ globals.icons|json_encode|raw }} #}
-                </div>
+
 
                 {#                @tombstone links #}
-                <div class='d-flex justify-content-between align-items-center gap-2'>
+                <div class='d-inline-block'>
                     {#                'rights', #}
                     {% for x in ['url','github','api','wiki','ds1','citation'] %}
                         {% if row[x]??false %}
                             {% set label = row[x]|replace({'https://':'', 'http://':'', 'www.':''}) %}
-                            <a class="d-flex align-items-center gap-2" href="{{ row[x] }}" title="{{ label }}"
+                            <a href="{{ row[x] }}" title="{{ label }}"
                                target="_blank">
                                 {#                        {{ globals|json_encode }} #}
 
                                 {% if x in globals.icons|keys %}
+                                    <span data-x="{{x}}"></span>
                                     {{ globals.icons[x]|default(x) }}
                                 {% else %}
 
@@ -153,6 +154,7 @@
                             </a>
                         {% endif %}
                     {% endfor %}
+                </div>
                 </div>
             </twig:block>
 

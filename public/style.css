@@ -163,7 +163,7 @@ body {
 
 .card {
     --bs-card-cap-padding-y: 1rem;
-    border-width: var(--bs-card-border-width-custom) ;
+    border-width: var(--bs-card-border-width-custom);
     box-shadow: var(--bs-card-shadow);
 }
 
@@ -174,14 +174,14 @@ body {
     max-width: 116px;
 }
 
-.customTable td .size-125 ,
+.customTable td .size-125,
 .customTable td .size-100 {
     height: 100px;
     width: 100px;
     max-width: 100px;
 }
 
-.line-limit-1{
+.line-limit-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
@@ -200,9 +200,11 @@ body {
         max-width: 100%;
         width: 100%;
     }
+
     .customTable table.dataTable>tbody>tr.child span.dtr-title {
         min-width: 130px !important;
     }
+
     .customTable ul li span.dtr-data {
         white-space: normal;
     }
@@ -213,7 +215,9 @@ body {
     width: 1.25em;
     margin-top: 0;
 }
-.form-control:focus, #showCounts:focus {
+
+.form-control:focus,
+#showCounts:focus {
     box-shadow: none;
     border: 1px solid var(--bs-primary);
 }
@@ -222,7 +226,7 @@ body {
     font-size: 0.875rem;
 }
 
-.inner-page span ,
+.inner-page span,
 .inner-page code {
     font-size: 0.875rem;
     font-weight: 600;
@@ -275,25 +279,32 @@ body {
 }
 
 @media print {
-    @media print and (min-width: 310px) { /* A3 size or larger */
+    @media print and (min-width: 310px) {
+
+        /* A3 size or larger */
         .walters-main .row>* {
             margin: 0;
         }
+
         .walters-main .walters-left,
         .walters-main .walters-right {
             width: 50%;
         }
-        .walters-main .walters-left{
+
+        .walters-main .walters-left {
             padding-left: 0;
         }
-        .walters-main .walters-right{
+
+        .walters-main .walters-right {
             padding-right: 0;
         }
+
         .walters-main.card .card-body {
             padding: 0;
         }
     }
 }
+
 body .navbar .navbar-nav .nav-link .badge {
     position: relative;
     transform: none;
@@ -317,7 +328,7 @@ div.dt-container div.dt-search {
     margin-top: 4px !important;
 }
 
-.dtsp-verticalContainer .dtsp-verticalPanes .dtsp-panesContainer .dtsp-titleRow { 
+.dtsp-verticalContainer .dtsp-verticalPanes .dtsp-panesContainer .dtsp-titleRow {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -378,4 +389,17 @@ body .page-wrapper .page-body section.content h3 {
 
 body div.dtsb-searchBuilder div.dtsb-group {
     margin-bottom: 4px;
+}
+
+
+.attrs ul li.list-inline-itemxx svg {
+    height: 1em;
+}
+
+.walters-right p .badge svg {
+    height: 1em;
+}
+
+.walters-right .detail-page-title {
+    min-width: 55px;
 }
