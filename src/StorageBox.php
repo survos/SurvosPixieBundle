@@ -87,7 +87,8 @@ class StorageBox
 //                dd($path, $e->getMessage());
 //                return;
             }
-            $this->db->query("PRAGMA journal_mode=WAL");
+            // this could speed things up a lot!
+//            $this->db->query("PRAGMA journal_mode=WAL");
             $this->db->query("PRAGMA lock_timeout=5");
             $this->db->setAttribute(PDO::ATTR_TIMEOUT, 10);
 //            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -444,7 +445,6 @@ class StorageBox
         $primaryIndex = 0; // by default
         foreach ($indexConfig as $indexId => $indexName) {
             if (is_array($indexName)) {
-
                 dump($indexConfig, $indexName, $indexId);
                 assert(false);
                 // parse type and maybe regex rule
@@ -620,7 +620,12 @@ class StorageBox
         if ($this->db->inTransaction()) {
             $this->commit();
         }
+//        $this->query("VACUUM");
         unset($this->db);
+        $this->db = new \PDO("sqlite:" . $this->filename);
+//        $this->db->exec("VACUUM FULL;");
+        $this->db->query("PRAGMA journal_mode=TRUNCATE");
+
     }
 
     public function beginTransaction()
@@ -701,6 +706,7 @@ class StorageBox
         //
         // SELECT exists(SELECT 1 FROM users WHERE username = 'john_doe') AS row_exists;
         // https://stackoverflow.com/questions/9755860/valid-query-to-check-if-row-exists-in-sqlite3
+//        dump('individual lookup for ' . $key); assert(false);
         return $this->query(
                 "SELECT COUNT($pk) FROM $table WHERE $pk = :key",
                 ["key" => $key]
@@ -897,6 +903,7 @@ class StorageBox
             }
         }
         $tableKey = $tableName . '-' . md5(json_encode($where));
+        // hmm, this always happens, even if there's no preload...
         $this->keyCache[$tableKey][] = $key;
         $this->currentTable = $previousTable;
 
@@ -1023,7 +1030,6 @@ class StorageBox
         // https://stackoverflow.com/questions/78623214/using-a-generator-to-loop-through-an-update-a-table-in-pdo
         $sth = $this->query($sql, $params);
         try {
-//            dump($sql, $params, $flags);
             $all = $sth->fetchAll($flags);
         } catch (\Exception) {
             dd($sql, $params);
@@ -1044,7 +1050,6 @@ class StorageBox
             // @todo: lax, strict, none (handle _raw, _value, etc. )
             // value is deprecated!
             if ($value = $row['_raw'] ?? null) {
-//            dump($value);
                 $value = json_decode((string) $value, $associative, $depth, $flags);
                 unset($row['_raw']);
                 $value = array_merge((array)$value, $row);
@@ -1058,6 +1063,7 @@ class StorageBox
 //dd($item, $value);
             yield $row[$pkName] => $item;
         }
+        $sth->closeCursor(); //
     }
 
     public function iterateOver(?string $table, callable $callback, ?bool $associative = null, int $depth = 512, int $flags = 0): array
@@ -1146,6 +1152,9 @@ class StorageBox
         assert($this->db->inTransaction(), "NOT in a transaction");
         $this->db->commit();
         assert(!$this->db->inTransaction(), "STILL in a transaction");
+//        dump(__METHOD__ . ' in ' . $this->filename);
+//        $this->query("VACUUM"); // ?
+
     }
 
     public function inTransaction(): bool

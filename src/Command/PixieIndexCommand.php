@@ -70,9 +70,9 @@ final class PixieIndexCommand extends InvokableServiceCommand
         #[Option('table', description: 'table name(s?), all if not set')] ?string       $tableFilter=null,
 //        #[Option(name: 'trans', description: 'fetch the translation strings')] bool $addTranslations=false,
         #[Option(description: "reset the meili index")] ?bool                          $reset=null,
-        #[Option(name:'trans-table', description: "use the translation table instead of _trans")] ?bool $transTable=null,
+//        #[Option(name:'trans-table', description: "use the translation table instead of _trans")] ?bool $transTable=null,
         #[Option(description: "wait for tasks to finish")] ?bool                          $wait=null,
-        #[Option(description: "populate translations")] ?bool                          $translations=null,
+        #[Option(description: "populate translations first (via pixie:trans)")] ?bool                          $translations=null,
         #[Option(description: "max number of records per table to export")] int        $limit = 0,
         #[Option(description: "extra data (YAML), e.g. --extra=[core:obj]")] string    $extra = '',
         #[Option('batch', description: "max number of records to batch to meili")] int $batchSize = 1000,
@@ -92,7 +92,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
         if ($translations) {
             $io->error("bin/console pixie:translation --index $configCode");
-            return self::FAILURE;
+            return self::SUCCESS;
         }
 
         $this->initialized = true;
@@ -166,14 +166,14 @@ final class PixieIndexCommand extends InvokableServiceCommand
             }
             foreach ($kv->iterate($tableName) as $row) {
                 $data = $row->getData();
-                $this->logger->info($row->getKey() . "\n\n" . json_encode($row, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES));
+//                $this->logger->info($row->getKey() . "\n\n" . json_encode($row, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES));
                 // hack
-                $lang = $row->expected_language()??$config->getSource()->locale;
+//                $lang = $row->expected_language()??$config->getSource()->locale;
 
                 // maybe someday, not worth it now to refactor
-                if ($transTable) {
-//                    $this->
-                }
+//                if ($transTable) {
+////                    $this->
+//                }
 
 //                dd($lang, $row);
 //                foreach ($table->getTranslatable() as $translatableProperty) {

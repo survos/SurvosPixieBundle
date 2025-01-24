@@ -14,6 +14,7 @@ use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -178,6 +179,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         $locale = $config->getSource()->locale;
         $url = $this->baseUrl. "/$locale?$configCode";
         $this->io()->writeln(sprintf("<href=%s>%s</>", $url, $url));
+        $kv->close();
         return self::SUCCESS;
     }
 
@@ -217,6 +219,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
 
         $this->progressBar = new ProgressBar($this->io()->output(), $count);
+        $this->progressBar->setFormat(OutputInterface::VERBOSITY_VERY_VERBOSE);
 //        $this->progressBar->start($count);
     }
 

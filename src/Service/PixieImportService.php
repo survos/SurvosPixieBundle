@@ -288,7 +288,6 @@ class PixieImportService
                     $row = $event->row;
                     // handling relations could be its own RowEvent too, for now it's here
 //                dd($row);
-//                    dump(beforeHandleRelations: $row);
                     $row = $this->handleRelations($kv, $tKv, $config, $pixieCode, $table, $row);
 //                    dd(afterRelations: $row);
                     $event->row = $row;
@@ -322,6 +321,7 @@ class PixieImportService
 
 //                $event = new FetchTranslationObjectEvent($row, )
 //                    $sourceString = $row[$tKey];
+                    if (0)
                     if (count($table->getTranslatable())) {
 
                         $sourceLocale = $config->getSource()->locale ?? $row['locale'] ?? null;
@@ -361,7 +361,6 @@ class PixieImportService
                         dd($kv->getFilename(), $kv, $e, $kv->getSelectedTable(), row: $row);
                     }
 
-//                if ($idx == 1) dump($tableName, $row, $limit, $idx);
                     if ($limit && ($idx >= $limit - 1)) break;
 //            dd($kv->get($row['id']));
                     // dd($row); break;
@@ -466,7 +465,6 @@ class PixieImportService
             $config->getSource()->propertyCodeRule,
             regexRules: $rules);
 //        ($tableName == 'obj') && dd($tableName, $mappedHeader);
-//            dump($rules, $tableName, headers: $headers, mappedHeader: $mappedHeader);
         // keep for replacing the key names later
 //                dd($headers, mapped: $mappedHeader, rules: $rules);
         $this->eventDispatcher->dispatch(
@@ -474,7 +472,6 @@ class PixieImportService
         );
         $headers = $headerEvent->header;
 //
-//                dump($headerEvent->header);
         // headers is now a map from column headers to properties
         if (count($headers) != count(array_unique($headers))) {
             dd($headers, array_unique($headers));
@@ -569,7 +566,6 @@ class PixieImportService
                         continue;
                     }
                     // if label is missing, create it in the relatedTable pixie
-//                    dump($this->listsByLabel[$relatedTableName], $label);
                     assert(is_string($relatedTableName), json_encode($relatedTableName));
 //                    $relatedTableName=='tag' && dd($label, $labels, $this->listsByLabel[$relatedTableName]);
 
@@ -602,10 +598,10 @@ class PixieImportService
                                             keys: ['label']
                                         )
                                     );
-//                                    dump($event->translationModel);
+                                    $tKv->select(TranslationService::SOURCE);
                                     foreach ($event->translationModels as $translationModel) {
-                                        if (!$tKv->has($translationModel->getHash(), 'source')) {
-                                            $tKv->set($translationModel->toArray(), 'source');
+                                        if (!$tKv->has($translationModel->getHash(), preloadKeys: true)) {
+                                            $tKv->set($translationModel->toArray()); // , preloadKeys: true
                                         }
                                     }
                                     // the label and _translations have been set
@@ -613,7 +609,6 @@ class PixieImportService
                                     $relatedId = $relatedRow['label'];;
                                     // replace the key with the translation key
 
-//                                dump(relatedBefore: $relatedRow);
                                     $relatedRow[$pkName] = $relatedId;
 //                                dd(related: $relatedRow);
                                 }
@@ -631,7 +626,6 @@ class PixieImportService
                         $row[$propertyCode][] = $relatedId; // if this is a string, this could instead be the translation source key?
 //                        dd($row[$propertyCode]);
                     } else {
-//                        dump($propertyCode, $relatedId);
                         $row[$propertyCode] = $relatedId; // if this is a string, this could instead be the translation source key?
                     }
                 }
@@ -663,7 +657,6 @@ class PixieImportService
                     if ($substitution === '') {
                         $row[$k] = null;
                     } else {
-//                                dump($row[$k]);
                         // or a preg_replace?
                         $row[$k] = str_replace($mm[0], $substitution, $row[$k]);
 //                                dd($row[$k]);
