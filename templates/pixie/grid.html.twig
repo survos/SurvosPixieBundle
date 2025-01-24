@@ -56,17 +56,17 @@
             <twig:block name="thumbnail">
                 <div class="size-125 position-relative">
                     {% if row.images|length %}
-                    {% set image = row.images[0] %}
-                    {#                {% for image in row.images??[]|slice(0, 1) %} #}
-                    {% set thumb = image.thumb %}
-                    {% if thumb %}
-                        {% if row.image_count|default(1) > 1 %}
-                            {# @todo: make a badge in the image somewhere. #}
-                            <span class="position-absolute fs-6 top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ row.image_count }}</span>
+                        {% set image = row.images[0] %}
+                        {#                {% for image in row.images??[]|slice(0, 1) %} #}
+                        {% set thumb = image.thumb %}
+                        {% if thumb %}
+                            {% if row.image_count|default(1) > 1 %}
+                                {# @todo: make a badge in the image somewhere. #}
+                                <span class="position-absolute fs-6 top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ row.image_count }}</span>
+                            {% endif %}
+                            <img class="img-thumbnail h-100 object-fit-cover size-100"
+                                 src="{{ thumb }}"/>
                         {% endif %}
-                        <img class="img-thumbnail h-100 object-fit-cover size-100"
-                             src="{{ thumb }}"/>
-                    {% endif %}
                     {% endif %}
                 </div>
                 {#            {% endfor %} #}
@@ -119,43 +119,45 @@
                     <div class="line-limit-2">
                         {{ row.description|default('') }}
                     </div>
-{#                    {{ row.dimensions_string|default('') }}#}
-                    {% if row.citation|default(false) %}
-                        <span class="d-lg-inline-block d-none">
+                    {#                    {{ row.dimensions_string|default('') }} #}
+                    {#                {{ globals.icons|json_encode|raw }} #}
+
+
+                    {#                @tombstone links #}
+                    <div class='d-inline-block'>
+                        {#                'rights', #}
+                        {% for x in ['url','github','api','wiki','ds1','citation'] %}
+                            {% if row[x]??false %}
+                                {% set label = row[x]|replace({'https://':'', 'http://':'', 'www.':''}) %}
+                                <a href="{{ row[x] }}" title="{{ label }}"
+                                   target="_blank">
+                                    {#                        {{ globals|json_encode }} #}
+
+                                    {% if x in globals.icons|keys %}
+                                        <span data-x="{{ x }}"></span>
+                                        {{ globals.icons[x]|default(x) }}
+                                    {% else %}
+
+                                        {{ x }}
+                                    {% endif %}
+                                    {#                                {% if (x=='citation') and (label|length < 22) %} #}
+                                    {#                                {{ label }} #}
+                                    {#                                {% endif %} #}
+                                </a>
+
+                                {% if row.citation|default(false) %}
+                                    <span class="d-lg-inline-block d-none">
                     {% set citation = row.citation|replace({'https://':'', 'http://':'', 'www.':''}) %}
-                            {#                        <code>{{ row.citation }}</code> #}
+                                        {#                        <code>{{ row.citation }}</code> #}
                     <a href="{{ row.citation }}" target="_blank" title="{{ row.citation }}">
                         {{ row.credit|default(citation) }}
                     </a>
                     </span>
-                    {% endif %}
-                    {#                {{ globals.icons|json_encode|raw }} #}
-
-
-                {#                @tombstone links #}
-                <div class='d-inline-block'>
-                    {#                'rights', #}
-                    {% for x in ['url','github','api','wiki','ds1','citation'] %}
-                        {% if row[x]??false %}
-                            {% set label = row[x]|replace({'https://':'', 'http://':'', 'www.':''}) %}
-                            <a href="{{ row[x] }}" title="{{ label }}"
-                               target="_blank">
-                                {#                        {{ globals|json_encode }} #}
-
-                                {% if x in globals.icons|keys %}
-                                    <span data-x="{{x}}"></span>
-                                    {{ globals.icons[x]|default(x) }}
-                                {% else %}
-
-                                    {{ x }}
                                 {% endif %}
-                                {#                                {% if (x=='citation') and (label|length < 22) %} #}
-                                {#                                {{ label }} #}
-                                {#                                {% endif %} #}
-                            </a>
-                        {% endif %}
-                    {% endfor %}
-                </div>
+
+                            {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
             </twig:block>
 
