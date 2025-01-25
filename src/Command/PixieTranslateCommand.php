@@ -15,6 +15,8 @@ namespace Survos\PixieBundle\Command;
 //use App\Service\PennService;
 //use App\Service\ProjectConfig\PennConfigService;
 //use App\Service\ProjectService;
+use App\Message\TranslationMessage;
+use Survos\LibreTranslateBundle\Service\TranslationClientService;
 use Survos\PixieBundle\Service\LibreTranslateService;
 use Survos\PixieBundle\Service\TranslationService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -62,10 +64,11 @@ final class PixieTranslateCommand extends InvokableServiceCommand
         #[Autowire('%kernel.enabled_locales%')] private array $supportedLocales,
         private MessageBusInterface                           $bus,
         protected EntityManagerInterface                      $entityManager,
+        private TranslationClientService $translationClient,
         private TranslationService                            $translationService,
         private PixieService                                  $pixieService,
         private LibreTranslateService                         $libreTranslateService,
-        private TranslationEventListener                      $translationEventListener, // @todo: dispatch or inject just the method
+//        private TranslationEventListener                      $translationEventListener, // @todo: dispatch or inject just the method
         protected ParameterBagInterface                       $bag,
         private readonly NormalizerInterface                  $normalizer,
         private readonly EventDispatcherInterface             $eventDispatcher,
@@ -92,7 +95,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
         #[Option(description: 'target targetLocale')] ?string                                          $target = null,
         #[Option(description: 'message bus transport')] ?string                                        $transport = null,
         #[Option(description: 'limit')] int                                                            $limit = 0,
-        #[Option(name: 'batch', description: 'batch size')] int                                        $batchSize = 100,
+        #[Option(name: 'batch', description: 'batch size to flush')] int                                        $batchSize = 100,
         #[Option(name: 'index', description: 'index after flush')] ?bool                               $indexAfterFlush = false,
         #[Option(name: 'populate', description: 'populate the source keys in tkv engine table')] ?bool $populateKeys = false,
         #[Option(name: 'translate', description: 'translate missing keys')] ?bool                      $translate = false,
@@ -525,6 +528,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                         $sourceLocale,
                         $sourceLocale);
 
+                    dd($sourceKeys);
                     if (!$tKv->has($hash = $sourceKeys['hash'])) {
                         dd("$hash missing from source!  It should happen during import");
                         $sourceKeys['table_name'] = $tableName;
@@ -591,6 +595,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                 $tKv->count(where: ['table_name' => $tableName]);
             //new keys?
         }
+
         return $counts;
     }
 }
