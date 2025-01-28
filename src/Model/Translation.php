@@ -66,7 +66,7 @@ class Translation
     private static function calculateHash(string $from, string $data): string
     {
         // must be in sync. not sure if we absolutely need the prefix.
-        return $from . TranslationClientService::calcHash($data, $from);
+        return TranslationClientService::calcHash($data, $from);
 //
 //        // we need "from" because of things like "nine=no,nueve"
 //        // needs a prefix to avoid being interpreted as a number in json
