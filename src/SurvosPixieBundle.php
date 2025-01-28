@@ -4,7 +4,6 @@
 
 namespace Survos\PixieBundle;
 
-use App\Command\PixieMediaCommand;
 use Survos\ApiGrid\Components\ItemGridComponent;
 use Survos\ApiGrid\Controller\GridController;
 use Survos\CoreBundle\Traits\HasAssetMapperTrait;
@@ -13,6 +12,7 @@ use Survos\PixieBundle\Command\PixieMakeCommand;
 use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Command\PixieIndexCommand;
+use Survos\PixieBundle\Command\PixieMediaCommand;
 use Survos\PixieBundle\Command\PixiePrepareCommand;
 use Survos\PixieBundle\Command\PixieSyncCommand;
 use Survos\PixieBundle\Command\PixieTranslateCommand;
@@ -33,7 +33,7 @@ use Survos\PixieBundle\Service\PixieConvertService;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\SqliteService;
-use Survos\PixieBundle\Service\TranslationService;
+use Survos\PixieBundle\Service\PixieTranslationService;
 use Survos\PixieBundle\Twig\TwigExtension;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
@@ -85,7 +85,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
         ;
 
         /* @ack!! these needs to be in a translation bundle and optionally wired */
-        $builder->register(TranslationService::class)
+        $builder->register(PixieTranslationService::class)
             ->setAutowired(true)
         ;
         $builder->register(LibreTranslateService::class)

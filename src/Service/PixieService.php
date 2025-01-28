@@ -4,13 +4,13 @@ namespace Survos\PixieBundle\Service;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
-use App\Metadata\PixieInterface;
 use Psr\Log\LoggerInterface;
 use Survos\BootstrapBundle\Event\KnpMenuEvent;
 use Survos\PixieBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
 use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
+use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Model\Property;
@@ -119,15 +119,15 @@ class PixieService
     public function storageBoxListener(StorageBoxEvent $event): void
     {
         $mode = $event->getMode();
-        if ($event->isTranslation()) {
-            $mode = PixieInterface::PIXIE_TRANSLATION;
-        }
+//        if ($event->isTranslation()) {
+//            $mode = PixieInterface::PIXIE_TRANSLATION;
+//        }
 //        assert(!$event->isTranslation(), "use mode");
         $filename = $this->getPixieFilename($event->getPixieCode());
         if ($suffix = match($mode) {
             'data' => null,
-            'translation' => PixieInterface::PIXIE_TRANSLATION,
-            'image' => PixieInterface::PIXIE_IMAGE
+//            'translation' => PixieInterface::PIXIE_TRANSLATION_SUFFIX,
+            'image' => PixieInterface::PIXIE_IMAGE_SUFFIX
         }) {
             $filename = str_replace('.pixie.db', '-' . $suffix . '.pixie.db', $filename);
         }

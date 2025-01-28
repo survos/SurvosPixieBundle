@@ -2,17 +2,17 @@
 
 namespace Survos\PixieBundle\Command;
 
-use App\Metadata\PixieInterface;
-use App\Service\TranslationService;
 use Meilisearch\Endpoints\Indexes;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Service\MeiliService;
 use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\PixieBundle\Event\IndexEvent;
 use Survos\PixieBundle\Event\StorageBoxEvent;
+use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
+use Survos\PixieBundle\Service\PixieTranslationService;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -110,6 +110,10 @@ final class PixieIndexCommand extends InvokableServiceCommand
         $recordsToWrite=[];
         // now iterate
         foreach ($kv->getTables() as $tableName => $table) {
+            // maybe someday we'll store them and use meili for lookup
+            if ($tableName === PixieInterface::PIXIE_STRING_TABLE) {
+                continue;
+            }
             if ($tableFilter && ($tableName <> $tableFilter)) {
                 continue;
             }
@@ -147,25 +151,16 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
             $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent(
                 $configCode,
-                mode: PixieInterface::PIXIE_IMAGE,
+                mode: PixieInterface::PIXIE_IMAGE_SUFFIX,
                 tags: ['fetch'] //??
             ))->getStorageBox();
 
 
-            if (class_exists('App\\Service\\TranslationService::class')) {
-                $transKv = $this->eventDispatcher->dispatch(new StorageBoxEvent(
-                    $configCode,
-                    mode: PixieInterface::PIXIE_TRANSLATION,
-                    tags: ['fetch']
-                ))->getStorageBox();
-                // hack until we get a translation bundle working
-                $transKv->select('libre');
-//                $transKv->select(TranslationService::ENGINE);
-            } else {
-                $transKv = null;
-            }
-            foreach ($kv->iterate($tableName) as $row) {
+            foreach ($kv->iterate($tableName) as $itemKey=>$row) {
+
                 $data = $row->getData();
+                ($itemKey=='638384caab8f2aac') && dump($tableName, $row, $row->getData(true)[PixieInterface::TRANSLATED_STRINGS]??null);
+
 //                $this->logger->info($row->getKey() . "\n\n" . json_encode($row, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES));
                 // hack
 //                $lang = $row->expected_language()??$config->getSource()->locale;
@@ -187,7 +182,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //                        $data->_translations=[];
 //                        if ($textToTranslate = $row->{$translatableProperty}()) {
 //                            $toTranslate[] = $textToTranslate;
-//                            $key = TranslationService::calculateHash($textToTranslate, $lang);
+//                            $key = PixieTranslationService::calculateHash($textToTranslate, $lang);
 //                            // @todo: batch keys with "in"
 //                            $translations = $transKv->iterate(where: ['hash' => $key]);
 ////                            dd(iterator_to_array($translations), $textToTranslate,  $key, $transKv->getFilename());
@@ -251,6 +246,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
                     // wait for the first record, so we fail early and catch the error, e.g. meili down, no index, etc.
                     if ($wait || !$progress) {
       //                $this->io->writeln("Flushing " . count($records));
+//                        ($tableName=='obj') && dd($recordsToWrite);
                         $results = $this->meiliService->waitForTask($task, dataToDump: $recordsToWrite);
                     } else {
 //                        dump($task, count($recordsToWrite), $primaryKey);
@@ -304,7 +300,8 @@ final class PixieIndexCommand extends InvokableServiceCommand
 //            $io->success(count($recordsToWrite) . " indexed meili $indexName");
 
             $locale = $config->getSource()->locale;
-            $homeUrl =  $this->baseUrl . "/$locale?$configCode&tableName=$tableName";
+
+            $homeUrl =  str_replace('https://', 'https://' . $locale . '.', $this->baseUrl) . "/$configCode/browse/$tableName";
             $this->io()->writeln(sprintf("<href=%s>Open %s</>",$homeUrl, $homeUrl));
 
         }
@@ -344,22 +341,14 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 }
             }
         }
-        $map = [
-            'es' => 'spa',
-            'en' => 'eng',
-            'de' => 'deu',
-            'hi' => 'hin',
-            'fr' => 'fra',
-            'da' => 'dan',
-        ];
         $searchableAttrs = [];
         $localizedAttributes = [];
         foreach ($this->enabledLocales as $locale) {
-            $locale3 = $map[$locale];
-            $localizedAttributes[] = ['locales' => [$locale3],
-                'attributePatterns' => [sprintf('_translations.%s.*',$locale)]];
+            $localizedAttributes[] = ['locales' => [$locale],
+                'attributePatterns' => [sprintf('%s.%s.*',PixieInterface::TRANSLATED_STRINGS, $locale)]];
             foreach ($table->getTranslatable() as $property) {
-                $searchableAttrs[] = '_translations.' . $locale . ".$property";
+                $searchableAttrs[] = sprintf('%s.%s.%s',
+                    PixieInterface::TRANSLATED_STRINGS, $locale, $property);
             }
         }
 

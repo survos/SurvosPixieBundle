@@ -146,6 +146,16 @@ class Table
         return $this->properties;
     }
 
+    public function getPropertiesByCode(): array
+    {
+        $properties = [];
+        foreach ($this->getProperties() as $property) {
+            $properties[$property->getCode()] = $property;
+        }
+        return $properties;
+    }
+
+
     public function setProperties(array $properties): Table
     {
         $this->properties = $properties;
@@ -163,5 +173,19 @@ class Table
         return $this;
     }
 
+    public function isObj(): bool
+    {
+        return $this->isTable('obj');
+    }
 
+    public function isTable(string $tableName): bool
+    {
+        return $this->getName() === $tableName;
+    }
+
+    public function getJsonFields(): array
+    {
+        return array_filter($this->getProperties(), fn(Property $property) => $property->getType() === 'json');
+
+    }
 }

@@ -6,19 +6,22 @@ namespace Survos\PixieBundle\Service;
 
 use App\Event\FetchTranslationEvent;
 use App\Event\FetchTranslationObjectEvent;
-use App\Metadata\PixieInterface;
+use App\Metadata\ITableAndKeys;
 use App\Service\SourceService;
 use League\Csv\Info;
 use League\Csv\Reader;
 use League\Csv\SyntaxError;
 use Psr\Log\LoggerInterface;
 use Survos\CoreBundle\Service\SurvosUtils;
+use Survos\LibreTranslateBundle\Service\TranslationClientService;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\Event\ImportFileEvent;
 use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Event\StorageBoxEvent;
+use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
+use Survos\PixieBundle\Model\Translation;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Finder\Finder;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -97,14 +100,17 @@ class PixieImportService
         }
         $iKv = $this->eventDispatcher->dispatch(
             new StorageBoxEvent($pixieCode,
-                mode: PixieInterface::PIXIE_IMAGE)
+                mode: ITableAndKeys::PIXIE_IMAGE)
         )->getStorageBox();
 
+        /* maybe hold off on related tables right now?
         $tKv = $this->eventDispatcher->dispatch(
             new StorageBoxEvent($pixieCode,
             mode: PixieInterface::PIXIE_TRANSLATION)
         )->getStorageBox();
-        $tKv->select(TranslationService::SOURCE); // we don't do anything with translations during import
+        $tKv->select(PixieTranslationService::SOURCE); // we don't do anything with translations during import
+        */
+
         assert(count($kv->getTables()), "no tables in $pixieCode");
         $validTableNames = $config->getTables();
         // so that they're ordered as they are in the config, and coll and loc are loaded before obj
@@ -198,7 +204,6 @@ class PixieImportService
                         }
                     }
                 }
-                $tKv->beginTransaction();
                 $iKv->beginTransaction();
                 $kv->beginTransaction(); // so that events that populate related tables are persisted.  Meh.
                 $event = $this->eventDispatcher->dispatch(new RowEvent(
@@ -288,7 +293,7 @@ class PixieImportService
                     $row = $event->row;
                     // handling relations could be its own RowEvent too, for now it's here
 //                dd($row);
-                    $row = $this->handleRelations($kv, $tKv, $config, $pixieCode, $table, $row);
+                    $row = $this->handleRelations($kv, $config, $pixieCode, $table, $row);
 //                    dd(afterRelations: $row);
                     $event->row = $row;
 //                $tableName=='obj' && dd($row['classification'], $event->row['classification']);
@@ -321,13 +326,15 @@ class PixieImportService
 
 //                $event = new FetchTranslationObjectEvent($row, )
 //                    $sourceString = $row[$tKey];
-                    if (0)
                     if (count($table->getTranslatable())) {
 
                         $sourceLocale = $config->getSource()->locale ?? $row['locale'] ?? null;
                         if (!$sourceLocale) {
                             dd($row);
                         }
+
+//                        dump(row: $row, transFields: $table->getTranslatable());
+
                         if (class_exists(FetchTranslationObjectEvent::class)) {
                             // for source table, Not libre, which happens during pixie:trans --queue
                             $event = $this->eventDispatcher->dispatch(
@@ -341,21 +348,21 @@ class PixieImportService
                                     keys: $table->getTranslatable()
                                 ));
 
+//                            dd($event->translationModels, $tKv->getSelectedTable());
+                            // this populates the source table of the translation database,
+//                            dump($row);
+                            $row = $event->getNormalizedData();
+//                            dump($row);
                             foreach ($event->translationModels as $transModel) {
-                                if (!$tKv->has($transModel->getHash())) {
-                                    $tKv->set($transModel->toArray());
+                                if (!$kv->has($transModel->getHash(), PixieInterface::PIXIE_STRING_TABLE)) {
+                                    $kv->set($transModel->toArray(), PixieInterface::PIXIE_STRING_TABLE);
                                 }
                             }
-//                            dd($row, $transModel, $transModel->toArray());
-                            $row = $event->getNormalizedData();
-//                            $event->getTable()=='obj' && dd($row);
-//                            $tableName=='obj' && dd($row, $event->getTable());
                         }
                     }
 
                     assert($row['license'] ?? '' <> 'Copyrighted', "invalid license");
                     try {
-//                        if ($row['imageCodes']??false) { dd($row); }
                         $kv->set($row, $tableName);
                     } catch (\Exception $e) {
                         dd($kv->getFilename(), $kv, $e, $kv->getSelectedTable(), row: $row);
@@ -368,9 +375,9 @@ class PixieImportService
                 $kv->commit();
                 $count = $kv->count();
                 $this->logger->info($kv->getFilename() . '/' . $kv->getSelectedTable() . " now has " . $count);
-                if ($tKv->inTransaction()) {
-                    $tKv->commit();
-                }
+//                if ($tKv->inTransaction()) {
+//                    $tKv->commit();
+//                }
             }
         }
         if ($kv->inTransaction()) {
@@ -498,13 +505,20 @@ class PixieImportService
     }
 
     /**
+     *
+     * In many cases, the data in one table is really a reference to data in another tables, often via a label, e.g.
+     *     material: bronze, color: [red, blue], collection: ROM, lang: de, loc:001-02
+     *
+     * Sometimes a related list exists in the database, like collections or even people.  If not, we need to populate the related list with the label.
+     *
+     *
+     *
      * @param StorageBox|null $kv
      * @param string $pixieCode
      * @param Table $table
      * @return array $row modified row, side effect of creating lists.
      */
     public function handleRelations(?StorageBox $kv,
-                                    ?StorageBox $tKv,
                                     Config      $config,
                                     string      $pixieCode,
                                     Table       $table,
@@ -527,6 +541,7 @@ class PixieImportService
 
             // list and relation are merging...
             if ($property->isRelation()) {
+                dd($property);
                 $relatedTable = $config->getTable($relatedTableName);
                 if ($delim = $property->getDelim()) {
                     $values = array_map('trim', explode($delim, (string) $row[$propertyCode]));
@@ -548,7 +563,7 @@ class PixieImportService
                 // first time, cache
                 if (!array_key_exists($relatedTableName, $this->listsByLabel)) {
                     $this->listsByLabel[$relatedTableName] = [];
-                    // eh, don't we have this as a pixie?
+                    // eh, don't we have this as a pixie table?
                     foreach ($kv->iterate($relatedTableName) as $relatedRow) {
                         $this->listsByLabel[$relatedTableName][$relatedRow->label()] =
                             $relatedRow->getKey();
@@ -577,42 +592,67 @@ class PixieImportService
                         if ($valueType === '@code') {
                             //
                         } elseif (in_array($valueType, ['@label', '@labels'])) {
-                                $relatedId = 'line-' . count($this->listsByLabel[$relatedTableName]) + 1;
-                                $relatedRow = [
-                                    'label' => $label,
-                                ];
+//                                dd($relatedRow);
                                 if (!$sourceLang = $row['locale'] ?? null) {
                                     if (!$sourceLang = $config->getSource()->locale) {
                                         assert(false, "unable to get source language");
                                         dd($row);
                                     }
                                 }
+                            $relatedId =  TranslationClientService::calcHash($label, $sourceLang);
+                            $relatedRow = [
+                                'label' => $label,
+//                                    '_locale' => $sourceLang, // should every row have a locale?
+                            ];
+                                $_t[$sourceLang][PixieInterface::TRANSLATION_LABEL]=$relatedRow['label'];
+                                // this is to get the orig strings.  No database lookup
+//                            dump($relatedRow);
+                            // it seems like a lot of work to get the source hash, but it also modifies the $row and adds hash.  I think.
+                            // candidate for review
                                 if (class_exists(FetchTranslationObjectEvent::class)) {
                                     $event = $this->eventDispatcher->dispatch(
                                         new FetchTranslationObjectEvent($relatedRow,
                                             $sourceLang,
                                             $sourceLang,
+                                            storageBox: $kv,
                                             pixieCode: $pixieCode,
                                             table: $relatedTableName,
                                             key: $relatedId,
-                                            keys: ['label']
+                                            keys: [PixieInterface::TRANSLATION_LABEL]
                                         )
                                     );
-                                    $tKv->select(TranslationService::SOURCE);
+
+                                    // add to the pixie string table to translate later.  Don't overwrite
+                                    /** @var Translation $translationModel */
                                     foreach ($event->translationModels as $translationModel) {
-                                        if (!$tKv->has($translationModel->getHash(), preloadKeys: true)) {
-                                            $tKv->set($translationModel->toArray()); // , preloadKeys: true
+                                        assert($translationModel->isSource(), "translations have been moved.");
+//                                        dd($translationModel->toArray(), $translationModel->getHash());
+                                        // same as in handleRelations, need to refactor.
+                                        if (!$kv->has($translationModel->getHash(), table: PixieInterface::PIXIE_STRING_TABLE, preloadKeys: true)) {
+                                            $kv->set($translationModel->toArray(), PixieInterface::PIXIE_STRING_TABLE);
                                         }
                                     }
+
                                     // the label and _translations have been set
                                     $relatedRow = $event->getNormalizedData();
-                                    $relatedId = $relatedRow['label'];;
+//                                    dd($relatedRow);
+                                    // set the related row field to the hash, not the text
+                                    $relatedId = $relatedRow[PixieInterface::TRANSLATION_LABEL]; //
+//                                    dd($relatedId, $relatedRow, $relatedTableName, $_t);
                                     // replace the key with the translation key
-
                                     $relatedRow[$pkName] = $relatedId;
 //                                dd(related: $relatedRow);
                                 }
+                                // populate the related table
+                                $relatedRow[PixieInterface::TRANSLATED_STRINGS] = $_t;
                                 $kv->set($relatedRow, $relatedTableName);
+//                                $kv->set($relatedRow, $relatedTableName, properties: [
+//                                    '_t' => $_t,
+//                                ]);
+//                                $kv->commit();
+//                                $newItem = $kv->get($relatedId, $relatedTableName);
+////                                dd($pkName, $relatedRow, $newItem, $newItem->getData());
+//                                $kv->beginTransaction();
                                 $this->listsByLabel[$relatedTableName][$label] = $relatedId;
                         } else {
                             assert(false, "valueType not handled " . $propertyCode . ' ' . $valueType);

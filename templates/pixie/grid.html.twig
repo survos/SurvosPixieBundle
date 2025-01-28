@@ -16,6 +16,7 @@
         restriction: ux_icon("tabler:copyright"),
         collection_id: ux_icon("tdesign:collection"),
         mat: ux_icon('et:hazardous'),
+        tag: ux_icon('tabler:tags'),
     } %}
     {#    #        collection_id: ux_icon("bi:collection"), #}
     {% if appIcons is defined %}
@@ -74,7 +75,6 @@
 
             <twig:block name="chevron">
                 @
-                &nbsp;
             </twig:block>
             <twig:block name="attrs">
                 <ul class="list-inline">
@@ -88,11 +88,10 @@
                                 {% else %}
                                     <code>
                                         {{ attr.name }}
-
                                     </code>
                                 {% endif %}
 
-                                <span class="{{ attr.name }}" title="{{ attr.name }}">
+                                <span class="{{ attr.name }}" style="max-width: 100px;" title="{{ attr.name }}">
                     {{ row[attr.name] }}
                 </span>
                             </li>
@@ -112,6 +111,7 @@
                             {#                        <code>{{ row.label }}</code> #}
                             {#  @todo: require label! add display? #}
                             {#                        <b class="line-limit-1">{{ row.label|default('~') }}</b> #}
+
                             <b class="line-limit-1">{{ row.title|default(row.label|default(row.name|default(row.code|default(row.id|default('~'))))) }}</b>
                         </a>
                     </div>

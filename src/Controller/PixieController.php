@@ -5,7 +5,6 @@ namespace Survos\PixieBundle\Controller;
 use App\Entity\Core;
 use App\Entity\Instance;
 use App\Metadata\PixieInterface;
-use App\Service\TranslationService;
 use League\Csv\Reader;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Survos\PixieBundle\Event\StorageBoxEvent;
@@ -15,6 +14,7 @@ use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
+use Survos\PixieBundle\Service\PixieTranslationService;
 use Survos\PixieBundle\StorageBox;
 use Survos\WorkflowBundle\Service\WorkflowHelperService;
 use Symfony\Bridge\Twig\Attribute\Template;
@@ -44,11 +44,11 @@ class PixieController extends AbstractController
         private readonly ParameterBagInterface  $bag,
         private readonly PixieService           $pixieService,
         private EventDispatcherInterface $eventDispatcher,
+        private PixieTranslationService $translationService,
         private readonly ?UrlGeneratorInterface  $urlGenerator=null,
         private readonly ?MessageBusInterface $bus=null,
         private readonly ?WorkflowHelperService $workflowHelperService = null,
         private readonly ?ChartBuilderInterface $chartBuilder = null,
-        private ?TranslationService $translationService=null,
     )
     {
 

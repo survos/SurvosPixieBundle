@@ -177,7 +177,8 @@ final class PixieImportCommand extends InvokableServiceCommand
 
         // hyperlink syntax: <href=THE_LINK_URL> THE_LINK_TEXT </>
         $locale = $config->getSource()->locale;
-        $url = $this->baseUrl. "/$locale?$configCode";
+        $url = str_replace('https://', 'https://' . $locale . '.', $this->baseUrl);
+        $url .=  "/$configCode/browse/obj";
         $this->io()->writeln(sprintf("<href=%s>%s</>", $url, $url));
         $kv->close();
         return self::SUCCESS;
@@ -202,6 +203,7 @@ final class PixieImportCommand extends InvokableServiceCommand
                 $guess = (int)($size / strlen(json_encode($first, JSON_PRETTY_PRINT)));
                 $count = $guess;
                 assert($guess, "no objects in $event->filename");
+//                dd($count, $size);
                 $iterator->rewind();
 
 //                dd("plz set total in config");
@@ -220,6 +222,7 @@ final class PixieImportCommand extends InvokableServiceCommand
 
         $this->progressBar = new ProgressBar($this->io()->output(), $count);
         $this->progressBar->setFormat(OutputInterface::VERBOSITY_VERY_VERBOSE);
+        $this->progressBar->start();
 //        $this->progressBar->start($count);
     }
 

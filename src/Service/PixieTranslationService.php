@@ -9,16 +9,15 @@ use App\Entity\Project;
 use App\Event\FetchTranslationEvent;
 use App\Message\TranslationMessage;
 use App\Metadata\PixieInterface;
-use App\Model\Translation;
-use App\Service\PdoCacheService;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Event\FacetEvent;
 use Survos\CoreBundle\Service\SurvosUtils;
-use Survos\GridGroupBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Event\StorageBoxEvent;
+use Survos\PixieBundle\Model\Translation;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\PixieService;
+use Survos\PixieBundle\Service\PixieTranslationService;
 use Survos\PixieBundle\StorageBox;
 use Survos\Scraper\Service\ScraperService;
 use Symfony\Component\Cache\Adapter\DoctrineDbalAdapter;
@@ -38,30 +37,26 @@ use function Symfony\Component\String\u;
 
 // see these for scraper bundle: https://foshttpcachebundle.readthedocs.io/en/latest/overview.html
 
-class TranslationService
+class PixieTranslationService
 {
-    const HASH_NAME = 'xxh3';
-    const ENGINE='libre';
-    const SOURCE='source';
-    const NOT_TRANSLATED=Translation::PLACE_UNTRANSLATED;
-
-    const TRANSLATION_KEY = '_translations'; // in the base pixie table, where the translations are stored by locale
+    const ENGINE = 'libre';
+    const SOURCE = 'source';
+    const NOT_TRANSLATED = Translation::PLACE_UNTRANSLATED;
+    const TRANSLATED = Translation::PLACE_TRANSLATED;
 
     public function __construct(
-        private readonly LibreTranslateService                         $libreTranslateService,
         protected ParameterBagInterface                       $bag,
-        private readonly ScraperService                                $scraperService,
-        private readonly CacheInterface                                $translationCache,
-        private readonly LoggerInterface                               $logger,
+        private ScraperService                                $scraperService,
+        private CacheInterface                                $translationCache,
+        private LoggerInterface                               $logger,
 //        #[AutowireMethodOf(service: PixieService::class)] \Closure $getFilename,
 //        private PixieService $pixieService, // can't inject, mess circular dependency
-        private readonly MessageBusInterface                           $bus,
-        private readonly SurvosUtils $survosUtils,
-        #[Autowire('%kernel.enabled_locales%')]
-        private readonly array $supportedLocales,
-        private readonly EventDispatcherInterface $eventDispatcher,
-        private readonly SluggerInterface $slugger,
-        private readonly ?Stopwatch $stopwatch,
+        private MessageBusInterface                           $bus,
+        #[Autowire('%kernel.enabled_locales%')] private array $supportedLocales,
+        private readonly EventDispatcherInterface             $eventDispatcher,
+        private readonly SluggerInterface                     $slugger,
+        private ?Stopwatch                                    $stopwatch,
+        private ?LibreTranslateService                        $libreTranslateService = null,
     )
     {
         $this->scraperService->setDir('../cache/')->setSqliteFilename('libre');
@@ -76,16 +71,17 @@ class TranslationService
      * @param Core|null $core for debugging?
      * @return array
      */
-    public function getTranslationKeys(\Generator $rows, array $translatableFields,
-                                       string $sourceLocale,
-                                       array $targetLocales
+    public function getTranslationKeys(\Generator $rows,
+                                       array $translatableFields,
+                                       string     $sourceLocale,
+                                       array      $targetLocales
     ): array
     {
         $keys = [];
         if (!array_key_exists('label', $translatableFields)) {
             $translatableFields[] = 'label';
         }
-        foreach ($rows as $row) {
+        foreach ($rows as $count => $row) {
 //            AppService::assertKeyExists('id', $row);
 //            $id = $row['id'];
             foreach ($translatableFields as $translatableField) {
@@ -94,12 +90,12 @@ class TranslationService
                         // if there's a label / code, this is probably a facet.
 //                        $baseKey =
 //                            (array_key_exists('id', $row) && $translatableField == 'label') ? $row['id'] : null;
-                        $baseKey = $translatableField == 'label' ? $row['id']??$row['code'] : null;
+                        $baseKey = $translatableField == 'label' ? $row['id'] ?? $row['code'] : null;
 //                        dd($baseKey, $value, $row, $translatableField);
 //                        $baseKey = null; // for consistency?  Ugh, this is a problem with related tables
 
                         foreach ($targetLocales as $targetLocale) {
-                            $key = $this->getKey($sourceLocale, $baseKey??$value, 'libre', $targetLocale);
+                            $key = $this->getKey($sourceLocale, $baseKey ?? $value, 'libre', $targetLocale);
                             dd($key);
 //                            if ($baseKey) dd($key);
                             if (!in_array($key, $keys)) {
@@ -117,29 +113,34 @@ class TranslationService
         return $keys;
     }
 
-    static public function cacheKey(string $sourceKey, string $targetLocale): string
-    {
-        return sprintf("%s-%s", $sourceKey, $targetLocale); // the original
-    }
     // works for both source language and translations
     public function getLocalizationData(
-        string   $q,
-                 $from = 'en',
-                 $to = 'es',
-        ?string $translation=null
-    ): array
+        string  $q,
+        string $from = 'en',
+        string $to = 'es',
+        ?string $translation = null,
+        ?string $tableName = null,
+        ?string $translatableField = null,
+        ?string $sourceHash = null
+    ): Translation
     {
-        $sourceKey = self::calculateHash($q, $from);
         // unique to the translation
 
-        // make a DTO?
-        $data =[
-            'key' => self::cacheKey($sourceKey, $to),
-            'hash' => $sourceKey,
-            'text' => ($from === $to) ? $q : $translation,
-            'source' => $from,
-            'target' => $to, // or null?
-        ];
+        $data = new Translation(
+            $from,
+            ($from === $to) ? $q : $translation,
+            $to,
+            hash: $sourceHash,
+            tableName: $tableName,
+            field: $translatableField
+        );
+//            [
+//            'key' =>
+//            'hash' => $sourceKey,
+//            'text' =>
+//            'source' => $from,
+////            'target' => $to, // or null?
+//        ];
         return $data;
 
     }
@@ -147,7 +148,7 @@ class TranslationService
     #[AsEventListener]
     public function onFacetEvent(FacetEvent $event): void
     {
-        if (!$pixieCode = $event->context['uri_variables']['pixieCode']??null) {
+        if (!$pixieCode = $event->context['uri_variables']['pixieCode'] ?? null) {
             return;
         }
         $targetLocale = $event->getTargetLocale();
@@ -162,7 +163,7 @@ class TranslationService
                 if ($kv->hasTable($facetCode)) {
                     if ($table = $kv->getTable($facetCode)) {
                         if (!str_starts_with($facetHash, $targetLocale)) {
-                            $facetHash .=  "-{$targetLocale}";
+                            $facetHash .= "-{$targetLocale}";
                         } else {
                             $isSource = true;
                         }
@@ -174,13 +175,13 @@ class TranslationService
             }
         }
         if (count($targetKeys)) {
-            $translatedStrings  =  $tKv->iterate(
+            $translatedStrings = $tKv->iterate(
                 $isSource ? 'source' : TranslationService::ENGINE,
                 pks: $targetKeys
             );
 
             $tStr = [];
-            foreach ($translatedStrings as $tItem) {
+            foreach ($translatedStrings as $tKey => $tItem) {
                 $tStr[$tItem->hash()] = $tItem->text();
             }
         }
@@ -193,7 +194,7 @@ class TranslationService
                     $label = match ($facetCode) {
                         'countryCode' => Countries::getName(strtoupper($facetValue), $targetLocale),
                         'locale' => $facetValue, //  Languages::getName($facetValue, $targetLocale),
-                        default => $tStr[$facetHash]??$facetHash
+                        default => $tStr[$facetHash] ?? $facetHash
                     };
                     $x[$facetCode][$facetHash] = [
                         'label' => $label,
@@ -210,13 +211,13 @@ class TranslationService
         $event->setFacets($x);
     }
 
-    public function getTranslationStorageBox(?string $pixieCode=null): ?StorageBox
+    public function getTranslationStorageBox(?string $pixieCode = null): ?StorageBox
     {
         if (!$pixieCode) {
             return null;
         }
 
-        static $kv=[];
+        static $kv = [];
 //        $pixieCode = PixieInterface::PIXIE_TRANSLATION; // could be tables inside, but need to manage config better
         // this could lead to too many files being open!
 
@@ -225,7 +226,8 @@ class TranslationService
         if (empty($kv[$pixieCode])) {
             $kv[$pixieCode] = $this->eventDispatcher->dispatch(new StorageBoxEvent(
                 $pixieCode,
-                isTranslation: true,
+                mode: PixieInterface::PIXIE_TRANSLATION,
+//                isTranslation: true,
                 tags: ['fetch']
             ))->getStorageBox();
         }
@@ -244,10 +246,11 @@ class TranslationService
         return null;
 
     }
-    public function translateLine(string   $q,
-                                           $from = 'en',
-                                           $to = 'es',
-                                  string   $engine = 'libre',
+
+    public function translateLine(string    $q,
+                                            $from = 'en',
+                                            $to = 'es',
+                                  string    $engine = 'libre',
                                   ?callable $callable = null
     ): ?string
     {
@@ -268,8 +271,8 @@ class TranslationService
                 $sourceKeyName = 'text';
                 $params = [
                     'text' => trim($q),
-                    'source_lang' => strtoupper((string) $from),
-                    'target_lang' => strtoupper((string) $to),
+                    'source_lang' => strtoupper($from),
+                    'target_lang' => strtoupper($to),
                 ];
                 $engineCallable = fn($data) => dd($data);
                 break;
@@ -288,7 +291,7 @@ class TranslationService
                     'target' => $to
                 ];
                 $url .= sprintf('?source=%s&target=%s', $from, $to);
-                $engineCallable = fn($result) => $result?->translatedText??null;
+                $engineCallable = fn($result) => $result?->translatedText ?? null;
                 break;
             default:
                 assert(false, $engine . ' engine not handled.');
@@ -297,6 +300,9 @@ class TranslationService
 
         // skip using the translation pixie, the caller handles that.
 //        $kv = $this->getTranslationStorageBox($pi);
+        if (!$this->libreTranslateService) {
+            dd("Can't run translate yet, needs bundle refactor");
+        }
 
         $value = $this->libreTranslateService->fetchTranslation($url, $params,
             $sourceKeyName, $q, $from, $to, $engineCallable, $callable);
@@ -307,6 +313,8 @@ class TranslationService
             throw new \Exception("Is libretranslate running?");
         }
         return $value;
+
+
         if ($value) {
 //                $item->expiresAt(null); // never, but seems to be 3 months in redis explorer
             $trans = $this->getLocalizationData($q, $from, $to, $value);
@@ -336,7 +344,7 @@ class TranslationService
             }
             if ($value) {
 //                $item->expiresAt(null); // never, but seems to be 3 months in redis explorer
-                $trans  = $this->getLocalizationData($q, $from, $to, $value);
+                $trans = $this->getLocalizationData($q, $from, $to, $value);
                 // we could be smarter about this
                 $kv->set($trans);
 
@@ -353,14 +361,14 @@ class TranslationService
         } else {
 
         }
-            // do the translation
+        // do the translation
         $callable && $callable([
             'q' => $q,
             'value' => $value
         ]);
         if ($value) {
             $maxLen = 90;
-            $this->logger->info(sprintf(__METHOD__ . " %s %s: %s", $engine, substr((string) $q, 0, $maxLen), substr((string) $value, 0, $maxLen)));
+            $this->logger->info(sprintf(__METHOD__ . " %s %s: %s", $engine, substr($q, 0, $maxLen), substr($value, 0, $maxLen)));
         }
         return $value;
     }
@@ -382,7 +390,7 @@ class TranslationService
         $translations = [];
         $transCache = $this->translationCache;
 //            if ($sourceLocale == $targetLocale) dd($keys);
-            /** @var DoctrineDbalAdapter $transCache */
+        /** @var DoctrineDbalAdapter $transCache */
 //            $transCache = $translationCaches[$targetLocale];
 //            $filename = ($this->getTranslationCacheManager()->getFilename($transCache));
 //            dd($filename);
@@ -391,51 +399,34 @@ class TranslationService
 //            if (!file_exists($filename)) {
 //                return [];
 //            }
-            $items = $transCache->getItems($keys);
-            try {
-            } catch (\Exception $exception) {
-                dd($exception, $this->libreTranslateService->getTranslationCacheManager()->getFilename($transCache));
-            }
-            foreach ($items as $key => $item) {
-                if ($item->isHit()) {
+        $items = $transCache->getItems($keys);
+        try {
+        } catch (\Exception $exception) {
+            dd($exception, $this->libreTranslateService->getTranslationCacheManager()->getFilename($transCache));
+        }
+        foreach ($items as $key => $item) {
+            if ($item->isHit()) {
 //                    if ($existingTranslation = $tran[$targetLocale]->get($code)) {
 //                        $row['_translations'][$targetLocale] = $existingTranslation;
-                    $cleanedKey = $key; // $lookup[$key];
+                $cleanedKey = $key; // $lookup[$key];
 //                    dd($item->get(), $key, $item->getMetadata());
-                    // hackish, the source and target are in the key.  Maybe use tags?
-                    if (substr_count($key, '-') < 2) {
-                        $translations[$sourceLocale][$cleanedKey] = $item->get();
+                // hackish, the source and target are in the key.  Maybe use tags?
+                if (substr_count($key, '-') < 2) {
+                    $translations[$sourceLocale][$cleanedKey] = $item->get();
 //                    if (!preg_match('/-(.{2})$/', $key, $mm)) {
-                    } else {
-                        $targetLocale = u($key)->afterLast('-')->toString();
-                        assert(Languages::exists($targetLocale), "invalid language ". $key);
-                        $translations[$targetLocale][$cleanedKey] = $item->get();
-                    }
+                } else {
+                    $targetLocale = u($key)->afterLast('-')->toString();
+                    assert(Languages::exists($targetLocale), "invalid language " . $key);
+                    $translations[$targetLocale][$cleanedKey] = $item->get();
+                }
 //                    $translations[$targetLocale][$key] = $item->get();
 //                                dd($existingTranslation);
 //                                $translationCaches[$targetLocale]  = new CsvDatabase($ps->getSheetFilename($transSheet), 'id');
-                } else {
+            } else {
 //                                $io->warning("$code missing in $targetLocale " . $translationCaches[$targetLocale]->getFilename());
-                }
             }
-        return $translations;
-    }
-
-    /**
-     * @param Project $project
-     * @param SpreadsheetService $spreadsheetService
-     * @param mixed $analysisSpreadsheet
-     * @param ProjectService $ps
-     * @return array<string, DoctrineDbalAdapter[]>
-     */
-    public function loadTranslationCaches(string $projectLocale, array $targets=[]): array
-    {
-        $transCache = [];
-        foreach ($targets as $targetLocale) {
-            $transCache[$projectLocale][$targetLocale] = $this->getTranslationCache($projectLocale, $targetLocale);
         }
-        $transCache[$projectLocale][$projectLocale] = $this->getTranslationCache($projectLocale, $projectLocale);
-        return $transCache;
+        return $translations;
     }
 
     public function getStringTranslationDir()
@@ -444,20 +435,6 @@ class TranslationService
         return SurvosUtils::createDir($translationDir);
     }
 
-    public function getTranslationCacheManager(): PdoCacheService
-    {
-        static $cacheManager = null;
-        if (!$cacheManager) {
-            $cacheManager = PdoCacheService::create($this->getStringTranslationDir());
-        }
-        return $cacheManager;
-    }
-
-
-    public function getTargetLocales(Project $project, ?string $target = null): array
-    {
-        return $project->getTargetLocales();
-    }
 
     public function getTranslationCache($from = 'en', $to = 'es', bool $reset = false): DoctrineDbalAdapter
     {
@@ -507,25 +484,25 @@ class TranslationService
 
     }
 
-    public function getKey( string $sourceLocale, ?string $source, string $engine='libre', ?string $target=null): ?string
+    public function getKey(string $sourceLocale, ?string $source, string $engine = 'libre', ?string $target = null): ?string
     {
         if (empty($source)) {
             return null;
         }
-        assert( Languages::exists($sourceLocale), $sourceLocale);
+        assert(Languages::exists($sourceLocale), $sourceLocale);
         if ($target) {
-            assert( Languages::exists($target), $target);
+            assert(Languages::exists($target), $target);
         }
-        assert(in_array($engine, ['libre','deep-l','google']), "Invalid engine: $engine");
-        $source = SurvosUtils::slugify($source, maxLength: 1024);
+        assert(in_array($engine, ['libre', 'deep-l', 'google']), "Invalid engine: $engine");
+        $source = AppService::slugify($source, maxLength: 1024);
         assert(in_array($engine, ['libre', 'deepl']), "bad engine: " . $engine);
         // if the base has an underscore, it means it's really a key, like for the facets.
-        if ($source == SurvosUtils::slugify($source)) {
+        if ($source == AppService::slugify($source)) {
             $base = $source;
         } else {
             $base = strlen($source) < 24 ? AppService::slugify($source, 1024)
-                : hash(self::HASH_NAME, $source);
-            assert(SurvosUtils::slugify($base) == $base); // how did we get a ':' in the key?
+                : hash('xxh32', $source);
+            assert(AppService::slugify($base) == $base); // how did we get a ':' in the key?
         }
 //        if (!$base) {
 //        }
@@ -538,11 +515,6 @@ class TranslationService
         }
     }
 
-    public static function calculateHash(string $data, string $from): string
-    {
-        // we need "from" because of things like "nine=no,nueve"
-        return $from . '-' . hash(algo: self::HASH_NAME, data: $data);
-    }
 
 }
 

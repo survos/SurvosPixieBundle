@@ -74,6 +74,16 @@ class Item implements \Stringable
         return $asArray ? json_decode(json_encode($this->data), true) : $this->data;
     }
 
+    public function _t($toArray=true)
+    {
+        if ($_t = ($this->data->_t??null)) {
+            return json_decode($_t, $toArray);
+        } else {
+            return null;
+        }
+
+    }
+
     public function getRp(array $addl=[])
     {
         return array_merge($addl, [

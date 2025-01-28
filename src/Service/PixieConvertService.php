@@ -492,6 +492,7 @@ class PixieConvertService
                                 }
                             }
                             if (class_exists(FetchTranslationObjectEvent::class)) {
+                                assert(false, "do we really want this in convert?");
                                 $event = $this->eventDispatcher->dispatch(
                                     new FetchTranslationObjectEvent($relatedRow,
                                         $sourceLang,

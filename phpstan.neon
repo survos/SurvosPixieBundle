@@ -7,7 +7,6 @@ parameters:
     excludePaths:
        analyse:
             - ./vendor
-#            - ./src/Service/TranslationService*
 #            - ./src/Service/Libre*
 #            - ./src/EventListener/TranslationRowEventListener*
 #            - ./src/Command/PixieTranslateCommand.php

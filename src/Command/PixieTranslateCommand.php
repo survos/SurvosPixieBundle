@@ -16,9 +16,11 @@ namespace Survos\PixieBundle\Command;
 //use App\Service\ProjectConfig\PennConfigService;
 //use App\Service\ProjectService;
 use App\Message\TranslationMessage;
+use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\LibreTranslateBundle\Service\TranslationClientService;
+use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Service\LibreTranslateService;
-use Survos\PixieBundle\Service\TranslationService;
+use Survos\PixieBundle\Service\PixieTranslationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Survos\GridGroupBundle\Service\CsvDatabase;
@@ -50,9 +52,8 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\InvokableServiceCommand;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
-use function PHPUnit\Framework\assertNull;
 
-#[AsCommand('pixie:translate', 'Translate the existing fields to a separate ktv')]
+#[AsCommand('oldpixie:translate-old', 'Translate the existing fields to a separate ktv')]
 final class PixieTranslateCommand extends InvokableServiceCommand
 {
 
@@ -64,15 +65,15 @@ final class PixieTranslateCommand extends InvokableServiceCommand
         #[Autowire('%kernel.enabled_locales%')] private array $supportedLocales,
         private MessageBusInterface                           $bus,
         protected EntityManagerInterface                      $entityManager,
-        private TranslationClientService $translationClient,
-        private TranslationService                            $translationService,
+        private TranslationClientService                      $translationClient,
+        private PixieTranslationService                       $translationService,
         private PixieService                                  $pixieService,
         private LibreTranslateService                         $libreTranslateService,
 //        private TranslationEventListener                      $translationEventListener, // @todo: dispatch or inject just the method
         protected ParameterBagInterface                       $bag,
         private readonly NormalizerInterface                  $normalizer,
         private readonly EventDispatcherInterface             $eventDispatcher,
-        private readonly LoggerInterface $logger,
+        private readonly LoggerInterface                      $logger,
     )
     {
         parent::__construct();
@@ -127,7 +128,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
 
         if ($translate) {
             // we could have a workflow, then dispatch, queue, etc.
-            $tKv->select(TranslationService::SOURCE);
+            $tKv->select(PixieTranslationService::SOURCE);
 
             // @todo: sql fragments so we aren't looping over everything!  in source. maybe.
             // insert into guests values ('bob', json('["apples", "oranges"]'));
@@ -152,12 +153,12 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                 $io->warning(count($sourceStrings) . ' loaded from source ' . $msg);
             }
 
-            $where = ['marking' => TranslationService::NOT_TRANSLATED];
+            $where = ['marking' => PixieTranslationService::NOT_TRANSLATED];
             if ($target) {
                 $where['target'] = $target;
             }
 
-            $count = $tKv->count($engine = TranslationService::ENGINE, $where);
+            $count = $tKv->count($engine = PixieTranslationService::ENGINE, $where);
             $io->title("dispatching $count/$limit missing $engine messages to $target");
 
             $progressBar = new ProgressBar($io, $count);
@@ -213,10 +214,10 @@ final class PixieTranslateCommand extends InvokableServiceCommand
         if (is_numeric($text)) {
             return null;
         }
-        $tKv->select(TranslationService::ENGINE);
+        $tKv->select(PixieTranslationService::ENGINE);
         $sourceHash = $sourceItem->getKey();
         // hack until we get sql fragments working
-        $targetKey = TranslationService::cacheKey($sourceHash, $locale);
+        $targetKey = PixieTranslationService::cacheKey($sourceHash, $locale);
         if ($tKv->has($targetKey, preloadKeys: true)) { // }, where: ['locale' => $locale])) {
             dd($tKv->get($targetKey));
             return $tKv->get($targetKey);
@@ -232,7 +233,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                 $text,
                 from: $sourceItem->source(),
                 to: $locale,
-                engine: TranslationService::ENGINE
+                engine: PixieTranslationService::ENGINE
             );
             if (empty($response)) {
                 dump($sourceItem->getData(), $response, $sourceItem->locale(), $locale);
@@ -363,7 +364,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
 
     private function getTranslationArray($entity, $accessor)
     {
-        assertNull($this, "get these from the pixie, not the old class");
+        assert(false, "get these from the pixie, not the old class");
 //        $updatedRow = [Instance::DB_CODE_FIELD => $entity->getCode()];
 //        foreach ($entity->getTranslations() as $translation) {
 //            foreach (Instance::TRANSLATABLE_FIELDS as $fieldName) {
@@ -395,7 +396,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
         $config = $pixieService->getConfig($pixieCode);
 
         // the translations.
-        $tKv->select(TranslationService::ENGINE);
+        $tKv->select(PixieTranslationService::ENGINE);
 
         // We could be smarter about this by marking if it's already loaded.
         $where = [];
@@ -408,14 +409,13 @@ final class PixieTranslateCommand extends InvokableServiceCommand
             foreach ($rows as $itemKey => $item) {
                 $progressBar->advance();
                 $data = $item->getData(true);
-
-                if (!array_key_exists(TranslationService::TRANSLATION_KEY, $data)) {
-                    $this->logger->error('missing translation key ' . TranslationService::TRANSLATION_KEY
-                        . ' ' . $tableName . '.' . $itemKey);
-                    continue;
-                }
-                $translations = $data[TranslationService::TRANSLATION_KEY];
-
+                SurvosUtils::assertKeyExists(PixieInterface::TRANSLATED_STRINGS, $data);
+//                if (!array_key_exists(PixieInterface::TRANSLATED_STRINGS, $data)) {
+//                    $this->logger->error('missing translation key ' . PixieTranslationService::TRANSLATION_KEY
+//                        . ' ' . $tableName . '.' . $itemKey);
+//                    continue;
+//                }
+                $translations = $data[PixieInterface::TRANSLATED_STRINGS];
                 $sourceLocale = $data['_locale'] ?? $config->getSource()->locale;
 
                 // these are the source strings om the BASE (not translation) pixie.
@@ -425,7 +425,9 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                 $sourceFields = $this->getTranslations($data, $sourceLocale);
 
                 foreach ($sourceFields as $translatableField => $sourceTranslation) {
+                    dd($sourceTranslation, $translatableField, $sourceFields);
                     // we could batch these keys to optimize
+
                     $sourceKeys = $this->translationService->getLocalizationData($sourceTranslation,
                         $sourceLocale,
                         $sourceLocale);
@@ -435,7 +437,8 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                     }
                 }
                 // all the translations, by locale
-                $data[TranslationService::TRANSLATION_KEY] = $translations;
+                $data[PixieInterface::TRANSLATED_STRINGS] = $translations;
+                dd($data);
                 $kv->set($data, $tableName);
             }
             $progressBar->finish();
@@ -447,7 +450,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
 
     private function getTranslations(array $data, string $sourceLocale): array
     {
-        return $data[TranslationService::TRANSLATION_KEY][$sourceLocale] ?? [];
+        return $data[PixieInterface::TRANSLATED_STRINGS][$sourceLocale] ?? [];
     }
 
     private function getTranslatableTables(Config $config, ?string $tableFilter = null): array
@@ -488,7 +491,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
 
     )
     {
-        $tKv->select(TranslationService::ENGINE); // since we're writing
+        $tKv->select(PixieTranslationService::ENGINE); // since we're writing
         $pixieService = $this->pixieService;
         $kv = $pixieService->getStorageBox($pixieCode);
         $config = $pixieService->getConfig($pixieCode);
@@ -533,7 +536,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                         dd("$hash missing from source!  It should happen during import");
                         $sourceKeys['table_name'] = $tableName;
                         $sourceKeys['prop'] = $translatableField;
-                        $tKv->set($sourceKeys, TranslationService::SOURCE);
+                        $tKv->set($sourceKeys, PixieTranslationService::SOURCE);
                     }
 
                     foreach ($locales as $targetLocale) {
@@ -568,7 +571,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
                         if (!$tKv->has($transKeys['key'],
                             preloadKeys: true, where: $preloadWhere = ['target' => $targetLocale])) {
                             $counts[$tableName]['new']++;
-                            $transKeys['marking'] = TranslationService::NOT_TRANSLATED;
+                            $transKeys['marking'] = PixieTranslationService::NOT_TRANSLATED;
                             // testing only, because it's in a slow transaction!
 
                             $transKeys['table_name'] = $tableName;

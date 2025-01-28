@@ -17,6 +17,7 @@ use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\Service\PixieService;
+use Survos\PixieBundle\Service\PixieTranslationService;
 use Symfony\Component\Cache\CacheItem;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -502,6 +503,8 @@ class StorageBox
         $properties = [];
 //        $tableName=='image' && dump(count($table->getProperties()));
         foreach ($table->getProperties() as $property) {
+//            assert(false);
+//            dd($property, $tableName);
             $propertyCode = $property->getCode();
             assert($property::class === Property::class);
             if ($list = $property->getListTableName()) {
@@ -509,7 +512,7 @@ class StorageBox
                 $foreignKeys[$propertyCode] = $list;
 //                $columns[$propertyCode] = "{$propertyCode}_id INT REFERENCES [$list]([id])";
 //                continue;
-                $property->generated = false; // e.g. translations, ['en','es']
+                $property->generated = true; // false; // e.g. translations, ['en','es']
 //                CREATE TABLE [legislator_terms] ([legislator_id] TEXT REFERENCES [legislators]([id]),
 //                assert($this->hasTable($list), "until auto-create works, create a table for each list, $list");
 //                $listTable = $this->getTable($tableName);
@@ -525,7 +528,27 @@ class StorageBox
                     isPrimary: $property->getIndex() === 'PRIMARY');
 //                $tableName=='image' && ($property->getCode()==='key') && dump(keyIndex: $propertyIndexes[$property->getCode()]);
             }
-            $properties[] = $property; // now with the index
+            if (in_array($propertyCode, $table->getTranslatable())) {
+                $property->generated = true;
+                $property->translatable = true;
+            }
+            $properties[$property->getCode()] = $property; // now with the index
+//            $properties[] = $property; // now with the index
+        }
+//        $table->isObj() && dd($properties);
+        if ($translatableFields = $table->getTranslatable()) {
+            foreach ($translatableFields as $translatableProperty) {
+                $properties[$translatableProperty] = new Property(
+                    $translatableProperty,
+                    translatable: true,
+                    type: 'text' // xxh3 and is related to _translation
+                );
+            }
+            // we can automatically encode/decode until we have a real json type
+//            $properties['_t'] = new Property(
+//                '_t',
+//                type: 'json'
+//            );
         }
 //        dd($tableName, $indexes);
         /**
@@ -533,8 +556,8 @@ class StorageBox
          * @var Index $index
          */
 
-        foreach ($properties as $property) {
-            $name = $property->getCode();
+        foreach ($properties as $name => $property) {
+//            $name = $property->getCode();
             $index = $propertyIndexes[$name] ?? null;
             // @todo: handle auto-increment
             if ($index) {
@@ -547,6 +570,8 @@ class StorageBox
                 }
             }
 
+            // https://dbschema.com/2023/06/04/sqlite/constraints/#constraint
+
             // also see json_each example at https://sqlime.org/#deta:m97q76wmvzvd
             // create a generated column so that it all happens internally
             // json_extract('{"a":"xyz"}', '$.a') → 'xyz'
@@ -555,40 +580,56 @@ class StorageBox
             // d INT GENERATED ALWAYS AS (a*abs(b)) VIRTUAL,
             $type = ($property->getType() ?? 'TEXT');
             if ($property->getListTableName()) {
-                $type = 'int';
+                $type = 'text'; // xxh3 of the label, or given. not auto-inc
             }
-            $columns[$name] = "$name $type ";
+
+            if ($type === 'tr_text') {
+                $columns[$name] = "$name TEXT "; /* hash */
+            } else {
+                $columns[$name] = "$name " . ($type=='json' ? 'text' : $type);
+            }
             if ($default = $property->getInitial()) {
                 $columns[$name] .= sprintf(' DEFAULT %s ', is_string($default) ? sprintf('"%s"', $default) : $default);
             }
             if ($property->getType() == 'json') {
-                $property->generated = false; // e.g. translations, ['en','es']
+                // maybe someday we can split it out, but for now keep it as is
+                $property->generated = true; // e.g. translations, ['en','es']
             }
-            if ($property->generated) {
+            if ($property->translatable) {
                 $columns[$name] .=
-                    " GENERATED ALWAYS AS (json_extract(_raw, '\$.$name')) STORED ";
-            } elseif ($relatedTable = $foreignKeys[$property->getCode()] ?? null) {
-                $columns[$name] .= "  REFERENCES [$relatedTable]([id]) "
-                    . " GENERATED ALWAYS AS (json_extract(_raw, '\$.$name')) STORED /*?*/";
+                    " GENERATED ALWAYS AS (json_extract(_raw, '\$.$name')) /* xxh3 code, actual string is at _t[$name] */ ";
+            } else {
+                if ($property->generated) {
+                    $columns[$name] .=
+                        " GENERATED ALWAYS AS (json_extract(_raw, '\$.$name'))  ";
+                } elseif ($relatedTable = $foreignKeys[$property->getCode()] ?? null) {
+                    $columns[$name] .= "  REFERENCES [$relatedTable]([id]) "
+                        . " GENERATED ALWAYS AS (json_extract(_raw, '\$.$name')) STORED /*?*/";
 //                dd($columns);
+                }
             }
             if ($index) {
                 $indexSql[$tableName . $name] = "create index {$tableName}_{$name} on $tableName($name) /* @filterable */";
             }
         }
-        $columns['_att'] = '_att TEXT'; // type=att
-        $columns['json'] = '_extra TEXT'; // original data minus defined properties
-        $columns['raw'] = '_raw TEXT'; // original data sent to ->set()
+//        $columns['_t'] = '_t TEXT /* keyed by locale, then fieldname */';
+        // e.g. _t.en.label='box', or _t = {en: {label: box, desc: "box description"}, "es": {label:...
+//        foreach ($translationRows as $translation) {
+//            $translations[$translation->target()][$translatableField] = $translation->text();
+//        }
 
+//        $columns['_att'] = '_att TEXT'; // type=att
+//        $columns['json'] = '_extra TEXT'; // original data minus defined properties
+        $columns['raw'] = '_raw TEXT'; // original data sent to ->set()
 
 //        dd($tableConfig);
 //        array_unshift($columns, $primaryKey);
 
-        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n); \n\n%s", $tableName,
-            implode(",\n", array_values($columns)),
-            implode(";\n", array_values($indexSql))
+        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n) ; \n\n%s", $tableName,
+            implode(",\n    ", array_values($columns)),
+            implode(";\n    ", array_values($indexSql))
         );
-//        dd($sql);
+//        ($tableName=='obj') && dd($sql);
 //        dd($columns, $indexSql, $sql, $primaryKey);
         try {
             $result = $this->db->exec($sql);
@@ -597,7 +638,8 @@ class StorageBox
         (\Exception $exception) {
             dd($exception, $sql, $columns, $indexSql);
         }
-//        dd($sql, $result, $indexes);
+//        ($tableName==='obj') && dd($sql, $result, $indexes);
+//        dump($tableName, $sql);
         // still in a transaction, can't do this yet, wait until all tables are created.
 
 //        assert($this->getPrimaryKey($tableName), "missing pk " . $sql);
@@ -780,6 +822,8 @@ class StorageBox
             ["key" => $key]
         )->fetchObject();
         if ($results) {
+//            dump($results, $tableName);
+//            assert(false);
             $marking = $results->marking ?? null;
             // hack for workflow, ugh. Could generalize with properties, casting, etc.
             // the _raw is really the data!
@@ -788,10 +832,12 @@ class StorageBox
             if (is_string($raw)) {
                 $raw = json_decode($raw);
             }
-            return new Item($raw, $key, $tableName, $this->getPixieCode(), marking: $marking);
+            // we need the values in raw from the properties
+                return new Item($raw, $key, $tableName, $this->getPixieCode(), marking: $marking);
         } else {
             if ($callback !== null) {
                 $callback($key, $tableName);
+                dd($callback);
             }
             return null;
         }
@@ -803,52 +849,97 @@ class StorageBox
      * @param string $value The value to store.
      * @param string $propertyName If set, update the property, not _raw
      */
-    public function set(array|object|string $value,
+    public function set(array|object|string|null $value,
                         ?string              $tableName = null,
                         string|int|null     $key = null,
                         ?string              $propertyName = null,
                         string              $mode = 'replace',
-                        array               $where = [] // for preload
+                        array               $where = [], // for preload
+                        // properties, not raw, e.g. locale and _t
+                        array $properties = []
         // _raw, if patch then read first and merge
     ): mixed
     {
+        // this isn't true for image and translation tables
+//        SurvosUtils::assertKeyExists(PixieTranslationService::TRANSLATION_KEY, $value);
+//        dump($value[PixieTranslationService::TRANSLATION_KEY], $value); assert(false);
+
         $previousTable = $this->currentTable;
         $tableName ??= $this->currentTable;
         assert($tableName, "missing tableName in call");
-        if (!$propertyName) {
+        if (empty($properties)) {
             assert(is_object($value) || is_iterable($value), "if property is not set, must be iterable");
         }
         static $preparedStatements = [];
+//        if ($tableName<>'source')  dump(get_defined_vars());
 
 //    $schema = $this->inspectSchema();
 //    assert(array_key_exists($tableName, $schema), "no table $tableName in schema " . $this->getFilename());
         /** @var Table $table */
 //    $table = $schema[$tableName];
 //    assert($table, "No table $tableName");
+        $table = $this->getTable($tableName);
+        $keyName = $table->getPkName();
+        $props = $table->getPropertiesByCode();
 
-        $keyName = $this->getTable($tableName)->getPkName();
-
+        // e.g. updating marking
         if ($mode === self::MODE_PATCH) {
             $data = $this->get($key, $tableName)->getData();
             $value = array_merge((array)$data, $value);
         }
-        if ($propertyName) {
-            assert(false, "propertyName may need some attention");
-            $updateKey = $tableName . '_' . $propertyName;
-            if (empty($preparedStatements[$updateKey])) {
-                $preparedStatements[$updateKey] =
-                    $this->db->prepare("
-                    UPDATE $tableName set $propertyName = :value WHERE {$keyName} = :key
-                ");
+        if (true)
+        {
+            // properties MUST be defined as their own column, so they don't overwrite _raw or need updating raw
+            foreach ($properties as $propertyName => $propertyValue) {
+                if ($prop = $props[$propertyName]?? null) {
+//                    dd($prop);
+                }
+                unset($value[$propertyName]);
             }
-            $statement = $preparedStatements[$updateKey];
-            $results = $statement->execute(
-                $params = [
-                    'key' => $key,
-                    "value" => is_string($value) ? $value : json_encode($value)
-                ]);
+            $properties[$keyName] = $key??$value[$keyName];
+            $key = $properties[$keyName]??null;
+            if (($tableName=='obj') && in_array($key, ['638384caab8f2aac','5671XX'])) {
+                assert(false, $key);
+                dd($properties);
+            }
+            // if value is null, don't update raw, only the properties like translations
+            if ($value) {
+                $properties['_raw'] = $value;
+            }
+            $keys = array_keys($properties);
+            $sqlCacheHash = hash('xxh3', $tableName . json_encode($keys));
+            if (!$stmt = $preparedStatements[$sqlCacheHash]??null) {
+                $sql = sprintf("
+                    INSERT OR REPLACE INTO $tableName(%s) 
+                        VALUES(%s)
+                ",
+                    join(', ', $keys),
+                    join(',', array_map(fn(string $s) => ":$s", $keys))
+                );
 
+                try {
+                    $stmt = $this->db->prepare($sql)    ;
+                } catch (\Exception $exception) {
+                    dd($sql, $exception, $keys);
+                }
+                // cache for future
+                $preparedStatements[$sqlCacheHash]=$stmt;
+            }
+            foreach ($properties as $name => $value) {
+                $params[$name] = !is_iterable($value) ? $value : json_encode($value);
+            }
+            try {
+                assert(is_string($params[$keyName]), $params[$keyName]);
+
+//                ($tableName<>'source') && dump(json_decode($params['_raw']), $tableName);
+                $results = $stmt->execute($params);
+//                dd($stmt->queryString, $stmt, $params);
+            } catch (\Exception $exception) {
+                dd($sql, $exception, $properties, $params);
+            }
+//            dd($sql, $params);
         } else {
+            assert(false, "this code may no longer be valid.");
             // update _raw, the json blob
 
             // @todo: strings require a key, probably another method
@@ -861,6 +952,7 @@ class StorageBox
                 dd($table, $value, $keyName, $tableName);
             }
             $value = (array)$value; // if JSON
+
             assert(array_key_exists($keyName, $value),
                 "$keyName missing $tableName in " . implode(',', array_keys($value)));
             if (!$key) {
@@ -869,6 +961,7 @@ class StorageBox
 //            dd($key, $keyName, $value);
                 // must come from the value blob
             }
+            // hash the properties to cache all prepared statements
             if (empty($preparedStatements[$tableName])) {
                 $preparedStatements[$tableName] =
                     $this->db->prepare("
@@ -886,6 +979,7 @@ class StorageBox
                         'key' => $key,
                         "value" => is_string($value) ? $value : json_encode($value, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES)
                     ]);
+//                dd($value, $statement, $results);
 //                if ($mode === self::MODE_PATCH) dd($key, $value);
 //            $this->db->commit();
 //        assert(false);
@@ -1025,7 +1119,7 @@ class StorageBox
             pks: $pks,
             whereExtra: $whereExtra,
         );
-
+        $jsonFields = $this->getTable($table)->getJsonFields();
 
         // https://stackoverflow.com/questions/78623214/using-a-generator-to-loop-through-an-update-a-table-in-pdo
         $sth = $this->query($sql, $params);
@@ -1038,10 +1132,16 @@ class StorageBox
             return;
         }
 
-        foreach ($all as $row)
+        foreach ($all as $idx => $row)
 //        foreach ($sth as $idx => $row)
 //        while ($row = $sth->fetch(PDO::FETCH_ASSOC))
         {
+
+//            ($table=='tag') && dd(get_defined_vars(), $row, $idx, $table, $where, count($pks??[]));
+            // @todo: figure out how these got in here!
+            if (!$row) {
+                continue;
+            }
             if ($keyOnly) {
                 $rowQuery = $this->query("select * from $table where " . $pkName . " = :pk;", ["pk" => $row[$pkName]]);
                 $row = $rowQuery->fetch(PDO::FETCH_ASSOC);
@@ -1058,9 +1158,10 @@ class StorageBox
 //            dd($value);
             // check, or is the value always json?
             $key = $value[$pkName] ?? null;
-//            dd($value, $table, $key);
+//            dd($value, $table, $key, $row);
             $item = $value ? new Item((object)$value, $key, $table, $this->getPixieCode()) : null;
 //dd($item, $value);
+            if (!$row) { dd($item, $value, $key, $this->getFilename(), $table); }
             yield $row[$pkName] => $item;
         }
         $sth->closeCursor(); //
