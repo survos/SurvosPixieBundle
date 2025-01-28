@@ -11,6 +11,7 @@ use \PDO;
 use Psr\Log\LoggerInterface;
 use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\PixieBundle\CsvSchema\Parser;
+use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Index;
 use Survos\PixieBundle\Model\Item;
@@ -220,20 +221,42 @@ class StorageBox
             throw new \Exception("Unable to create/use : " . $config->code . "\n" . $e->getMessage());
         }
         $this->schemaTables = $sth->fetchAll(PDO::FETCH_COLUMN); // load the existing tables
-
         $this->beginTransaction();
+        if ($hasTranslations = true) {
+            $table = (new Table(
+                name: ($tableName = PixieInterface::PIXIE_STRING_TABLE) ,
+                pkName: 'hash',
+                properties: $properties = [
+                    new Property('hash', 'text', index: 'PRIMARY', generated: false),
+                    new Property('locale', 'text', index: 'INDEX'),
+                    new Property('text', 'text'),
+                    new Property(PixieInterface::PIXIE_STRING_TRANSLATION_KEY, 'text'), // todo: json
+                ]));
+                $config->addTable($tableName, $table);
+                $this->tables[$tableName] = $table;
+
+//            $this->createTable($tableName, $table, $this->valueType);
+//            $this->schemaTables[] = $tableName;
+//            $this->commit();
+//            dd($tableName);
+//            $config->addTable($table->getName(), $table);
+
+        }
+
         foreach ($config->getTables() as $tableName => $table) {
             assert($table instanceof Table, json_encode($table));
             if (str_starts_with($tableName, "@")) {
                 continue; // @list is the template name, not a real table
             }
+
             if (!in_array($tableName, $this->schemaTables)) {
                 $this->createTable($tableName, $table, $this->valueType);
                 $this->tables[] = $table;
             }
 
+
 //            if (!in_array($tableName, $this->schemaTables)) {
-//                $_tableName = '_tables'; // for tracking table counts
+//                $_tableName = '_tables'; // for tracking table counts and schema
 //                $table = (new Table(
 //                    name: $_tableName,
 //                    pkName: 'id',
@@ -487,7 +510,6 @@ class StorageBox
     ): void
     {
         $columns = [];
-        $indexes = static::getIndexDefinitions($table->getIndexes());
         // by this point, the table properties are already objects
         // really it's propertyDataArray
 
@@ -495,14 +517,13 @@ class StorageBox
         $indexSql = [];
         // @todo: improve PK: https://www.sqlitetutorial.net/sqlite-primary-key/
         // a generated column can't be the primary key, but interesting: https://sqlite.org/forum/info/5928225848d0409f
-        if (count($indexes)) { // && count($properties)) {
-            dd("Cannot have both indexes and properties  {$this->pixieCode} {$tableName}: " . $table->getIndexes());
-        }
 
         $propertyIndexes = [];
         $properties = [];
 //        $tableName=='image' && dump(count($table->getProperties()));
         foreach ($table->getProperties() as $property) {
+//            $tableName=='str' && dump($property);
+
 //            assert(false);
 //            dd($property, $tableName);
             $propertyCode = $property->getCode();
@@ -537,6 +558,7 @@ class StorageBox
         }
 //        $table->isObj() && dd($properties);
         if ($translatableFields = $table->getTranslatable()) {
+
             foreach ($translatableFields as $translatableProperty) {
                 $properties[$translatableProperty] = new Property(
                     $translatableProperty,
@@ -556,6 +578,15 @@ class StorageBox
          * @var Index $index
          */
 
+        if (count($table->getTranslatable())) {
+            $properties[PixieInterface::TRANSLATED_STRINGS] = new Property(
+                PixieInterface::TRANSLATED_STRINGS,
+                'text',
+                generated: true
+            );
+        }
+
+
         foreach ($properties as $name => $property) {
 //            $name = $property->getCode();
             $index = $propertyIndexes[$name] ?? null;
@@ -566,7 +597,7 @@ class StorageBox
                 if ($index->isPrimary) {
                     $primaryKey = "$name $type PRIMARY KEY";
                     $columns[$name] = $primaryKey;
-                    continue; // we don't need an explicit index
+                    continue; // we don't need an explicit index for the PK
                 }
             }
 
@@ -629,7 +660,7 @@ class StorageBox
             implode(",\n    ", array_values($columns)),
             implode(";\n    ", array_values($indexSql))
         );
-//        ($tableName=='obj') && dd($sql);
+//        ($tableName=='str') && dd($sql, $table->getIndexes());
 //        dd($columns, $indexSql, $sql, $primaryKey);
         try {
             $result = $this->db->exec($sql);
@@ -929,7 +960,7 @@ class StorageBox
                 $params[$name] = !is_iterable($value) ? $value : json_encode($value);
             }
             try {
-                assert(is_string($params[$keyName]), $params[$keyName]);
+                assert(is_string($params[$keyName]) || is_int($params[$keyName]), $params[$keyName]);
 
 //                ($tableName<>'source') && dump(json_decode($params['_raw']), $tableName);
                 $results = $stmt->execute($params);

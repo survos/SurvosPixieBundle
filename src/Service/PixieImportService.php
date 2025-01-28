@@ -541,7 +541,6 @@ class PixieImportService
 
             // list and relation are merging...
             if ($property->isRelation()) {
-                dd($property);
                 $relatedTable = $config->getTable($relatedTableName);
                 if ($delim = $property->getDelim()) {
                     $values = array_map('trim', explode($delim, (string) $row[$propertyCode]));
