@@ -601,7 +601,7 @@ class PixieImportService
                                 }
                             $relatedId =  TranslationClientService::calcHash($label, $sourceLang);
                             $relatedRow = [
-                                'label' => $label,
+                                'label' => trim($label),
 //                                    '_locale' => $sourceLang, // should every row have a locale?
                             ];
                                 $_t[$sourceLang][PixieInterface::TRANSLATION_LABEL]=$relatedRow['label'];

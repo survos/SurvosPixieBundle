@@ -36,7 +36,7 @@ class Translation
         $base =  [
             'hash' => $this->hash,
             'locale' => $this->source,
-            'text' => $this->text,
+            'text' => trim($this->text),
         ];
         if ($this->target <> $this->source) {
             $base = array_merge($base, [
