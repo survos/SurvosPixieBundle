@@ -2,6 +2,7 @@
 
 namespace Survos\PixieBundle\Twig;
 
+use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Service\PixieService;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -33,7 +34,7 @@ class TwigExtension extends AbstractExtension
             new TwigFilter('json_decode', fn (string $s, bool $asArray=true) => json_decode($s, $asArray)),
             new TwigFilter('t', function (object $obj, string $property) {
                 $locale = $this->requestStack->getCurrentRequest()->getLocale();
-                if ($_tr = $obj->_translations??null) {
+                if ($_tr = $obj->{PixieInterface::TRANSLATED_STRINGS}??null) {
                     // is empty, or untranslated?
                     return $_tr->{$locale}->{$property}??null; // "$property-$locale-is-untranslated";
                 } else {

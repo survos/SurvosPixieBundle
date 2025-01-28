@@ -27,6 +27,7 @@ class Translation
         } else {
             assert($this->hash, "you must pass the source hash in if a translation");
         }
+        $this->text = trim($this->text);
 //        $this->key = self::cacheKey($sourceKey, $to),
     }
 
