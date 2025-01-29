@@ -697,16 +697,20 @@ class StorageBox
         unset($this->db);
         $this->db = new \PDO("sqlite:" . $this->filename);
 //        $this->db->exec("VACUUM FULL;");
-        try {
-            if (!$queryOkay = $this->db->query($sql = "PRAGMA journal_mode=TRUNCATE")) {
-                $msg = 'query returned false ';
+        $msg = 'ok';
+        if ($truncateOnClose??false) {
+            try {
+                // we could wait a few seconds until its unlocked.  But this is questionable anyway
+                if (!$queryOkay = $this->db->query($sql = "PRAGMA journal_mode=TRUNCATE")) {
+                    $msg = 'query returned false ';
+                }
+            } catch (\PDOException $exception) {
+                $queryOkay = false;
+                $msg = $exception->getMessage();
             }
-        } catch (\PDOException $exception) {
-            $queryOkay = false;
-            $msg = $exception->getMessage();
-        }
-        if ($queryOkay) {
-            $this->logger->error($this->getFilename() . ' ' . $sql . ' ' . $msg);
+            if (!$queryOkay) {
+                $this->logger->error($this->getFilename() . ' ' . $sql . ' ' . $msg);
+            }
         }
 
     }
