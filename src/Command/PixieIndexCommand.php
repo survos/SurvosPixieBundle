@@ -108,6 +108,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
 
         $recordsToWrite=[];
+        $summary = [];
         // now iterate
         foreach ($kv->getTables() as $tableName => $table) {
             // maybe someday we'll store them and use meili for lookup
@@ -125,9 +126,14 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
             $indexName = $this->meiliService->getPrefixedIndexName(PixieService::getMeiliIndexName($configCode, $subCode, $tableName));
             $io->title($indexName);
+            $summary[$indexName] = [
+                'records' => 0,
+                'reset' => 'no',
+                'url' => null
+            ];
 
             if ($reset) {
-                $this->io()->warning("resetting $indexName");
+                $summary[$indexName]['reset'] = 'yes';
                 $this->meiliService->reset($indexName);
             }
 
@@ -159,7 +165,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             foreach ($kv->iterate($tableName) as $itemKey=>$row) {
 
                 $data = $row->getData();
-                ($itemKey=='638384caab8f2aac') && dump($tableName, $row, $row->getData(true)[PixieInterface::TRANSLATED_STRINGS]??null);
+//                ($itemKey=='638384caab8f2aac') && dump($tableName, $row, $row->getData(true)[PixieInterface::TRANSLATED_STRINGS]??null);
 
 //                $this->logger->info($row->getKey() . "\n\n" . json_encode($row, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES));
                 // hack
@@ -275,6 +281,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             unset($stats['isIndexing']);
 //            dd($stats, $index->getSettings());
             $io->success($stats['numberOfDocuments'] . " $configCode.$tableName documents");
+            $summary[$indexName]['records'] = $stats['numberOfDocuments'];
             $this->eventDispatcher->dispatch(new IndexEvent($configCode,
                 $subCode,
                 $kv->getFilename(),
@@ -302,7 +309,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             $locale = $config->getSource()->locale;
 
             $homeUrl =  str_replace('https://', 'https://' . $locale . '.', $this->baseUrl) . "/$configCode/browse/$tableName";
-            $this->io()->writeln(sprintf("<href=%s>Open %s</>",$homeUrl, $homeUrl));
+            $summary[$indexName]['url'] = $homeUrl;
 
         }
 
@@ -311,7 +318,11 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
         // Pixie databases go in datadir, not with their source? Or defined in the config
 
-
+        $table = new Table($this->io()->output());
+        foreach ($summary as $indexName=>$data) {
+            $table->addRow([$indexName, ...$data]);
+        }
+        $table->render();
 
         $io->success(sprintf("%s success %s %s",  $this->getName(), $configCode, $pixieDbName));
 
