@@ -230,7 +230,7 @@ class StorageBox
                     new Property('hash', 'text', index: 'PRIMARY', generated: false),
                     new Property('locale', 'text', index: 'INDEX'),
                     new Property('text', 'text'),
-                    new Property(PixieInterface::PIXIE_STRING_TRANSLATION_KEY, 'json'),
+                    new Property(PixieInterface::PIXIE_STRING_TRANSLATION_KEY, 'text'),
                 ]));
                 $config->addTable($tableName, $table);
                 $this->tables[$tableName] = $table;
@@ -581,7 +581,7 @@ class StorageBox
         if (count($table->getTranslatable())) {
             $properties[PixieInterface::TRANSLATED_STRINGS] = new Property(
                 PixieInterface::TRANSLATED_STRINGS,
-                'json',
+                'text',
                 generated: true, // for now!
             );
         }
@@ -617,7 +617,7 @@ class StorageBox
             if ($type === 'tr_text') {
                 $columns[$name] = "$name TEXT "; /* hash */
             } else {
-                $columns[$name] = "$name " . ($type=='json' ? 'text' : $type);
+                $columns[$name] = "$name " . 'text'; // ($type=='json' ? 'text' : $type);
             }
             if ($default = $property->getInitial()) {
                 $columns[$name] .= sprintf(' DEFAULT %s ', is_string($default) ? sprintf('"%s"', $default) : $default);
@@ -651,12 +651,13 @@ class StorageBox
 
 //        $columns['_att'] = '_att TEXT'; // type=att
 //        $columns['json'] = '_extra TEXT'; // original data minus defined properties
-        $columns['raw'] = '_raw JSON'; // original data sent to ->set()
+        $columns['raw'] = '_raw TEXT'; // original data sent to ->set()
 
 //        dd($tableConfig);
 //        array_unshift($columns, $primaryKey);
 
-        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n) strict; \n\n%s", $tableName,
+//        strict
+        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n) ; \n\n%s", $tableName,
             implode(",\n    ", array_values($columns)),
             implode(";\n    ", array_values($indexSql))
         );
