@@ -230,7 +230,7 @@ class StorageBox
                     new Property('hash', 'text', index: 'PRIMARY', generated: false),
                     new Property('locale', 'text', index: 'INDEX'),
                     new Property('text', 'text'),
-                    new Property(PixieInterface::PIXIE_STRING_TRANSLATION_KEY, 'text'), // todo: json
+                    new Property(PixieInterface::PIXIE_STRING_TRANSLATION_KEY, 'json'),
                 ]));
                 $config->addTable($tableName, $table);
                 $this->tables[$tableName] = $table;
@@ -581,8 +581,8 @@ class StorageBox
         if (count($table->getTranslatable())) {
             $properties[PixieInterface::TRANSLATED_STRINGS] = new Property(
                 PixieInterface::TRANSLATED_STRINGS,
-                'text',
-                generated: true
+                'json',
+                generated: true, // for now!
             );
         }
 
@@ -651,12 +651,12 @@ class StorageBox
 
 //        $columns['_att'] = '_att TEXT'; // type=att
 //        $columns['json'] = '_extra TEXT'; // original data minus defined properties
-        $columns['raw'] = '_raw TEXT'; // original data sent to ->set()
+        $columns['raw'] = '_raw JSON'; // original data sent to ->set()
 
 //        dd($tableConfig);
 //        array_unshift($columns, $primaryKey);
 
-        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n) ; \n\n%s", $tableName,
+        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n) strict; \n\n%s", $tableName,
             implode(",\n    ", array_values($columns)),
             implode(";\n    ", array_values($indexSql))
         );
