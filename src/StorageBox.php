@@ -90,7 +90,7 @@ class StorageBox
 //                return;
             }
             // this could speed things up a lot!
-//            $this->db->query("PRAGMA journal_mode=WAL");
+            $this->db->query("PRAGMA journal_mode=WAL");
             $this->db->query("PRAGMA lock_timeout=5");
             $this->db->setAttribute(PDO::ATTR_TIMEOUT, 10);
 //            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
