@@ -215,8 +215,8 @@ class StorageBox
         if ($this->db->inTransaction()) {
             $this->db->commit();
         }
-        try {
             $sth = $this->db->query($sql = "SELECT name FROM sqlite_master where type='table'");
+        try {
         } catch (\Exception $e) {
             throw new \Exception("Unable to create/use : " . $config->code . "\n" . $e->getMessage());
         }
@@ -656,8 +656,7 @@ class StorageBox
 //        dd($tableConfig);
 //        array_unshift($columns, $primaryKey);
 
-//        strict
-        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n) ; \n\n%s", $tableName,
+        $sql = sprintf("CREATE TABLE IF NOT EXISTS %s (\n%s\n) strict; \n\n%s", $tableName,
             implode(",\n    ", array_values($columns)),
             implode(";\n    ", array_values($indexSql))
         );

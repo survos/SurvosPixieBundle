@@ -31,7 +31,7 @@ tables:
     parent: artwork
     #        flickr_album_id:int # browsable=false
     properties:
-      - id:int
+      - id:text
       - marking:text#
       - local # relative to datadir?  Need to download to upload to flickr, but not to s3
       - status:text#
@@ -48,7 +48,7 @@ tables:
       /Object Number/: code
       /Is Public Domain/: is_public
     properties:
-      - id:int
+      - id:text
       - marking:text#
       - medium:text#
       - culture:text#
