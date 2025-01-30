@@ -104,6 +104,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
 
     ): int
     {
+
         $configCode ??= getenv('PIXIE_CODE');
         $transport ??= $defaultTransport;
 
