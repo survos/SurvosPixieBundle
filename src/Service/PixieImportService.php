@@ -23,6 +23,10 @@ use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\Model\Translation;
 use Survos\PixieBundle\StorageBox;
+use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Finder\Finder;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use function Symfony\Component\String\u;
@@ -119,8 +123,6 @@ class PixieImportService
 //        $filesByTablename = array_flip($fileMap);
         foreach ($fileMap as $realPath => $tableName) {
             $filesByTablename[$tableName][] = $realPath;
-//            array_flip($fileMap);
-
         }
 //        dd($filesByTablename, $fileMap);
 
@@ -216,9 +218,15 @@ class PixieImportService
                     imageStorageBox: $iKv,
                     context: $context));
 
+                $input = new ArgvInput();
+                $output = new ConsoleOutput();
+                $symfonyStyle = new SymfonyStyle($input, $output);
+
+                $progressBar = new ProgressBar($output);
                 $pk = $kv->getPrimaryKey($tableName);
                 // this is the json/csv iterator
                 foreach ($iterator as $idx => $row) {
+                    $progressBar->advance();
                     if ($startingAt && ($idx < $startingAt)) {
                         continue;
                     }
@@ -371,6 +379,7 @@ class PixieImportService
                     if ($limit && ($idx >= $limit - 1)) break;
 //            dd($kv->get($row['id']));
                     // dd($row); break;
+                    $progressBar->finish();
                 }
                 $kv->commit();
                 $count = $kv->count();

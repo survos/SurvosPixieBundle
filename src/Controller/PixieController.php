@@ -484,10 +484,12 @@ class PixieController extends AbstractController
     ): array
     {
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
-        $tKv = $this->translationService->getTranslationStorageBox($pixieCode);
+        $kv = $this->pixieService->getStorageBox($pixieCode);
         return [
-            'tKv' => $tKv,
-            'kv' => $this->pixieService->getStorageBox($pixieCode),
+            'tableName' => 'str', // @todo: move pixie metadata to bundle
+            'translationColumn' => 'trans', // in 'str'
+            'table' => $kv->select('str'),
+            'kv' => $kv,
             'config' => $this->pixieService->getConfig($pixieCode),
             'pixieCode' => $pixieCode,
         ];

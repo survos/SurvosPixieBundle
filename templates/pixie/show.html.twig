@@ -158,7 +158,7 @@
                         </div>
                     </div>
                     <div class="walters-right col-xl-7 col-lg-6">
-                        <h1>{{ pixieCode }}/{{ tableName|trans }} {{ row.key }} </h1>
+                        <h1>{{ pixieCode }}/{{ tableName|trans }} <code>{{ row.key }}</code> </h1>
                         {% with {data: row.data} %}
                             {{ block('details') }}
                         {% endwith %}
@@ -312,12 +312,13 @@
         </ul>
     </details>
 
-
-        {{ include(["pixie/%s/%s.html.twig"|format(pixieCode, tableName),  "pixie/%s.html.twig"|format(pixieCode)], {
+        {% set templates = ["pixie/%s/%s.html.twig"|format(pixieCode, tableName),  "pixie/%s.html.twig"|format(pixieCode)] %}
+        {{ include(templates, {
             item: row,
             data: row.data,
             kv: kv|default(null)
         }, ignore_missing=true) }}
+
     <details>
         <summary>
             <h1>Debug</h1>
@@ -358,13 +359,13 @@
 
 {# these are for the translatable text fields only #}
 {% block text_title %}
-    <h3 class="fw-medium mb-2">{{ value }}</h3>
+    <h3 class="fw-medium mb-2" title="text_title">{{ value }}</h3>
 {% endblock %}
 {% block text_label %}
-    <h4 class="fw-medium mb-2">{{ value }}</h4>
+    <h4 class="fw-medium mb-2" title="text_label">{{ value }}</h4>
 {% endblock %}
 {% block text_description %}
-    <p class="mb-4 text-muted">{{ value }}</p>
+    <p class="mb-4 text-muted" title="description">{{ value }}</p>
 {% endblock %}
 
 
@@ -433,18 +434,24 @@
                     {% if value is iterable %}
                         {% set vv = [] %}
                         {% for v in value %}
-                                {% set translations = v._translations() %}
+                                {% set translations = v.t() %}
                                 {% if translations %}
                                     {% set value = attribute(translations, locale).label|default(false) %}
-                                    {% set vv = vv|merge([value]) %}
+                                    {% if value %}
+                                        {% set vv = vv|merge([value]) %}
+                                        {% else %}
+                                            <twig:SourceTranslation :hash="v"/>.
+                                    {% endif %}
                                 {% endif %}
                                 {% endfor %}
                         {% set value = vv %}
                     {% else %} {#  value is a simple Item #}
-                        {% set translations = value._translations() %}
+
+                        {% set translations = value.t() %}
                         {% if  translations %}
                         {% set value = attribute(translations, locale).label|default(false) %}
                         {% else %}
+                            <twig:SourceTranslation :hash="value.key"/>.
                         MISSING {{ locale }} translation for {{ value.key }}
                         {% endif %}
 {#                    {{ value }}#}

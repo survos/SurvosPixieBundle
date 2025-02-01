@@ -3,40 +3,48 @@
 {% block title %}{{ pixieCode }} Tables{% endblock %}
 
 {% block body %}
-    Translations
-    {% set columns = {
-        libre: [
-            {name: 'marking', title: '@'},
-        'hash',
-        'key',
-        'target',
-        'text',
-        ],
-        source: [
-            'source',
-            'text',
-            'hash',
-            'field',
-            'debug',
-        ]
-    } %}
+    <h3>
+        {{ config.source.locale }} Translations of {{ config.code }}
 
-    {% for tableName, table in tKv.tables %}
-        <h3>{{ tableName }} {{ tKv.count(tableName) }}</h3>
-        <li>
+    </h3>
+    {% set columns =
+        [
+        'text',
+        'trans',
+        'hash',
+        'field',
+        ]
+    %}
+
+    {#        <h3>{{ table }} {{ tKv.count(tableName) }}</h3> #}
+    <li>
         <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
             Browse {{ tableName }}
         </a>
-            <twig:simple_datatables
-                    :caller="_self"
-                    :data="tKv.iterate(tableName, max=app.request.get('perPage', 200))"
-                    :columns="columns[tableName]"
-            >
-                <twig:block name="debug">
-{#                    {{ dump(row.data(true)) }}#}
-                    {{ row.data|length ? row.data|json_encode }}
-                </twig:block>
-            </twig:simple_datatables>
-        </li>
-    {% endfor %}
+        <twig:simple_datatables
+                :perPage="25"
+                :caller="_self"
+                :data="kv.iterate(max=app.request.get('perPage', 200))"
+                :columns="columns"
+        >
+            <twig:block name="field">
+                {{ row.data.tableName }}.{{ row.field }}
+            </twig:block>
+            <twig:block name="text">
+                {{ row.text|slice(0, 30) }}
+            </twig:block>
+            <twig:block name="trans">
+                {% if row.trans %}
+                {% set tr = row.trans|json_decode %}
+                    {% for locale, text in tr %}
+                        <li>{{ locale }}:{{ text|slice(0, 30) }}</li>
+                    {% endfor %}
+                {% endif %}
+            </twig:block>
+            <twig:block name="debug">
+                {#                    {{ dump(row.data(true)) }} #}
+                {{ row.data|length ? row.data|json_encode }}
+            </twig:block>
+        </twig:simple_datatables>
+    </li>
 {% endblock %}
