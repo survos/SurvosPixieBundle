@@ -72,6 +72,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         $this->initialized = true;
         // in bash:  export PIXIE_CODE=aust
         $configCode ??= getenv('PIXIE_CODE');
+        $envLimit = getenv('IMPORT_LIMIT'); // use export IMPORT_LIMIT
         $populate ??= true;
         $translate ??= false;
         $index = is_null($index) ? false : $index;
@@ -118,7 +119,7 @@ final class PixieImportCommand extends InvokableServiceCommand
             $this->total = $config->getSource()->total;
         }
 
-        $limit = $this->pixieService->getLimit($limit);
+        $limit = $envLimit ?: $this->pixieService->getLimit($limit);
         // ack, what is the different between createKv and getStorageBox()?
         $pixieImportService->import($configCode, $subCode, null,
             limit: $limit,
