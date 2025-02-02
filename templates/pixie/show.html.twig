@@ -167,7 +167,7 @@
                 </div>
             </div>
         </div>
-        {% if is_granted('ROLE_ADMIN') or (app.environment == 'dev') %}
+        {% if is_granted('ROLE_ADMIN') or (app.request.get('debug', false)) %}
             {{ block('debug') }}
         {% endif %}
         {% if workflowEnabled and is_granted('ROLE_ADMIN') %}
@@ -291,15 +291,21 @@
 
 {% block debug %}
     <details>
-        <summary>Globals (debug)
+        <summary>Debug {{ pixieCode }}.{{ tableName }}.{{ key }}
             {#            <h4 class="fw-medium my-3 text-capitalize">Globals</h4> #}
         </summary>
         <p>
             universal fields, can be used anywhere in the template with <code>row.var</code>
         </p>
-        <pre>
-            {{ row.data|json_pretty }}
-        </pre>
+        <ul class="list-group">
+            {% for tField in translatable %}
+            <li class="list-group-item px-0 py-1 border-0">
+                {% set hash = attribute(row.data(true), tField) %}
+                <twig:SourceTranslation :hash="hash" :field="tField"/>
+            </li>
+            {% endfor %}
+        </ul>
+
         <ul class="list-group">
             {% for var in keys|default([]) %}
                 <li class="list-group-item px-0 py-1 border-0">
@@ -310,6 +316,8 @@
                 </li>
             {% endfor %}
         </ul>
+
+        <pre>{{ row.data|json_pretty }}</pre>
     </details>
 
         {% set templates = ["pixie/%s/%s.html.twig"|format(pixieCode, tableName),  "pixie/%s.html.twig"|format(pixieCode)] %}

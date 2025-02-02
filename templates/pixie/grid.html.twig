@@ -102,7 +102,7 @@
             <twig:block name="tombstone">
                 <div class="tombstone custom-heading text-truncate-four-lines">
                     {# really the translatable fields #}
-                    {% set lrp =  row.rp|merge({_locale: globals.locale|default('en')}, globals.showParams) %}
+                    {% set lrp =  row.rp|merge(globals.showParams) %}
                     {% set pixieItemUrl = path(globals.showPath, lrp) %}
                     <div>
                         {#                    {% set label = row.label_hash %} #}

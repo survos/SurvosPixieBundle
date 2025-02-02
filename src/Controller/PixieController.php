@@ -51,7 +51,6 @@ class PixieController extends AbstractController
         private readonly ?ChartBuilderInterface $chartBuilder = null,
     )
     {
-
     }
 
     private function getPixieConf(string $pixieCode, bool $throwIfMissing = true): ?string
@@ -154,7 +153,6 @@ class PixieController extends AbstractController
         }
         $conf = $this->pixieService->getConfig($pixieCode);
 
-        $tKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($pixieCode, isTranslation: true))->getStorageBox();
         // the fields themselves should have the hash codes, the _translations has the translations
         $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
         // what a pain, we need to store this somewhere else!
@@ -241,6 +239,7 @@ class PixieController extends AbstractController
             'tableName' => $tableName,
             'pixieCode' => $pixieCode,
             'row' => $item,
+            'translatable' => $table->getTranslatable(),
             'item' => $item, // redundant! use row for data!
             'columns' => array_keys((array)$item),
             'groups' => $groups,
