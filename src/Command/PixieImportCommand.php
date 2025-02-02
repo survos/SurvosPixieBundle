@@ -119,7 +119,11 @@ final class PixieImportCommand extends InvokableServiceCommand
             $this->total = $config->getSource()->total;
         }
 
-        $limit = $envLimit ?: $this->pixieService->getLimit($limit);
+        $limit = $this->pixieService->getLimit($limit);
+        if ($envLimit && (($limit==0) || $envLimit<$limit)) {
+            $limit = $envLimit;
+        }
+//        dd($limit, $envLimit);
         // ack, what is the different between createKv and getStorageBox()?
         $pixieImportService->import($configCode, $subCode, null,
             limit: $limit,
