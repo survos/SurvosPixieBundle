@@ -151,7 +151,7 @@
                     {% set citation = row.citation|replace({'https://':'', 'http://':'', 'www.':''}) %}
                                         {#                        <code>{{ row.citation }}</code> #}
                     <a href="{{ row.citation }}" target="_blank" title="{{ row.citation }}">
-                        {{ row.credit|default(citation) }}
+                        <cite>{{ row.credit|default(citation) }}</cite>
                     </a>
                     </span>
                                 {% endif %}
