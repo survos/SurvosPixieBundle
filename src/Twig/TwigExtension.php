@@ -29,6 +29,7 @@ class TwigExtension extends AbstractExtension
             // Reference: https://twig.symfony.com/doc/3.x/advanced.html#automatic-escaping
             new TwigFilter('is_object', fn (mixed $s) => is_object($s)),
             new TwigFilter('is_array', fn (mixed $s) => is_array($s)),
+            new TwigFilter('is_string', fn (mixed $s) => is_string($s)),
             new TwigFilter('array_is_list', fn (mixed $s) => is_array($s) && array_is_list($s)),
             new TwigFilter('file_exists', fn (string $s) => file_exists($s)),
             new TwigFilter('json_decode', fn (string $s, bool $asArray=true) => json_decode($s, $asArray)),

@@ -74,6 +74,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
         $index = is_null($index) ? true : $index;
         $config = $pixieService->getConfig($configCode);
         $sourceDir = $pixieService->getSourceFilesDir($configCode, subCode: $subCode);
+//        dd($sourceDir);
         $rawDir = $sourceDir ."/raw";
         $jsonDir = $sourceDir ."/json";
         assert(file_exists($rawDir), "Missing $rawDir, run git clone or bunny download");

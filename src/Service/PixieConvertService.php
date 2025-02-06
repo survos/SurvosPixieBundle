@@ -245,6 +245,7 @@ class PixieConvertService
 //                    $row = $event->row;
 //                    dd(row: $row, pk: $pkName, headers: $headers, );
 
+                    SurvosUtils::assertKeyExists($pkName, $row, json_encode($row, JSON_PRETTY_PRINT));
                     if (!$row[$pkName]??null) {
                         // e.g. empty excel rows.  Could handle in the grid:excel-to-csv
                         $this->logger->error("Empty pk, skipping row " . $idx);

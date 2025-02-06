@@ -66,7 +66,6 @@ final class PixieMediaCommand extends InvokableServiceCommand
 
     public function __invoke(
         IO                                                                                             $io,
-        ProjectService                                                                                 $ps,
         EntityManagerInterface                                                                         $entityManager,
         LoggerInterface                                                                                $logger,
         ParameterBagInterface                                                                          $bag,
@@ -75,6 +74,7 @@ final class PixieMediaCommand extends InvokableServiceCommand
         #[Option(description: 'populate the image keys with the iKv')]
         ?bool    $merge = false,
         #[Option(description: 'index when finished')] bool $index=false,
+        ?ProjectService                                                                                 $ps=null,
     ): int
     {
         $tableName = 'obj'; // could have images elsewhere.

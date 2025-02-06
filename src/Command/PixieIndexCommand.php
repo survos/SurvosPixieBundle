@@ -308,7 +308,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
 
             $locale = $config->getSource()->locale;
 
-            $homeUrl =  str_replace('https://', 'https://' . $locale . '.', $this->baseUrl) . "/$configCode/browse/$tableName";
+            $homeUrl =  str_replace('https://', 'https://' . $locale . '.', $this->baseUrl) . "/$configCode/$tableName";
             $summary[$indexName]['url'] = $homeUrl;
 
         }

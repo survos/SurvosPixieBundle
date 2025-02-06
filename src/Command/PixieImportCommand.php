@@ -183,7 +183,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         // hyperlink syntax: <href=THE_LINK_URL> THE_LINK_TEXT </>
         $locale = $config->getSource()->locale;
         $url = str_replace('https://', 'https://' . $locale . '.', $this->baseUrl);
-        $url .=  "/$configCode/browse/obj";
+        $url .=  "/$configCode";
         $this->io()->writeln(sprintf("<href=%s>%s</>", $url, $url));
         $kv->close();
         return self::SUCCESS;
