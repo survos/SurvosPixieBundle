@@ -36,8 +36,8 @@ use \JsonMachine\Items;
 class PixieImportService
 {
     public function __construct(
-        private readonly PixieService                      $pixieService,
-        private readonly LoggerInterface                   $logger,
+        private readonly PixieService             $pixieService,
+        private readonly LoggerInterface          $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
         public bool                               $purgeBeforeImport = false,
         private array                             $listsByLabel = []
@@ -102,9 +102,11 @@ class PixieImportService
         if (!$kv) {
             $kv = $this->createKv($fileMap, $config, $pixieCode, $subCode);
         }
+
+        // @todo: figure out a better way to handle images
         $iKv = $this->eventDispatcher->dispatch(
             new StorageBoxEvent($pixieCode,
-                mode: ITableAndKeys::PIXIE_IMAGE)
+                mode: 'image') // ITableAndKeys::PIXIE_IMAGE)
         )->getStorageBox();
 
         /* maybe hold off on related tables right now?
@@ -130,7 +132,7 @@ class PixieImportService
 //        foreach ($kv->getFiles())
         // $fn is the csv filename
         foreach (array_values($config->getFiles()) as $tableName) {
-            if ($pattern && !str_contains((string) $tableName, $pattern)) {
+            if ($pattern && !str_contains((string)$tableName, $pattern)) {
                 continue;
             }
 //            AppService::assertKeyExists($tableName, $filesByTablename, "Missing table $tableName look for filename, not table");
@@ -200,7 +202,7 @@ class PixieImportService
                 $dataRules = [];
                 foreach ($headers as $header => $origHeader) {
                     foreach ($table->getPatches() as $headerRegex => $regexRules) {
-                        if (preg_match($headerRegex, (string) $header, $mm)) {
+                        if (preg_match($headerRegex, (string)$header, $mm)) {
                             $dataRules[$header] ??= [];
                             $dataRules[$header] += $regexRules;
                         }
@@ -235,33 +237,33 @@ class PixieImportService
                     $reverse = array_flip($headers);
                     // mapped Header stuff has moved to pixie:prepare
 //                    if (false)
-                        if ($ext === 'json') {
-                            $mappedRow = [];
-                            // if new values after first row
-                            $remainingHeaders = array_keys((array)$row);
-                            foreach ($headers as $header => $headerOrig) {
-                                $mappedRow[$header] = $row->{$headerOrig} ?? null;
-                            }
+                    if ($ext === 'json') {
+                        $mappedRow = [];
+                        // if new values after first row
+                        $remainingHeaders = array_keys((array)$row);
+                        foreach ($headers as $header => $headerOrig) {
+                            $mappedRow[$header] = $row->{$headerOrig} ?? null;
+                        }
 
 
-                            // handle keys that aren't in the mapped header, which is too dependent on the first row data
-                            $unhandledKeys = array_diff($x = array_keys((array)$row), $y = array_keys($mappedRow));
-                            foreach ($unhandledKeys as $newKey) {
-                                if (!array_key_exists($newKey, $reverse)) {
+                        // handle keys that aren't in the mapped header, which is too dependent on the first row data
+                        $unhandledKeys = array_diff($x = array_keys((array)$row), $y = array_keys($mappedRow));
+                        foreach ($unhandledKeys as $newKey) {
+                            if (!array_key_exists($newKey, $reverse)) {
 //                                    assert(false, "new key $newKey missing in $tableName \n" .
 //                                        json_encode($row, JSON_PRETTY_PRINT) . "\n\n" .
 //                                        json_encode($reverse, JSON_PRETTY_PRINT) . "
 //                                    add $newKey to required fields so it exists in the first row"
 //                                    );
-                                    $mappedRow[$newKey] = $row->{$newKey} ?? null;
-                                } else {
-                                }
+                                $mappedRow[$newKey] = $row->{$newKey} ?? null;
+                            } else {
                             }
-                            // if there are new headers, add them
+                        }
+                        // if there are new headers, add them
 //                        dd(row: $row, mappedRow: $mappedRow, );
 //                            $row = $mappedRow;
-                            $row = (object)$mappedRow;
-                        }
+                        $row = (object)$mappedRow;
+                    }
                     assert($row);
 
                     // just check the first row
@@ -368,6 +370,8 @@ class PixieImportService
                             }
                         }
                     }
+
+//                    ($tableName == 'loc') && dd($row);
 
                     assert($row['license'] ?? '' <> 'Copyrighted', "invalid license");
                     try {
@@ -552,7 +556,7 @@ class PixieImportService
             if ($property->isRelation()) {
                 $relatedTable = $config->getTable($relatedTableName);
                 if ($delim = $property->getDelim()) {
-                    $values = array_map('trim', explode($delim, (string) $row[$propertyCode]));
+                    $values = array_map('trim', explode($delim, (string)$row[$propertyCode]));
                     if ($property->getValueType() == '@pk') {
                         // @todo: make a many-to-many table.  For now, a simple array
                         $row[$propertyCode] = $values;
@@ -601,22 +605,28 @@ class PixieImportService
                             //
                         } elseif (in_array($valueType, ['@label', '@labels'])) {
 //                                dd($relatedRow);
-                                if (!$sourceLang = $row['locale'] ?? null) {
-                                    if (!$sourceLang = $config->getSource()->locale) {
-                                        assert(false, "unable to get source language");
-                                        dd($row);
-                                    }
+                            if (!$sourceLang = $row['locale'] ?? null) {
+                                if (!$sourceLang = $config->getSource()->locale) {
+                                    assert(false, "unable to get source language");
+                                    dd($row);
                                 }
-                            $relatedId =  TranslationClientService::calcHash($label, $sourceLang);
+                            }
+                            $relatedId = TranslationClientService::calcHash($label, $sourceLang);
                             $relatedRow = [
                                 'label' => trim($label),
 //                                    '_locale' => $sourceLang, // should every row have a locale?
                             ];
-                                $_t[$sourceLang][PixieInterface::TRANSLATION_LABEL]=$relatedRow['label'];
+                            $_t[$sourceLang][PixieInterface::TRANSLATION_LABEL] = $relatedRow['label'];
+
+//                            ($relatedTableName == 'loc') && dd($relatedRow, $relatedTable);
+
+                            if (count($relatedTable->getTranslatable())) {
+
+
                                 // this is to get the orig strings.  No database lookup
 //                            dump($relatedRow);
-                            // it seems like a lot of work to get the source hash, but it also modifies the $row and adds hash.  I think.
-                            // candidate for review
+                                // it seems like a lot of work to get the source hash, but it also modifies the $row and adds hash.  I think.
+                                // candidate for review
                                 if (class_exists(FetchTranslationObjectEvent::class)) {
                                     $event = $this->eventDispatcher->dispatch(
                                         new FetchTranslationObjectEvent($relatedRow,
@@ -636,6 +646,7 @@ class PixieImportService
                                         assert($translationModel->isSource(), "translations have been moved.");
 //                                        dd($translationModel->toArray(), $translationModel->getHash());
                                         // same as in handleRelations, need to refactor.
+
                                         if (!$kv->has($translationModel->getHash(), table: PixieInterface::PIXIE_STRING_TABLE, preloadKeys: true)) {
                                             $kv->set($translationModel->toArray(), PixieInterface::PIXIE_STRING_TABLE);
                                         }
@@ -662,10 +673,15 @@ class PixieImportService
 ////                                dd($pkName, $relatedRow, $newItem, $newItem->getData());
 //                                $kv->beginTransaction();
                                 $this->listsByLabel[$relatedTableName][$label] = $relatedId;
-                        } else {
-                            assert(false, "valueType not handled " . $propertyCode . ' ' . $valueType);
+                            } else {
+                                // we can have untranslated labels, like loc codes
+                                $this->listsByLabel[$relatedTableName][$label] = $label;
+//
+//                                assert(false, "valueType not handled " . $propertyCode . ' ' . $valueType);
+                            }
                         }
                     }
+
 //                    AppService::assertKeyExists($propertyCode, $row, "missing in table " . $table->getName());
 
                     $relatedId = $this->listsByLabel[$relatedTableName][$label];
@@ -700,7 +716,7 @@ class PixieImportService
         }
         foreach ($row as $k => $v) {
             foreach ($dataRules[$k] ?? [] as $dataRegexRule => $substitution) {
-                $match = preg_match($dataRegexRule, (string) $v, $mm);
+                $match = preg_match($dataRegexRule, (string)$v, $mm);
                 if ($match) {
                     if ($substitution === '') {
                         $row[$k] = null;

@@ -34,35 +34,34 @@ use Survos\WorkflowBundle\Service\WorkflowHelperService;
 
 class PixieService
 {
-    const PIXIE_TRANSLATION='translation';
+    const PIXIE_TRANSLATION = 'translation';
     // cache, indexed by filename
     private array $storageBoxes = [];
 
     public function __construct(
 //        #[Autowire('%kernel.debug%')] private readonly bool                                        $isDebug,
 
-        private readonly bool                                        $isDebug=false,
-        private readonly EventDispatcherInterface $eventDispatcher,
-        private array                                       $data = [],
-        private readonly string                                      $extension = "pixie.db",
-        private readonly string                                      $dbDir = 'pixie',
-        private readonly string                                      $dataRoot = 'data', //
-        private readonly string                                      $configDir = 'config/packages/pixie',
-        private array                                       $bundleConfig = [],
+        private readonly bool                       $isDebug = false,
+        private array                               $data = [],
+        private readonly string                     $extension = "pixie.db",
+        private readonly string                     $dbDir = 'pixie',
+        private readonly string                     $dataRoot = 'data', //
+        private readonly string                     $configDir = 'config/packages/pixie',
+        private array                               $bundleConfig = [],
         #[Autowire('%kernel.project_dir%')]
-        private readonly ?string $projectDir = null,
-        private readonly ?LoggerInterface                            $logger = null,
-        private readonly ?Stopwatch                                  $stopwatch = null,
-        private readonly ?PropertyAccessorInterface                  $accessor = null,
-        private readonly ?SerializerInterface                        $serializer = null,
-        private readonly ?WorkflowHelperService                      $workflowHelperService = null,
-        private ?DenormalizerInterface                      $denormalizer = null,
+        private readonly ?string                    $projectDir = null,
+        private readonly ?LoggerInterface           $logger = null,
+        private readonly ?Stopwatch                 $stopwatch = null,
+        private readonly ?PropertyAccessorInterface $accessor = null,
+        private readonly ?SerializerInterface       $serializer = null,
+        private readonly ?WorkflowHelperService     $workflowHelperService = null,
+//        private ?DenormalizerInterface                      $denormalizer = null,
     )
     {
 //        dd($this->isDebug);
 //        dd($this->serializer->denormalize($this->data, Config::class));
 //        assert($this->logger);
-        $this->denormalizer = $this->serializer; // ->denormalize($this->data, DenormalizerInterface::class);
+//        $this->denormalizer = $this->serializer; // ->denormalize($this->data, DenormalizerInterface::class);
     }
 
     /**
@@ -128,7 +127,7 @@ class PixieService
 //        }
 //        assert(!$event->isTranslation(), "use mode");
         $filename = $this->getPixieFilename($event->getPixieCode());
-        if ($suffix = match($mode) {
+        if ($suffix = match ($mode) {
             'data' => null,
 //            'translation' => PixieInterface::PIXIE_TRANSLATION_SUFFIX,
             'image' => PixieInterface::PIXIE_IMAGE_SUFFIX
@@ -137,7 +136,7 @@ class PixieService
         }
 
         $kv = $this->getStorageBox(
-            $suffix??$event->getPixieCode(),
+            $suffix ?? $event->getPixieCode(),
             filename: $suffix ? $filename : null,
         );
 //        dd($kv);
@@ -225,7 +224,7 @@ class PixieService
 
         $configs = [];
         foreach ($this->bundleConfig['pixies'] as $code => $pixie) {
-            if ($q && !str_contains((string) $code, $q)) {
+            if ($q && !str_contains((string)$code, $q)) {
                 continue;
             }
             if ($pixieCode && $code !== $pixieCode) {
@@ -312,7 +311,7 @@ class PixieService
 //            // deserialize
 //        }
 
-        if ($config = $configCache[$pixieCode]??null) {
+        if ($config = $configCache[$pixieCode] ?? null) {
             $config = StorageBox::fix($config, $this->getTemplates());
         }
         return $config;
@@ -434,8 +433,8 @@ class PixieService
                                       ?Config $config = null,
                                       bool    $autoCreate = false,
                                       bool    $throwErrorIfMissing = true,
-                                      ?string  $dir = null,
-                                      ?string  $subCode = null
+                                      ?string $dir = null,
+                                      ?string $subCode = null
     ): ?string
     {
         assert(!$autoCreate);
@@ -479,7 +478,7 @@ class PixieService
             }
             {
                 // get the related item from the PK stored in the item, replace it with the actual record, but without the _id?
-                if (!$relatedId = $data[$propertyName]??null) {
+                if (!$relatedId = $data[$propertyName] ?? null) {
                     continue;
                 }
                 // json from sqlite is stored as a string.
@@ -500,7 +499,7 @@ class PixieService
                                 // during dev, relations may not be loaded, walters has 4000 creators
                                 if ($relatedItem = $kv->get($code, $property->getSubType())) {
 //                                    dd($data, $propertyName, $relatedItem);
-                                        $data[$propertyName][] = $relatedItem;
+                                    $data[$propertyName][] = $relatedItem;
 //                                        $data[$propertyName][] = $relatedItem->label();
                                 } // subtype is related table
                             }

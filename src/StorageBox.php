@@ -1159,7 +1159,7 @@ class StorageBox
         $keyOnly = false;
 
         if (is_array($pks) && !count($pks)) {
-            assert(false, "are you sure you want to pass 0 pks?");
+            $this->logger->warning( "are you sure you want to pass 0 pks?");
         }
         [$sql, $params] = $this->getSql($table, $where, $order, max: $max,
             keyOnly: $keyOnly,

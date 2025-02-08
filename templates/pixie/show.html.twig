@@ -17,10 +17,11 @@
       }
 </style>
 {% endblock %}
-{% block title %}{{ pixieCode }}:{{ row.tableName }}:{{ row.key }}{% endblock %}
+{% block title %}{{ pixieCode }}:{{ row.tableName }}:{{ row.key }} : {{ row.label|default('') }}
+{% endblock %}
 
 {% block breadcrumbs %}
-<h1>{{ pixieCode }}.{{ tableName }} {{ row.key }}</h1>
+<h1>{{ pixieCode }}.{{ tableName }} {{ row.key }}: {{ row.label|default('') }}</h1>
 {% endblock %}
 {% block body %}
 <script>
@@ -158,7 +159,10 @@
                         </div>
                     </div>
                     <div class="walters-right col-xl-7 col-lg-6">
-                        <h1>{{ pixieCode }}/{{ tableName|trans }} <code>{{ row.key }}</code> </h1>
+                        <h1>{{ pixieCode }}/{{ tableName|trans }} <code>{{ row.key }}</code>
+                            <twig:SourceTranslation :hash="row.label" field="label"/>
+
+                        </h1>
                         {% with {data: row.data} %}
                             {{ block('details') }}
                         {% endwith %}

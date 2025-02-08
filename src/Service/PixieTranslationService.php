@@ -8,7 +8,6 @@ use App\Entity\Core;
 use App\Entity\Project;
 use App\Event\FetchTranslationEvent;
 use App\Message\TranslationMessage;
-use App\Metadata\PixieInterface;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Event\FacetEvent;
 use Survos\CoreBundle\Service\SurvosUtils;
@@ -17,7 +16,6 @@ use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Model\Translation;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\PixieService;
-use Survos\PixieBundle\Service\PixieTranslationService;
 use Survos\PixieBundle\StorageBox;
 use Survos\Scraper\Service\ScraperService;
 use Symfony\Component\Cache\Adapter\DoctrineDbalAdapter;
@@ -213,25 +211,26 @@ class PixieTranslationService
 
     public function getTranslationStorageBox(?string $pixieCode = null): ?StorageBox
     {
-        if (!$pixieCode) {
-            return null;
-        }
-
-        static $kv = [];
-//        $pixieCode = PixieInterface::PIXIE_TRANSLATION; // could be tables inside, but need to manage config better
-        // this could lead to too many files being open!
-
-
-        assert($pixieCode);
-        if (empty($kv[$pixieCode])) {
-            $kv[$pixieCode] = $this->eventDispatcher->dispatch(new StorageBoxEvent(
-                $pixieCode,
-                mode: PixieInterface::PIXIE_TRANSLATION,
-//                isTranslation: true,
-                tags: ['fetch']
-            ))->getStorageBox();
-        }
-        $kv[$pixieCode]->select(self::ENGINE);
+        assert(false); // @moved to main table
+//        if (!$pixieCode) {
+//            return null;
+//        }
+//
+//        static $kv = [];
+////        $pixieCode = PixieInterface::PIXIE_TRANSLATION; // could be tables inside, but need to manage config better
+//        // this could lead to too many files being open!
+//
+//
+//        assert($pixieCode);
+//        if (empty($kv[$pixieCode])) {
+//            $kv[$pixieCode] = $this->eventDispatcher->dispatch(new StorageBoxEvent(
+//                $pixieCode,
+//                mode: PixieInterface::PIXIE_TRANSLATION,
+////                isTranslation: true,
+//                tags: ['fetch']
+//            ))->getStorageBox();
+//        }
+//        $kv[$pixieCode]->select(self::ENGINE);
         return $kv[$pixieCode];
     }
 

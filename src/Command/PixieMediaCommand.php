@@ -13,7 +13,6 @@ use App\Service\LibreTranslateService;
 use App\Service\PdoCacheService;
 use App\Service\PennService;
 use App\Service\ProjectConfig\PennConfigService;
-use App\Service\ProjectService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Survos\GridGroupBundle\Service\CsvDatabase;
@@ -74,7 +73,6 @@ final class PixieMediaCommand extends InvokableServiceCommand
         #[Option(description: 'populate the image keys with the iKv')]
         ?bool    $merge = false,
         #[Option(description: 'index when finished')] bool $index=false,
-        ?ProjectService                                                                                 $ps=null,
     ): int
     {
         $tableName = 'obj'; // could have images elsewhere.
