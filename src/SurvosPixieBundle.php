@@ -77,7 +77,6 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-//        dd($config['pixies']['auur']['tables']);
         $builder->register(PixieImportService::class)
             ->setAutowired(true)
             ->setArgument('$logger', new Reference('logger'))
@@ -182,7 +181,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
         $builder->register(PixieService::class)
             ->setAutowired(true)
             ->setAutoconfigured(true)
-            ->setArgument('$isDebug', $builder->getParameter('kernel.debug'))
+            ->setArgument('$isDebug', $config['debug']) // or in config $builder->getParameter('kernel.debug'))
             ->setArgument('$dataRoot', $config['data_root'])
             ->setArgument('$configDir', $config['config_dir'])
             ->setArgument('$dbDir', $config['db_dir'])
@@ -417,6 +416,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->scalarNode('db_dir')->info("where to store the pixie db files")->defaultValue('pixie]')->end()
             ->scalarNode('data_root')->info("root for csv/json data")->defaultValue('data')->end()
             ->scalarNode('transport')->info("default transport for iterate, e.g. sync")->defaultNull()->end()
+            ->booleanNode('debug')->info("turn on profiler (kernel.debug?)")->defaultValue(false)->end()
             ->booleanNode('purge_before_import')->info("purge db before import")->defaultValue(false)->end()
             ->integerNode('limit')->info("import, index, translation, etc. limit")->defaultValue(0)->end()
             ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('config/packages/pixie')->end()

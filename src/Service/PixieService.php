@@ -39,7 +39,10 @@ class PixieService
     private array $storageBoxes = [];
 
     public function __construct(
-        private readonly bool                                        $isDebug, private readonly EventDispatcherInterface $eventDispatcher,
+//        #[Autowire('%kernel.debug%')] private readonly bool                                        $isDebug,
+
+        private readonly bool                                        $isDebug=false,
+        private readonly EventDispatcherInterface $eventDispatcher,
         private array                                       $data = [],
         private readonly string                                      $extension = "pixie.db",
         private readonly string                                      $dbDir = 'pixie',
@@ -56,6 +59,7 @@ class PixieService
         private ?DenormalizerInterface                      $denormalizer = null,
     )
     {
+//        dd($this->isDebug);
 //        dd($this->serializer->denormalize($this->data, Config::class));
 //        assert($this->logger);
         $this->denormalizer = $this->serializer; // ->denormalize($this->data, DenormalizerInterface::class);

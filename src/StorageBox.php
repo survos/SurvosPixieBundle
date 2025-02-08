@@ -1155,7 +1155,9 @@ class StorageBox
         $table ??= $this->currentTable;
         assert($table, "no table configured");
         $pkName = $this->getPrimaryKey($table);
-        $keyOnly = true;
+//        $keyOnly = true; // this iterates one at a time
+        $keyOnly = false;
+
         if (is_array($pks) && !count($pks)) {
             assert(false, "are you sure you want to pass 0 pks?");
         }
@@ -1167,12 +1169,14 @@ class StorageBox
         $jsonFields = $this->getTable($table)->getJsonFields();
 
         // https://stackoverflow.com/questions/78623214/using-a-generator-to-loop-through-an-update-a-table-in-pdo
-        $sth = $this->query($sql, $params);
+
         try {
+            $sth = $this->query($sql, $params);
             $all = $sth->fetchAll($flags);
         } catch (\Exception) {
             dd($sql, $params);
         }
+//        dd($sql, $params, $all, $keyOnly);
         if (count($all) === 0) {
             return;
         }
@@ -1190,6 +1194,8 @@ class StorageBox
             if ($keyOnly) {
                 $rowQuery = $this->query("select * from $table where " . $pkName . " = :pk;", ["pk" => $row[$pkName]]);
                 $row = $rowQuery->fetch(PDO::FETCH_ASSOC);
+//                ($table == 'mat') && assert(false);
+
             }
             // can 'value' be configured?  _raw
             // @todo: lax, strict, none (handle _raw, _value, etc. )
@@ -1207,6 +1213,7 @@ class StorageBox
             $item = $value ? new Item((object)$value, $key, $table, $this->getPixieCode()) : null;
 //dd($item, $value);
             if (!$row) { dd($item, $value, $key, $this->getFilename(), $table); }
+//            dd($row, $item, $pkName);
             yield $row[$pkName] => $item;
         }
         $sth->closeCursor(); //

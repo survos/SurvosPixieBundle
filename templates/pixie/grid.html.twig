@@ -147,7 +147,8 @@
 
                                 {% if row.citation|default(false) %}
                                     {#  smaller font?  limit to 1 line #}
-                                    <span class="d-lg-inline-block d-none" style="max-width: 280px">
+                                    <span class="d-lg-inline-block d-none grid-citation">
+                                        {#  if it's too long, we can even get rid of the host #}
                     {% set citation = row.citation|replace({'https://':'', 'http://':'', 'www.':''}) %}
                                         {#                        <code>{{ row.citation }}</code> #}
                     <a href="{{ row.citation }}" target="_blank" title="{{ row.citation }}">
