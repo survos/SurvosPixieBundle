@@ -352,7 +352,8 @@ footer .nav-item .nav-link {
 }
 
 .dt-container.dt-bootstrap5 .dt-scroll-body:hover {
-    overflow: auto;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
 }
 
 .dt-container.dt-bootstrap5 .dt-scroll-body::-webkit-scrollbar {
@@ -402,4 +403,24 @@ body div.dtsb-searchBuilder div.dtsb-group {
 
 .walters-right .detail-page-title {
     min-width: 55px;
+}
+
+.list-inline-item {
+    display: flex !important;
+    max-width: max-content;
+    word-wrap: break-word;
+    text-wrap: auto;
+    gap: 0.5rem;
+}
+
+.list-inline-item svg {
+    height: 1em;
+}
+
+.list-inline-item .tag {
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: auto;
+    max-height: 45px;
+    display: block;
 }
