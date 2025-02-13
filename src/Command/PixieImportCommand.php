@@ -76,8 +76,9 @@ final class PixieImportCommand extends InvokableServiceCommand
         $populate ??= true;
         $translate ??= false;
         $index = is_null($index) ? false : $index;
+
         $config = $pixieService->getConfig($configCode);
-        assert($config, $config->getConfigFilename());
+        assert($config, "Missing $configCode");
         $sourceDir = $pixieService->getSourceFilesDir($configCode, subCode: $subCode);
         assert(is_dir($sourceDir), "Invalid source dir: $sourceDir");
 
