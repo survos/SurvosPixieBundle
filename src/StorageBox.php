@@ -122,11 +122,13 @@ class StorageBox
     {
         // if the property code is used, get the definition from here, rather than repeating it.  'extends' will add the property codes, this only add them if they key exist.  add a use: key with order?
         $internalProperties = [];
-        foreach ($templates['internal']->getProperties() as $property) {
-            if (is_string($property)) {
-                $property = Parser::parseConfigHeader($property);
+        if ($internalTemplate = $templates['internal']??null) {
+            foreach ($internalTemplate->getProperties() as $property) {
+                if (is_string($property)) {
+                    $property = Parser::parseConfigHeader($property);
+                }
+                $internalProperties[$property->getCode()] = $property;
             }
-            $internalProperties[$property->getCode()] = $property;
         }
 
         // we are over-calling fix!

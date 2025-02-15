@@ -65,7 +65,7 @@ class PixieImportService
         // the json files, slightly processed in :prepare, no csv
         $dirOrFilename = $this->pixieService->getSourceFilesDir($pixieCode, subCode: $subCode) . "/json";
 
-        assert(file_exists($dirOrFilename), $dirOrFilename);
+        assert(file_exists($dirOrFilename), "Missing $dirOrFilename");
         $finder = new Finder();
         $files = $finder->in($dirOrFilename);
         if ($include = $config->getSource()->include) {
@@ -135,7 +135,7 @@ class PixieImportService
             if ($pattern && !str_contains((string)$tableName, $pattern)) {
                 continue;
             }
-//            AppService::assertKeyExists($tableName, $filesByTablename, "Missing table $tableName look for filename, not table");
+            SurvosUtils::assertKeyExists($tableName, $filesByTablename, "Missing table $tableName look for filename, not table");
             $filenames = $filesByTablename[$tableName];
             foreach ($filenames as $fn) {
 
