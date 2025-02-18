@@ -56,6 +56,23 @@
         >
             <twig:block name="thumbnail">
                 <div class="size-125 position-relative">
+                    {% if row.sais|length %}
+                        {% for sais in row.sais %}
+
+                            {% set image = row.sais[0] %}
+                            {#                {% for image in row.images??[]|slice(0, 1) %} #}
+                            {% set thumb = image.tiny %}
+                            {% if thumb %}
+                                {% if row.image_count|default(1) > 1 %}
+                                    {# @todo: make a badge in the image somewhere. #}
+                                    <span class="position-absolute fs-6 top-0 start-100 translate-middle badge rounded-pill bg-primary">{{ row.image_count }}</span>
+                                {% endif %}
+                                <img class="img-thumbnail h-100 object-fit-cover size-100" title="{{ image.size }} bytes"
+                                     src="{{ thumb.url }}"/>
+                            {% endif %}
+
+                        {% endfor %}
+                    {% endif %}
                     {% if row.images|length %}
                         {% set image = row.images[0] %}
                         {#                {% for image in row.images??[]|slice(0, 1) %} #}

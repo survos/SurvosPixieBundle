@@ -6,6 +6,7 @@ use App\Entity\Instance;
 use App\Entity\Owner;
 use App\EventListener\TranslationEventListener;
 use App\Message\TranslationMessage;
+use App\Metadata\ITableAndKeys;
 use App\Repository\OwnerRepository;
 use App\Repository\ProjectRepository;
 use App\Service\AppService;
@@ -24,6 +25,8 @@ use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\StorageBox;
+use Survos\SaisBundle\Model\ProcessPayload;
+use Survos\SaisBundle\Service\SaisClientService;
 use Survos\Scraper\Service\ScraperService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -38,6 +41,7 @@ use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Zenstruck\Console\Attribute\Argument;
 use Zenstruck\Console\Attribute\Option;
 use Zenstruck\Console\ConfigureWithAttributes;
@@ -55,9 +59,11 @@ final class PixieMediaCommand extends InvokableServiceCommand
     // we are using the digmus translation dir since most projects are there.
 
     public function __construct(
-        private readonly LoggerInterface                      $logger,
+        private readonly LoggerInterface $logger,
         private EventDispatcherInterface $eventDispatcher,
-        private PixieService $pixieService,
+        private PixieService             $pixieService,
+        private SaisClientService        $saisClientService,
+        private readonly HttpClientInterface $httpClient,
     )
     {
         parent::__construct();
@@ -70,23 +76,93 @@ final class PixieMediaCommand extends InvokableServiceCommand
         ParameterBagInterface                                                                          $bag,
         PropertyAccessorInterface                                                                      $accessor,
         #[Argument(description: 'config code')] ?string                                                $configCode,
-        #[Option(description: 'populate the image keys with the iKv')]
-        ?bool    $merge = false,
+        #[Option(description: 'dispatch resize requests')] ?bool    $dispatch = false,
+        #[Option(description: 'populate the image keys with the iKv')] ?bool    $merge = false,
         #[Option(description: 'index when finished')] bool $index=false,
+        #[Option()] int $limit=50,
+        #[Option()] int $batch=5,
     ): int
     {
         $tableName = 'obj'; // could have images elsewhere.
         $configCode ??= getenv('PIXIE_CODE');
         $config = $this->pixieService->getConfig($configCode);
-        $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode, mode: PixieInterface::PIXIE_IMAGE))->getStorageBox();
-        $kv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode))->getStorageBox();
+        $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode, mode: ITableAndKeys::PIXIE_IMAGE))->getStorageBox();
+        $cache=[];
 
-        $kv->beginTransaction();
-        if ($merge) {
+        if ($dispatch) {
+            // dispatch to sais
+            $count = $iKv->count(ITableAndKeys::IMAGE_TABLE);
+            $progressBar = new ProgressBar($io, $count);
+            $images = [];
+            foreach ($iKv->iterate(ITableAndKeys::IMAGE_TABLE) as $key=>$item) {
+                $data = $item->getData();
+                $images[] = $item->imageUrl();
+                $progressBar->advance();
+                if (($progressBar->getProgress() === $limit) || ($progressBar->getProgress() % $batch) === 0) {
+                    $results = $this->saisClientService->dispatchProcess(new ProcessPayload(
+                        $configCode,
+                        $images,
+                        ['tiny','small','large']
+                    ));
+                    $this->logger->warning(count($results).' images processed');
+                    foreach ($results as $result) {
+                        $cache[$result['code']] = $result['thumbData'];
+                        if (empty($result['thumbData']['tiny'])) {
+//                        dd($data, $key, $item);
+                        }
+//                    dump($result['thumbData'], $result['originalUrl']);
+                    }
+                    $images = [];
+                    if ($limit && ($limit <= $progressBar->getProgress())) {
+//                    dd($limit, $batch, $progressBar->getProgress());
+                        break;
+                    }
+                }
+            }
+            $progressBar->finish();
+        }
+
+        $kv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode))->getStorageBox();
+//        dump(array_keys($cache));
+
+        if (true || $merge) {
+            $count = $kv->count($tableName);
+            $kv->beginTransaction();
+            $progressBar = new ProgressBar($io, $count);
             foreach ($kv->iterate($tableName) as $item) {
+                $thumbData = [];
+                foreach ($item->images() as $imageData) {
+                    $progressBar->advance();
+                    $code = $imageData->code;
+                    if (in_array($code, $cache)) {
+                        $thumbData[] = $cache[$code];
+                    } else {
+                        $thumbData[] = $this->saisClientService->fetch('/api/media/' . $code)['thumbData'];
+                        continue;
+                        dd($thumbData, $imageData, $code);
+                        $db = $iKv->get($code, ITableAndKeys::IMAGE_TABLE);
+                        if (!$db) {
+                            $this->logger->error("Missing $code in image cache and iKv");
+//                        dd($item->images(), $iKv->get($code, ITableAndKeys::IMAGE_TABLE));
+                        }
+                    }
+                }
+                $data = $item->getData(true);
+                $data[ITableAndKeys::SAIS] = $thumbData;
+
+//                $images = $this->mergeImageData($item, $iKv);
+//                $data = array_merge($item->getData(true), [
+//                    'images' => $images,
+//                ]);
+
+//                dd(after: $data, images: $thumbData);
+
+                $kv->set($data, $tableName);
+
                 $imageCodes = $item->imageCodes();
 //                if ($item->imageCount()) dd($item->imageCount(), $imageCodes, $item);
                 if ($imageCodes) {
+                    dd($imageCodes);
                     // from iKv
                     $images = $this->mergeImageData($item, $iKv);
                     $data = array_merge($item->getData(true), [
@@ -96,8 +172,10 @@ final class PixieMediaCommand extends InvokableServiceCommand
 //                    ($item->getKey() == 44) && dump($imageCodes, $images);
                 }
             }
+            $kv->commit();
         }
-        $kv->commit();
+
+        $this->io()->writeln("\n\nfinished");
         if ($index) {
             $batchSize = 500;
                 $cli = "pixie:index $configCode --table $tableName --reset --batch=$batchSize";

@@ -57,6 +57,7 @@ final class IterateCommand extends InvokableServiceCommand
         #[Argument(description: 'config code')] string                                $pixieCode,
         #[Argument(description: 'table name')] string                                 $tableName,
         #[Autowire('%env(DEFAULT_TRANSPORT)%')] ?string                               $defaultTransport = null,
+        #[Option(description: 'use image database')] bool                         $image = false,
         #[Option(description: 'workflow transition')] ?string                         $transition = null,
         // marking CAN be null, which is why we should set it when inserting
         #[Option(description: 'workflow marking')] ?string                            $marking = null,
@@ -72,7 +73,7 @@ final class IterateCommand extends InvokableServiceCommand
         $transport ??= $defaultTransport;
         // do we need the Config?  Or is it all in the StorageBox?
         $kv = $pixieService->getStorageBox($pixieCode);
-        if ($trans) {
+        if ($image) {
 //            $tKv = $pixieService->getTra
         }
         $config = $pixieService->getConfig($pixieCode);
