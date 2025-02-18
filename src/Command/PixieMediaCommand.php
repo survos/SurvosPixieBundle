@@ -125,7 +125,7 @@ final class PixieMediaCommand extends InvokableServiceCommand
         $kv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode))->getStorageBox();
 //        dump(array_keys($cache));
 
-        if (true || $merge) {
+        if ($merge) {
             $count = $kv->count($tableName);
             $kv->beginTransaction();
             $progressBar = new ProgressBar($io, $count);
@@ -137,7 +137,9 @@ final class PixieMediaCommand extends InvokableServiceCommand
                     if (in_array($code, $cache)) {
                         $thumbData[] = $cache[$code];
                     } else {
-                        $thumbData[] = $this->saisClientService->fetch('/api/media/' . $code)['thumbData'];
+                        if ($mediaData = $this->saisClientService->fetch('/api/media/' . $code)) {
+                            $thumbData[] = $mediaData['thumbData']??[];
+                        }
                         continue;
                         dd($thumbData, $imageData, $code);
                         $db = $iKv->get($code, ITableAndKeys::IMAGE_TABLE);
