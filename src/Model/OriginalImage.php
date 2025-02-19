@@ -13,7 +13,7 @@ class OriginalImage
         string $root,
     )
     {
-        assert(filter_var($this->imageUrl, FILTER_VALIDATE_URL), "bad url: " . $this->imageUrl);
+        $isValid = filter_var($this->imageUrl, FILTER_VALIDATE_URL);
 //        if (empty($this->key)) {
             $this->key = SaisClientService::calculateCode($this->imageUrl, $root);
 //        }

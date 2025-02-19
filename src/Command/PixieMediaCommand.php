@@ -79,6 +79,7 @@ final class PixieMediaCommand extends InvokableServiceCommand
         #[Argument(description: 'config code')] ?string                      $configCode,
         #[Option(description: 'dispatch resize requests')] ?bool             $dispatch = false,
         #[Option(description: 'populate the image keys with the iKv')] ?bool $merge = false,
+        #[Option(description: 'sync images from sais')] ?bool $sync = false,
         #[Option(description: 'index when finished')] bool                   $index = false,
         #[Option()] int                                                      $limit = 50,
         #[Option()] int                                                      $batch = 5,
@@ -126,8 +127,8 @@ final class PixieMediaCommand extends InvokableServiceCommand
         $kv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode))->getStorageBox();
 //        dump(array_keys($cache));
 
+        $cache = $sync ? $this->loadCache($configCode, $iKv) : [];
         if ($merge) {
-            $cache = $this->loadCache($configCode, $iKv);
             $count = $kv->count($tableName);
             $kv->beginTransaction();
             $progressBar = new ProgressBar($io, $count);
@@ -158,6 +159,7 @@ final class PixieMediaCommand extends InvokableServiceCommand
 
 //                dd(after: $data, images: $thumbData);
 
+                // set the actual data with the images references
                 $kv->set($data, $tableName);
                 if (($progressBar->getProgress() % $batch) === 0) {
                     $kv->commit(); // @todo: batch
