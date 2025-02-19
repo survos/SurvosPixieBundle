@@ -3,18 +3,23 @@
 namespace Survos\PixieBundle\Model;
 
 use App\Service\ImageService;
+use Survos\SaisBundle\Service\SaisClientService;
 
 class OriginalImage
 {
+    public ?string $key = null; // the key to the image, calculated if empty
     public function __construct(
-        public ?string $imageUrl=null, // e.g. wet, dry??
-        public ?string $key = null, // the key to the image, calculated if empty
+        public string $imageUrl, // e.g. wet, dry??
+        string $root,
     )
     {
-        if (empty($this->key)) {
-            $this->key = ImageService::calculateHash($this->imageUrl);
-        }
+        assert(filter_var($this->imageUrl, FILTER_VALIDATE_URL), "bad url: " . $this->imageUrl);
+//        if (empty($this->key)) {
+            $this->key = SaisClientService::calculateCode($this->imageUrl, $root);
+//        }
     }
+
+
 
     public function asArray(): array
     {
@@ -25,6 +30,7 @@ class OriginalImage
                 $properties[$property->getName()] = $value;
             }
         }
+        $properties['key'] = $this->getKey();
         return $properties;
 
     }

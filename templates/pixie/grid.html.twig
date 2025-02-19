@@ -55,12 +55,11 @@
                 :globals="globals"
         >
             <twig:block name="thumbnail">
-                <div class="size-125 position-relative">
+                <div class="xsize-125 position-relative">
                     {% if row.sais|length %}
                         {% for sais in row.sais %}
-
+                            {# use the first image #}
                             {% set image = row.sais[0] %}
-                            {#                {% for image in row.images??[]|slice(0, 1) %} #}
                             {% set thumb = image.tiny %}
                             {% if thumb %}
                                 {% if row.image_count|default(1) > 1 %}
