@@ -131,7 +131,7 @@
                                 <pre>{{ row.sais|json_pretty }}</pre>
                             {% for i in row.sais|default([]) %}
 {#                                {{ dump(i) }}#}
-                                <li>{{ i.json_encode }}</li>
+                                <li>{{ i|json_encode }}</li>
 {#                                {{ i.small.url }}#}
 {#                                <a href="#" onclick="updateImage(event, '{{ i.large.url }}')">#}
 {#                                    <img style="max-width: 75px" class="d-blockxx rounded-2 w-100 img-fluid" alt="" src="{{ i.small.url }}" />#}
