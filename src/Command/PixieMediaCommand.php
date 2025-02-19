@@ -173,6 +173,10 @@ final class PixieMediaCommand extends InvokableServiceCommand
                     $kv->set($data, $tableName);
 //                    ($item->getKey() == 44) && dump($imageCodes, $images);
                 }
+                if ( ($progressBar->getProgress() % $batch) === 0) {
+                    $kv->commit(); // @todo: batch
+                    $kv->beginTransaction();
+                }
             }
             $kv->commit();
         }
