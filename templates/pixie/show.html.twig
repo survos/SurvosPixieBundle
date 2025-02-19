@@ -121,10 +121,21 @@
                             </div>
                             <div class="d-flex flex-wrap gap-2 align-items-center">
 
-                            {% for i in row.images|default([]) %}
-                                <a href="#" onclick="updateImage(event, '{{ i.orig }}')">
-                                    <img style="max-width: 75px" class="d-blockxx rounded-2 w-100 img-fluid" alt="" src="{{ i.thumb }}" />
-                                </a>
+                                {% for i in row.images %}
+                                    <a href="https://sais.wip/media/{{ i.code }}/">Sais</a>
+                                    <code>{{ i.code }}</code>
+                                    <a href="{{ i.orig }}" target="_blank">{{ i.orig }}</a>
+                                {% endfor %}
+{#                                {{ dump(row.images) }}#}
+{#                                {{ dump(row.sais) }}#}
+                                <pre>{{ row.sais|json_pretty }}</pre>
+                            {% for i in row.sais|default([]) %}
+{#                                {{ dump(i) }}#}
+                                <li>{{ i.json_encode }}</li>
+{#                                {{ i.small.url }}#}
+{#                                <a href="#" onclick="updateImage(event, '{{ i.large.url }}')">#}
+{#                                    <img style="max-width: 75px" class="d-blockxx rounded-2 w-100 img-fluid" alt="" src="{{ i.small.url }}" />#}
+{#                                </a>#}
                             {% endfor %}
                             </div>
                                 {% endif %}

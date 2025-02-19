@@ -139,28 +139,13 @@ final class PixieMediaCommand extends InvokableServiceCommand
                     if (!$iKv->has($code)) {
                         dd("sync issue: ", $code, $imageData);
                     }
-
-
                     if (array_key_exists($code, $cache)) {
                         $thumbData[] = $cache[$code];
                     } else {
-                        $existing = $iKv->get($code);
-                        dd(fromIkv: $existing, code: $code);
-
-//                        continue; // we dont have it yet.
-                        if ($mediaData = $this->saisClientService->fetch('/api/media/' . $code)) {
-                            $thumbData[] = $mediaData['thumbData'] ?? [];
-                        }
-                        dd(mediaData: $mediaData, code: $code, fromDispatch: $dispatchCache[$code]??false);
-                        $kv->commit(); // @todo: batch
-                        $kv->beginTransaction();
-                        dd($thumbData, $imageData, $code);
-                        continue;
-                        $db = $iKv->get($code, ITableAndKeys::IMAGE_TABLE);
-                        if (!$db) {
-                            $this->logger->error("Missing $code in image cache and iKv");
-//                        dd($item->images(), $iKv->get($code, ITableAndKeys::IMAGE_TABLE));
-                        }
+                        $existing = $iKv->get($code); // get from iKv, loaded in getCache
+                        $thumbData[] = $existing->getData(true)[ITableAndKeys::SAIS]??[];
+//                        $kv->commit(); // @todo: batch
+//                        $kv->beginTransaction();
                     }
                 }
                 $data = $item->getData(true);
@@ -174,19 +159,6 @@ final class PixieMediaCommand extends InvokableServiceCommand
 //                dd(after: $data, images: $thumbData);
 
                 $kv->set($data, $tableName);
-
-                $imageCodes = $item->imageCodes();
-//                if ($item->imageCount()) dd($item->imageCount(), $imageCodes, $item);
-                if ($imageCodes) {
-                    dd($imageCodes);
-                    // from iKv
-                    $images = $this->mergeImageData($item, $iKv);
-                    $data = array_merge($item->getData(true), [
-                        'images' => $images,
-                    ]);
-                    $kv->set($data, $tableName);
-//                    ($item->getKey() == 44) && dump($imageCodes, $images);
-                }
                 if (($progressBar->getProgress() % $batch) === 0) {
                     $kv->commit(); // @todo: batch
                     $kv->beginTransaction();
