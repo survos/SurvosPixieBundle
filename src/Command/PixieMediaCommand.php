@@ -77,10 +77,10 @@ final class PixieMediaCommand extends InvokableServiceCommand
         ParameterBagInterface                                                $bag,
         PropertyAccessorInterface                                            $accessor,
         #[Argument(description: 'config code')] ?string                      $configCode,
-        #[Option(description: 'dispatch resize requests')] ?bool             $dispatch = false,
-        #[Option(description: 'populate the image keys with the iKv')] ?bool $merge = false,
-        #[Option(description: 'sync images from sais')] ?bool $sync = false,
-        #[Option(description: 'index when finished')] bool                   $index = false,
+        #[Option(description: 'dispatch resize requests')] ?bool             $dispatch = true,
+//        #[Option(description: 'populate the image keys with the iKv')] ?bool $merge = false,
+//        #[Option(description: 'sync images from sais')] ?bool $sync = false,
+//        #[Option(description: 'index when finished')] bool                   $index = false,
         #[Option()] int                                                      $limit = 50,
         #[Option()] int                                                      $batch = 5,
     ): int
@@ -94,6 +94,7 @@ final class PixieMediaCommand extends InvokableServiceCommand
         if ($dispatch) {
             // dispatch to sais
             $count = $iKv->count(ITableAndKeys::IMAGE_TABLE);
+            $io->title("Dispatching $count images to " . $this->saisClientService->getApiEndpoint() . "/" . $this->saisClientService->getProxyUrl());
             $progressBar = new ProgressBar($io, $count);
             $images = [];
             foreach ($iKv->iterate(ITableAndKeys::IMAGE_TABLE) as $key => $item) {

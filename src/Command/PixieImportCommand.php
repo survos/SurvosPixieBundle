@@ -56,9 +56,9 @@ final class PixieImportCommand extends InvokableServiceCommand
         #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
         #[Option(description: "max number of records per table to import")] ?int                      $limit = null,
         #[Option(description: "overwrite records if they already exist")] bool                        $overwrite = false,
-        #[Option(description: "queue 'source' strings in translation db")] ?bool                                            $populate = false,
-        #[Option(description: "dispatch translation requests")] ?bool                                            $translate=false,
-        #[Option(description: "persist images to -images.pixie.db")] ?bool                                            $persist = false,
+        #[Option(description: "queue 'source' strings in translation db")] ?bool                      $populate = false,
+        #[Option(description: "dispatch translation requests")] ?bool                                 $translate = false,
+        #[Option(description: "persist images to -images.pixie.db (pixie:media?)")] ?bool             $persist = false,
         #[Option(description: "index after import (default: true)")] ?bool                            $index = null,
         #[Option(description: "purge db file first")] bool                                            $reset = false,
         #[Option(description: "Batch size for commit")] int                                           $batch = 500,
@@ -121,7 +121,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         }
 
         $limit = $this->pixieService->getLimit($limit);
-        if ($envLimit && (($limit==0) || $envLimit<$limit)) {
+        if ($envLimit && (($limit == 0) || $envLimit < $limit)) {
             $limit = $envLimit;
         }
 //        dd($limit, $envLimit);
@@ -138,8 +138,10 @@ final class PixieImportCommand extends InvokableServiceCommand
 //                dd($limit, $idx, $finished, $batch);
                 if ($finished || (($idx % $batch) == 0)) {
                     $this->logger->info("Saving $batch, now at $idx of $limit");
-                    $kv->commit();
-                    $kv->beginTransaction();
+                    if ($kv->inTransaction()) {
+                        $kv->commit();
+                        $kv->beginTransaction();
+                    }
                 };
 //                return true; // return true to continue
                 return $limit ? !$finished : true; // break if we've hit the limit
@@ -176,7 +178,7 @@ final class PixieImportCommand extends InvokableServiceCommand
             $this->runCommand($cli);
         }
         if ($translate) {
-            $cli = "pixie:translate --translate $configCode";
+            $cli = "pixie:translate $configCode";
             $this->io()->warning('bin/console ' . $cli);
             $this->runCommand($cli);
         }
@@ -184,7 +186,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         // hyperlink syntax: <href=THE_LINK_URL> THE_LINK_TEXT </>
         $locale = $config->getSource()->locale;
         $url = str_replace('https://', 'https://' . $locale . '.', $this->baseUrl);
-        $url .=  "/$configCode";
+        $url .= "/$configCode";
         $this->io()->writeln(sprintf("<href=%s>%s</>", $url, $url));
         $kv->close();
         return self::SUCCESS;

@@ -11,11 +11,13 @@
         wiki : ux_icon("simple-icons:wikidata"),
         github: ux_icon("tabler:brand-github"),
         ds1: ux_icon("tabler:database"),
+        class: ux_icon("carbon:subclassification"),
         citation: ux_icon("formkit:url"),
         rights: ux_icon("tabler:copyright"),
         restriction: ux_icon("tabler:copyright"),
         collection_id: ux_icon("tdesign:collection"),
         mat: ux_icon('et:hazardous'),
+        pla: ux_icon('ep:place'),
         tag: ux_icon('tabler:tags'),
     } %}
     {#    #        collection_id: ux_icon("bi:collection"), #}
@@ -106,10 +108,10 @@
                                         {{ attr.name }}
                                     </code>
                                 {% endif %}
-
                                 <span class="{{ attr.name }}" style="max-width: 100px;" title="{{ attr.name }}">
                     {{ row[attr.name] }}
                 </span>
+
                             </li>
                         {% endif %}
                     {% endfor %}
