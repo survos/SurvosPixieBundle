@@ -123,59 +123,7 @@ final class PixieMediaCommand extends InvokableServiceCommand
         }
 
         //
-
-        $kv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode))->getStorageBox();
-//        dump(array_keys($cache));
-
-        $cache = $sync ? $this->loadCache($configCode, $iKv) : [];
-        if ($merge) {
-            $count = $kv->count($tableName);
-            $kv->beginTransaction();
-            $progressBar = new ProgressBar($io, $count);
-            foreach ($kv->iterate($tableName) as $item) {
-                $thumbData = [];
-                foreach ($item->images() as $imageData) {
-                    $progressBar->advance();
-                    $code = $imageData->code;
-                    if (!$iKv->has($code)) {
-                        dd("sync issue: ", $code, $imageData);
-                    }
-                    if (array_key_exists($code, $cache)) {
-                        $thumbData[] = $cache[$code];
-                    } else {
-                        $existing = $iKv->get($code); // get from iKv, loaded in getCache
-                        $thumbData[] = $existing->getData(true)[ITableAndKeys::SAIS]??[];
-//                        $kv->commit(); // @todo: batch
-//                        $kv->beginTransaction();
-                    }
-                }
-                $data = $item->getData(true);
-                $data[ITableAndKeys::SAIS] = $thumbData;
-
-//                $images = $this->mergeImageData($item, $iKv);
-//                $data = array_merge($item->getData(true), [
-//                    'images' => $images,
-//                ]);
-
-//                dd(after: $data, images: $thumbData);
-
-                // set the actual data with the images references
-                $kv->set($data, $tableName);
-                if (($progressBar->getProgress() % $batch) === 0) {
-                    $kv->commit(); // @todo: batch
-                    $kv->beginTransaction();
-                }
-            }
-            $kv->commit();
-        }
-
-        $this->io()->writeln("\n\nfinished");
-        if ($index) {
-            $batchSize = 500;
-            $cli = "pixie:index $configCode --table $tableName --reset --batch=$batchSize";
-            $this->io()->warning('bin/console ' . $cli);
-            $this->runCommand($cli);
-        }
+        $this->io()->writeln("\n\nfinished, now run pixie:merge --images --sync");
         return self::SUCCESS;
 
     }
@@ -212,49 +160,5 @@ final class PixieMediaCommand extends InvokableServiceCommand
         return $images;
     }
 
-    /**
-     * @param false|array|string $configCode
-     * @param StorageBox $iKv
-     * @return array
-     */
-    public function loadCache(string $configCode, StorageBox $iKv): array
-    {
-        $cache = [];
-        $page = 0;
-        $itemsPerPage = 100;
-        $count = 0;
-        $totalItems = null;
-        do {
-            $page++;
-            $path = sprintf('/api/media?page=%d&itemsPerPage=%d&root=%s', $page, $itemsPerPage, $configCode);
-            $response = $this->saisClientService->fetch($path, accept: 'application/ld+json');
-            $iKv->select(ITableAndKeys::IMAGE_TABLE);
-            // we can update or cache
-
-            $count += count($response['member']);
-            if (is_null($totalItems)) {
-                $progressBar = new ProgressBar($this->io()->output(), $totalItems = $response['totalItems']);
-            }
-            $progressBar->advance(count($response['member']));
-            $iKv->beginTransaction();
-            foreach ($response['member'] as $row) {
-
-                $code = $row['code'];
-                if (!$iKv->has($code)) {
-                    continue;
-                    $calcCode = SaisClientService::calculateCode($row['originalUrl'], $row['root']);
-                    dd(notIniKv: $code, row: $row, calcCode: $calcCode);
-                }
-                $existing = $iKv->get($code)->getData(true);
-
-                $existing[ITableAndKeys::SAIS] = $row['thumbData'];
-                $iKv->set($existing);
-                $cache[$code] = $row['thumbData'];
-            }
-            $iKv->commit();
-        } while ($count < $totalItems);
-        $progressBar->finish();
-        return $cache;
-    }
 
 }

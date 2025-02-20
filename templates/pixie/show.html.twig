@@ -121,21 +121,33 @@
                             </div>
                             <div class="d-flex flex-wrap gap-2 align-items-center">
 
+                                {% if app.request.get('debug') %}
                                 {% for i in row.images %}
-                                    <a href="https://sais.wip/media/{{ i.code }}/">Sais</a>
+                                    <a href="{{ survos_image_info(i.code) }}" target="_blank">
+                                        Sais
                                     <code>{{ i.code }}</code>
-                                    <a href="{{ i.orig }}" target="_blank">{{ i.orig }}</a>
+                                    </a>
                                 {% endfor %}
 {#                                {{ dump(row.images) }}#}
 {#                                {{ dump(row.sais) }}#}
                                 <pre>{{ row.sais|json_pretty }}</pre>
+                                {% endif %}
                             {% for i in row.sais|default([]) %}
+{#                                <img src="{{ i.small.url }}" />#}
 {#                                {{ dump(i) }}#}
-                                <li>{{ i|json_encode }}</li>
+{#                                <li>{{ i|json_encode }}</li>#}
 {#                                {{ i.small.url }}#}
-{#                                <a href="#" onclick="updateImage(event, '{{ i.large.url }}')">#}
-{#                                    <img style="max-width: 75px" class="d-blockxx rounded-2 w-100 img-fluid" alt="" src="{{ i.small.url }}" />#}
-{#                                </a>#}
+                                {% if i.small.url|default(false) %}
+                                <a href="#" onclick="updateImage(event, '{{ i.large.url }}')">
+                                    <img style="max-width: 75px" class="d-blockxx rounded-2 w-100 img-fluid" alt="" src="{{ i.small.url }}" />
+                                </a>
+                                    <a title="{{ i.orig }}" href="{{ i.orig }}" target="_blank">
+                                        {{ i.orig }}
+
+                                        <twig:icon name="mdi:external-link" />
+                                    </a>
+
+                                {% endif %}
                             {% endfor %}
                             </div>
                                 {% endif %}
