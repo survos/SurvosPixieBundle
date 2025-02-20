@@ -2,13 +2,10 @@
 
 namespace Survos\PixieBundle\Controller;
 
-use App\Entity\Core;
-use App\Entity\Instance;
-use App\Metadata\PixieInterface;
-use League\Csv\Reader;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
+use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Model\Property;
@@ -23,6 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -43,10 +41,11 @@ class PixieController extends AbstractController
     public function __construct(
         private readonly ParameterBagInterface  $bag,
         private readonly PixieService           $pixieService,
-        private EventDispatcherInterface $eventDispatcher,
-        private PixieTranslationService $translationService,
-        private readonly ?UrlGeneratorInterface  $urlGenerator=null,
-        private readonly ?MessageBusInterface $bus=null,
+        private EventDispatcherInterface        $eventDispatcher,
+        private PixieTranslationService         $translationService,
+        private readonly RequestStack $requestStack,
+        private readonly ?UrlGeneratorInterface $urlGenerator=null,
+        private readonly ?MessageBusInterface   $bus=null,
         private readonly ?WorkflowHelperService $workflowHelperService = null,
         private readonly ?ChartBuilderInterface $chartBuilder = null,
     )
@@ -512,6 +511,8 @@ class PixieController extends AbstractController
 
     private function getChartData(Property $property, string $tableName, StorageBox $kv, int $limit=100): ?array
     {
+        $locale = $this->requestStack->getCurrentRequest()->getLocale();
+        $kv->select(PixieInterface::PIXIE_STRING_TABLE);
 
         if (!$indexName = $property->getIndex()) {
             return null;
@@ -529,8 +530,22 @@ class PixieController extends AbstractController
         if (count($counts) === 0) {
             return null;
         }
+        $pks = array_map(fn($x) => $x['value'], $counts);
+        try {
+            $translatedStrings  =  $kv->iterate(
+                pks: $pks
+            );
+        } catch (\Exception $e) {
+            $translatedStrings = [];
+        }
+
+        $tStr = [];
+        foreach ($translatedStrings as $tKey => $tItem) {
+            $tStr[$tItem->hash()] = $tItem->text();
+        }
         foreach ($counts as $count) {
-            $labels[] = $count['value']; // the property name
+            $value = $count['value'];
+            $labels[] = $tStr[$value] ?? $value; // the property name
             $values[] = $count['count'];
             // @todo: composer require phpcolor/bootstrap-colors
             $colors[] = sprintf('rgb(%d, %d, %d)',
