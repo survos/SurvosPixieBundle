@@ -24,6 +24,8 @@
 <h1>{{ pixieCode }}.{{ tableName }} {{ row.key }}: {{ row.label|default('') }}</h1>
 {% endblock %}
 {% block body %}
+
+    {% set debug = app.request.get('debug') %}
 <script>
     function updateImage(e, image) {
         e.preventDefault();
@@ -123,9 +125,20 @@
                                          title="{{ first.large.size|default(0) }} bytes"
                                     />
                                 </div>
-                                {% endif %}
+                                    {% for i in row.images %}
+                                        <ul class="inline-list">
 
-                            {% if images|length %}
+                                        {% if i.orig|default(false) %}
+                                        <li>
+                                            <a href="{{ i.orig }}" title="{{ i.orig }}" target="_blank">
+                                                {{ ux_icon('mdi:external-link') }}
+                                            </a>
+                                        </li>
+                                            </ul>
+                                        {% endif %}
+                                    {% endfor %}
+                            {% elseif images|length %}
+
                             <div class="mb-2">
                                 <img id="imageOrig" class="img-fluid rounded-2"
                                      src="{{ images[0].orig }}"
@@ -133,7 +146,7 @@
                             </div>
                             <div class="d-flex flex-wrap gap-2 align-items-center">
 
-                                {% if app.request.get('debug') %}
+                                {% if debug %}
                                 {% for i in row.images %}
                                     <a href="{{ survos_image_info(i.code) }}" target="_blank">
                                         Sais
@@ -155,7 +168,6 @@
                                     {% if i.orig|default(false) %}
                                     <a title="{{ i.orig }}" href="{{ i.orig }}" target="_blank">
                                         {{ i.orig }}
-
                                         <twig:icon name="mdi:external-link" />
                                     </a>
                                         {% endif %}
@@ -195,10 +207,11 @@
                         </div>
                     </div>
                     <div class="walters-right col-xl-7 col-lg-6">
+                            {% if debug %}
                         <h1>{{ pixieCode }}/{{ tableName|trans }} <code>{{ row.key }}</code>
                             <twig:SourceTranslation :hash="row.label" field="label"/>
-
                         </h1>
+                        {% endif %}
                         {% with {data: row.data} %}
                             {{ block('details') }}
                         {% endwith %}
@@ -349,7 +362,8 @@
         <ul class="list-group">
             {% for var in keys|default([]) %}
                 <li class="list-group-item px-0 py-1 border-0">
-                    <code>data.{{ var }}</code>: <span class="fw-medium">
+                    <code>data.{{ var }}</code>:
+                    <span class="fw-medium">
                         {% set value = attribute(data, var) %}
                         {{ block('value') }}
                     </span>
@@ -357,7 +371,7 @@
             {% endfor %}
         </ul>
 
-        <pre>{{ row.data|json_pretty }}</pre>
+        {{ row.data|json_pretty }}
     </details>
 
         {% set templates = ["pixie/%s/%s.html.twig"|format(pixieCode, tableName),  "pixie/%s.html.twig"|format(pixieCode)] %}
@@ -410,7 +424,7 @@
     <h3 class="fw-medium mb-2" title="text_title">{{ value }}</h3>
 {% endblock %}
 {% block text_label %}
-    <h4 class="fw-medium mb-2" title="text_label">{{ value }}</h4>
+    <h1 class="fw-mediumxx mb-2" title="text_label">{{ value }}</h1>
 {% endblock %}
 {% block text_description %}
     <p class="mb-4 text-muted" title="description">{{ value }}</p>
@@ -425,7 +439,10 @@
             {% if block('text_' ~ var)  is defined %}
                 {{ block('text_' ~ var) }}
                 {% else %}
-                <code>{{ var }}</code><i>{{ value }}</i>
+                    {% if value %}
+                <code>{{ var }}</code>
+                    <i>{{ value }}</i>
+            {% endif %}
             {% endif %}
 
 {#            {% set translatedValue = attribute(_fields, var)|default('x') %}#}
@@ -576,8 +593,12 @@
 
 {% block attr %}
     <div class="my-4">
-        {{ row.sais|json_pretty }}
-        {{ row.data|json_pretty }}
+        {% if debug %}
+            {{ row.images|json_pretty }}
+            {{ row.sais|json_pretty }}
+            {{ row.data|json_pretty }}
+        {% endif %}
+
 
         <h4 class="fw-semibold my-3 text-capitalize">Attributes</h4>
 
