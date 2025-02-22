@@ -13,7 +13,8 @@ class IndexEvent extends Event
         public ?string $subCode,
         public string $pixieFilename,
         public string $tableName,
-        public array $stats
+        public array $stats,
+        public int $imageCount, // $iKv->count()
     )
     {
     }

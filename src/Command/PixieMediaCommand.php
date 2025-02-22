@@ -82,7 +82,7 @@ final class PixieMediaCommand extends InvokableServiceCommand
 //        #[Option(description: 'sync images from sais')] ?bool $sync = false,
 //        #[Option(description: 'index when finished')] bool                   $index = false,
         #[Option()] int                                                      $limit = 50,
-        #[Option()] int                                                      $batch = 5,
+        #[Option()] int                                                      $batch = 10,
     ): int
     {
         $tableName = 'obj'; // could have images elsewhere.
@@ -94,25 +94,27 @@ final class PixieMediaCommand extends InvokableServiceCommand
         if ($dispatch) {
             // dispatch to sais
             $count = $iKv->count(ITableAndKeys::IMAGE_TABLE);
+            $count = $limit ? min($limit, $count) : $count;
             $io->title("Dispatching $count images to " . $this->saisClientService->getApiEndpoint() . "/" . $this->saisClientService->getProxyUrl());
             $progressBar = new ProgressBar($io, $count);
             $images = [];
-            foreach ($iKv->iterate(ITableAndKeys::IMAGE_TABLE) as $key => $item) {
+            foreach ($iKv->iterate(ITableAndKeys::IMAGE_TABLE, order: ['ROWID' => 'desc']) as $key => $item) {
+
                 $data = $item->getData();
                 $images[] = $item->imageUrl();
                 $progressBar->advance();
                 if (($progressBar->getProgress() === $limit) || ($progressBar->getProgress() % $batch) === 0) {
                     $results = $this->saisClientService->dispatchProcess(new ProcessPayload(
                         $configCode,
-                        $images,
-                        ['tiny', 'small', 'large']
+                        $images
                     ));
-                    $this->logger->warning(count($results) . ' images processed');
+                    $this->logger->info(count($results) . ' images dispatched');
                     foreach ($results as $result) {
                         $dispatchCache[$result['code']] = $result['thumbData'];
+//                        dd($result);
+                        $this->logger->info(
+                            sprintf("%s %s %s", $result['code'], $result['originalUrl'], $result['root']));
                     }
-                    $this->logger->info(
-                        sprintf("%s %s %s", $result['code'], $result['originalUrl'], $result['root']));
                     $images = [];
                     if ($limit && ($limit <= $progressBar->getProgress())) {
 //                    dd($limit, $batch, $progressBar->getProgress());

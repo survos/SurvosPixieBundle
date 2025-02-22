@@ -75,7 +75,7 @@ final class PixieImportCommand extends InvokableServiceCommand
         $envLimit = getenv('IMPORT_LIMIT'); // use export IMPORT_LIMIT
         $populate ??= true;
         $translate ??= false;
-        $index = is_null($index) ? false : $index;
+        $index = is_null($index) ? true : $index;
 
         $config = $pixieService->getConfig($configCode);
         assert($config, "Missing $configCode");

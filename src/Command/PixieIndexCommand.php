@@ -285,7 +285,11 @@ final class PixieIndexCommand extends InvokableServiceCommand
             $this->eventDispatcher->dispatch(new IndexEvent($configCode,
                 $subCode,
                 $kv->getFilename(),
-                $tableName, $stats));
+                $tableName,
+                stats: $stats,
+                imageCount: $iKv->count(PixieInterface::IMAGE_TABLE)
+        )
+        );
 
             if ($this->io()->isVerbose()) {
                 $table = new Table($this->io());
