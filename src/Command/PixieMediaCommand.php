@@ -129,7 +129,7 @@ final class PixieMediaCommand extends InvokableServiceCommand
                 assert($imageUrl, json_encode($data, JSON_PRETTY_PRINT));
                 $images[] = [
                     'url' => $imageUrl,
-                    'context' => $data['context'],
+                    'context' => $data['context']??[],
                     ];
 //                $xxh3 = SaisClientService::calculateCode($imageUrl, $configCode);
                 $progressBar->advance();

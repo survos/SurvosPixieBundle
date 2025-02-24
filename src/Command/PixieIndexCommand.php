@@ -171,7 +171,8 @@ final class PixieIndexCommand extends InvokableServiceCommand
                     foreach ($data->images as $image) {
                         $iKvItem = $iKv->get($image->code);
 //                        $tableName=='obj' && dd($data);
-                        $data->{ITableAndKeys::RESIZED_KEY}[] = $iKvItem->resized();
+                        // or merge?   ugh.
+                        $data->{ITableAndKeys::RESIZED_KEY}[] = $iKvItem->resized()??[];
 //                        dd($iKvItem, $data);
                     }
                 }
