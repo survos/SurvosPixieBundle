@@ -2,11 +2,14 @@
 
 namespace Survos\PixieBundle\Command;
 
+use App\Metadata\ITableAndKeys;
 use JsonMachine\Items;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\Event\ImportFileEvent;
 use Survos\PixieBundle\Event\RowEvent;
+use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
@@ -33,13 +36,14 @@ final class PixieImportCommand extends InvokableServiceCommand
     use RunsProcesses;
 
     private bool $initialized = false; // so the event listener can be called from outside the command
-    private ?ProgressBar $progressBar = null;
+    private ?ProgressBar $progressBar=null;
     private $total = 0; // hack to bypass count for large JSON files, e.g. smk
 
     public function __construct(
         private LoggerInterface                            $logger,
         private ParameterBagInterface                      $bag,
         private readonly PixieService                      $pixieService,
+        private EventDispatcherInterface $eventDispatcher,
         #[Autowire('%env(SITE_BASE_URL)%')] private string $baseUrl,
     )
     {
@@ -189,6 +193,10 @@ final class PixieImportCommand extends InvokableServiceCommand
         $url .= "/$configCode";
         $this->io()->writeln(sprintf("<href=%s>%s</>", $url, $url));
         $kv->close();
+
+        $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode, mode: ITableAndKeys::PIXIE_IMAGE))->getStorageBox();
+        $iKv->select(ITableAndKeys::IMAGE_TABLE);
+        $this->io()->writeln("Images in iKv: " . $iKv->count(ITableAndKeys::IMAGE_TABLE));
         return self::SUCCESS;
     }
 
@@ -200,7 +208,9 @@ final class PixieImportCommand extends InvokableServiceCommand
             return;
         }
         $this->io()->title(sprintf("%s -> %s", $event->filename, $event->pixieDbName));
-        if (!$count = $this->total) {
+//        dd($count, $this->total);
+        if (!$this->total) {
+
             if ($event->getType() == 'json') {
                 // faster to get the first record and filesize and divide, for a rough estimate.
                 $iterator = Items::fromFile($event->filename)->getIterator();
@@ -228,9 +238,12 @@ final class PixieImportCommand extends InvokableServiceCommand
             }
         }
 
+        $count= $count??$this->total??0;
+        $this->io()->writeln("Init progressBar with " . $count);
         $this->progressBar = new ProgressBar($this->io()->output(), $count);
-        $this->progressBar->setFormat(OutputInterface::VERBOSITY_VERY_VERBOSE);
-        $this->progressBar->start();
+//        $this->progressBar->setProgress(0);
+//        $this->progressBar->setFormat(OutputInterface::VERBOSITY_VERBOSE);
+//        $this->progressBar->start();
 //        $this->progressBar->start($count);
     }
 
@@ -248,9 +261,23 @@ final class PixieImportCommand extends InvokableServiceCommand
     {
         switch ($event->type) {
             case $event::PRE_LOAD:
+                if (empty($this->progressBar)) {
+//                    $this->progressBar = new ProgressBar($this->io()->output());
+                }
                 break;
             case $event::LOAD:
                 $this->progressBar?->advance();
+                if (($event->index % 1000) == 0) {
+
+//                    dump($this->progressBar->getProgress(), $this->progressBar->getMaxSteps());
+//                    $this->io()->writeln(sprintf("pause %d %d",
+//                        $this->progressBar?->getProgress(),
+//                        $this->progressBar?->getMaxSteps()
+//                    ));
+//                    usleep(100000);
+//                    $this->progressBar->finish();
+//                    dd();
+                }
                 break;
             case $event::POST_LOAD:
                 $this->progressBar?->finish();

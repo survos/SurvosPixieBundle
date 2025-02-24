@@ -493,14 +493,15 @@ class PixieController extends AbstractController
         ];
     }
 
-    #[Route('/schema/{pixieCode}', name: 'pixie_images')]
+    #[Route('/images/{pixieCode}', name: 'pixie_images')]
     #[Template('@SurvosPixie/pixie/images.html.twig')]
     public function images(
         string                   $pixieCode,
+        #[MapQueryParameter] int $limit = 100,
     ): array
     {
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
-        $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($pixieCode, mode: PixieInterface::PIXIE_IMAGE))->getStorageBox();
+        $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($pixieCode, mode: PixieInterface::IMAGE_TABLE))->getStorageBox();
         return [
             'iKv' => $iKv,
             'kv' => $this->pixieService->getStorageBox($pixieCode),

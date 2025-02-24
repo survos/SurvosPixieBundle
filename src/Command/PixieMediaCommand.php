@@ -16,7 +16,9 @@ use App\Service\PennService;
 use App\Service\ProjectConfig\PennConfigService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\GridGroupBundle\Service\CsvDatabase;
+use Survos\PixieBundle\Event\ImageEvent;
 use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
@@ -25,6 +27,7 @@ use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\StorageBox;
+use Survos\SaisBundle\Model\AccountSetup;
 use Survos\SaisBundle\Model\ProcessPayload;
 use Survos\SaisBundle\Service\SaisClientService;
 use Survos\Scraper\Service\ScraperService;
@@ -64,7 +67,7 @@ final class PixieMediaCommand extends InvokableServiceCommand
         private EventDispatcherInterface     $eventDispatcher,
         private PixieService                 $pixieService,
         private SaisClientService            $saisClientService,
-        private readonly HttpClientInterface $httpClient,
+        private readonly HttpClientInterface $httpClient, private readonly MessageBusInterface $messageBus,
     )
     {
         parent::__construct();
@@ -89,28 +92,58 @@ final class PixieMediaCommand extends InvokableServiceCommand
         $configCode ??= getenv('PIXIE_CODE');
         $config = $this->pixieService->getConfig($configCode);
         $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode, mode: ITableAndKeys::PIXIE_IMAGE))->getStorageBox();
+        $iKv->select(ITableAndKeys::IMAGE_TABLE);
+        $approx = (int)$config->getSource()->approx_image_count;
+        if (!$approx) {
+            $approx = $iKv->count();
+            $this->io()->error("Missing source|approx_image_count in config.  currently " . $iKv->count());
+            return self::FAILURE;
+        }
+
+        // setup an account on sais with an approx for path creation
+        $results = $this->saisClientService->accountSetup(new AccountSetup(
+            $configCode,
+            $approx,
+            mediaCallbackUrl: null
+        ));
 
         $dispatchCache = [];
         if ($dispatch) {
             // dispatch to sais
-            $count = $iKv->count(ITableAndKeys::IMAGE_TABLE);
-            $count = $limit ? min($limit, $count) : $count;
-            $io->title("Dispatching $count images to " . $this->saisClientService->getApiEndpoint() . "/" . $this->saisClientService->getProxyUrl());
+            $actualCount = $iKv->count(ITableAndKeys::IMAGE_TABLE);
+            $count = $limit ? min($limit, $actualCount) : $actualCount;
+            $io->title(sprintf("Dispatching $count images %s::%s ",
+                $this->saisClientService->getProxyUrl(),
+                $this->saisClientService->getApiEndpoint()
+            ))
+            ;
             $progressBar = new ProgressBar($io, $count);
             $images = [];
-            foreach ($iKv->iterate(ITableAndKeys::IMAGE_TABLE, order: ['ROWID' => 'desc']) as $key => $item) {
+            // we should dispatch a request for an API key, and set the callbacks and approx values
 
-                $data = $item->getData();
-                $images[] = $item->imageUrl();
+
+            foreach ($iKv->iterate(ITableAndKeys::IMAGE_TABLE, order: ['ROWID' => 'desc']) as $key => $item) {
+                $data = $item->getData(true);
+                SurvosUtils::assertKeyExists('originalUrl', $data);
+                $imageUrl = $data['originalUrl'];
+                assert($imageUrl, json_encode($data, JSON_PRETTY_PRINT));
+                $images[] = [
+                    'url' => $imageUrl,
+                    'context' => $data['context'],
+                    ];
+//                $xxh3 = SaisClientService::calculateCode($imageUrl, $configCode);
                 $progressBar->advance();
                 if (($progressBar->getProgress() === $limit) || ($progressBar->getProgress() % $batch) === 0) {
                     $results = $this->saisClientService->dispatchProcess(new ProcessPayload(
                         $configCode,
-                        $images
+                        $images,
                     ));
                     $this->logger->info(count($results) . ' images dispatched');
                     foreach ($results as $result) {
-                        $dispatchCache[$result['code']] = $result['thumbData'];
+                        $imageCode = $result['code'];
+//                        $dispatchCache[$result['code']] = $result['thumbData'];
+                        // dispatch an event that the application (like museado) can listen for to keep the data updated without polling
+                        $this->messageBus->dispatch(new ImageEvent($configCode, $imageCode, $iKv, $result));
 //                        dd($result);
                         $this->logger->info(
                             sprintf("%s %s %s", $result['code'], $result['originalUrl'], $result['root']));

@@ -23,6 +23,8 @@ class Source
         public ?string $propertyCodeRule = 'snake', // during import, snake, camel or preserve keys (for properties)
         public int $total = 0,
         public array           $links=[],
+        public ?int $approx_image_count=null,
+
     )
     {
         $this->instructions = trim($this->instructions);

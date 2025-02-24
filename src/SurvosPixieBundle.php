@@ -341,6 +341,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
             ->scalarNode('units')->info("mm or cm")->defaultValue('cm')->end()
             ->scalarNode('label')->end()
             ->scalarNode('flickr_album_id')->end()
+            ->scalarNode('approx_image_count')->end()
             ->scalarNode('license')->info("license in md format, e.g. 'CC BY-NC-SA' ")->end()
             ->scalarNode('moderation')->defaultValue('all')->info("moderate before flickr upload (none|all)")->end()
             ->scalarNode('description')->end()

@@ -112,9 +112,14 @@
                         <div class="card shadow-sm">
                             <div class="card-body text-center">
                             <h5 class="mb-2">
+
                             {% set images = row.data(true).images|default([]) %}
                             {{ 'num_of_img'|trans(count=row.image_count|default(0)) }}
                             </h5>
+                                {{ dump(row.resized) }}
+                                {% for liipCode, url in row.resized %}
+
+                                {% endfor %}
                                 {% set sais = row.sais %}
                                 {% if sais|length %}
                                     {% set first = sais[0] %}

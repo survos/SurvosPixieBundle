@@ -5,9 +5,10 @@
 {% block body %}
     Images
 
+    {name: 'marking', title: '@'},
     {% set columns = {
         image: [
-            {name: 'marking', title: '@'},
+            'marking',
         'key',
         'imageUrl',
         ],
@@ -20,7 +21,8 @@
         ]
     } %}
 
-    {% for tableName, table in iKv.tables %}
+{#    {% for tableName, table in iKv.tables %}#}
+    {% for tableName in ['image'] %}
         <h3>{{ tableName }} {{ iKv.count(tableName) }}</h3>
         <li>
         <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">

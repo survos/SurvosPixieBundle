@@ -2,6 +2,7 @@
 
 namespace Survos\PixieBundle\Command;
 
+use App\Metadata\ITableAndKeys;
 use Meilisearch\Endpoints\Indexes;
 use Psr\Log\LoggerInterface;
 use Survos\ApiGrid\Service\MeiliService;
@@ -161,10 +162,19 @@ final class PixieIndexCommand extends InvokableServiceCommand
                 tags: ['fetch'] //??
             ))->getStorageBox();
 
+            $iKv->select(ITableAndKeys::IMAGE_TABLE);
 
             foreach ($kv->iterate($tableName) as $itemKey=>$row) {
 
                 $data = $row->getData();
+                if ($data->images_count??0) {
+                    foreach ($data->images as $image) {
+                        $iKvItem = $iKv->get($image->code);
+//                        $tableName=='obj' && dd($data);
+                        $data->{ITableAndKeys::RESIZED_KEY}[] = $iKvItem->resized();
+//                        dd($iKvItem, $data);
+                    }
+                }
 //                ($itemKey=='638384caab8f2aac') && dump($tableName, $row, $row->getData(true)[PixieInterface::TRANSLATED_STRINGS]??null);
 
 //                $this->logger->info($row->getKey() . "\n\n" . json_encode($row, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES));

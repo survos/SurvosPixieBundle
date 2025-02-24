@@ -4,6 +4,8 @@
 
 {% block body %}
 
+<a href="{{ path('pixie_images', {pixieCode: pixieCode}) }}" class="btn btn-lg btn-success">Images</a>
+
     <div
     hx-get="{{ path('pixie_config_search', {pixieCode: pixieCode}) }}"
     hx-target="#search-results"
@@ -11,6 +13,7 @@
     <div id="search-results">
 
     </div>
+
 
 
     <p>
