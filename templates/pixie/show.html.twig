@@ -58,7 +58,6 @@
 {#        <twig:pixie:db :pixieCode="pixieCode" />#}
 {#        <twig:SurvosPixie:db :pixieCode="pixieCode" />#}
 {#        </twig:SurvosPixie:db>#}
-{#        {{ dump(row.data) }}#}
         <twig:pixie:row
                 :data="row.data">
         </twig:pixie:row>
@@ -116,7 +115,7 @@
                             {% set images = row.data(true).images|default([]) %}
                             {{ 'num_of_img'|trans(count=row.image_count|default(0)) }}
                             </h5>
-                                {{ dump(row.resized) }}
+                                @todo: resized
                                 {% for liipCode, url in row.resized %}
 
                                 {% endfor %}
@@ -158,12 +157,9 @@
                                     <code>{{ i.code }}</code>
                                     </a>
                                 {% endfor %}
-{#                                {{ dump(row.images) }}#}
-{#                                {{ dump(row.sais) }}#}
                                 {% endif %}
                             {% for i in row.sais|default([]) %}
 {#                                <img src="{{ i.small.url }}" />#}
-{#                                {{ dump(i) }}#}
 {#                                <li>{{ i|json_encode }}</li>#}
 {#                                {{ i.small.url }}#}
                                 {% if i.small.url|default(false) %}
@@ -633,7 +629,6 @@
 {% endblock %}
 
 {# {% block '' %} #}
-{# {{ dump(keys) }} #}
 {# {% endblock %} #}
 
 {% block PRIMARY %}

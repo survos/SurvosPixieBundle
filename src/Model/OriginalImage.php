@@ -11,7 +11,7 @@ class OriginalImage
     public function __construct(
         public string $imageUrl, // e.g. wet, dry??
         public string $root,
-        public ?array $context, // for context, to get back to the original record.  we could add context like label and description, too.  id or key at least
+        public ?array $context=[], // for context, to get back to the original record.  we could add context like label and description, too.  id or key at least
     )
     {
         $isValid = filter_var($this->imageUrl, FILTER_VALIDATE_URL);
