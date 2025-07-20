@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @author Antoine Makdessi <amakdessi@me.com>
+ * @author Tac <tacman@gmail.com>
  */
 final class PixieDataCollector extends AbstractDataCollector
 {

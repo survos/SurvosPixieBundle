@@ -59,6 +59,7 @@
             <twig:block name="thumbnail">
                 <div class="size-125 position-relative">
 
+                    <img class="img-thumbnail h-100 object-fit-cover size-100" src="{{ row.thumbUrl }}" />
 
                     {% if row.resized|length %}
                         {% set image = row.resized[0] %}

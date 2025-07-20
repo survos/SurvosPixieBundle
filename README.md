@@ -1,4 +1,4 @@
-# Pixie Bundle
+# Entity Bundle
 
 A Symfony bundle that leverages Sqlite to create an indexed structured datastore without an ORM.  In particular, it is a solution for analyzing Excel spreadsheets and nest JSON data.
 
@@ -10,7 +10,7 @@ Inspired by https://gist.github.com/sbrl/c3bfbbbb3d1419332e9ece1bac8bb71c and ht
 
 A parallel file with a -translation suffix stores the source strings and translation strings.  The source table is populated during the import process, or with 
 
-The --translate dispatches the requests for translations.  The --index currently MUST happen in pixie translate (not the normal pixie:index) in order for the translations from the translations table populate the regular pixie file (in the _transations block)
+The --translate dispatches the requests for translations.  The --index currently MUST happen in pixie translate (not the normal pixie:index) in order for the translations from the translations table populate the regular pixie file (in the _translations block)
 
 ![img.png](img.png)
 
@@ -97,7 +97,7 @@ Initially, it was just a string lookup, which could be a JSON string, for exampl
 
 You can customize the import process by adding a .conf file with directives that facilitate renaming fields and munging data.  You can also listen for events during the import and export process.
 
-Pixie can (will, eventually) use json schema files to defining the fields. https://json-schema.org/ using LiFormBundle
+Entity can (will, eventually) use json schema files to defining the fields. https://json-schema.org/ using LiFormBundle
 
 The indexes can be defined via the command line, a listener, or a .conf file.  There's a succinct format that is a comma-separated string, and a detailed format with is a hash with the index details as keys.
 
@@ -105,7 +105,7 @@ There is (will be) an API endpoint if api-platform is installed.
 
 Integration with survos/translation-bundle
 
-To import a collection of csv files in a directory to a Pixie database, we'll need to do the following
+To import a collection of csv files in a directory to a Entity database, we'll need to do the following
 
 * each csv file becomes a table, which we often rename
 * rename the columns 
@@ -117,7 +117,7 @@ To import a collection of csv files in a directory to a Pixie database, we'll ne
 * create indexes for filter queries
 * meili index the pixie file
 
-## Pixie-specific naming
+## Entity-specific naming
 
 When creating the table, we add a json snippet after the property creation to indicate some attributes.
 To support related tables and translation, there are some specific columns names we use that are (maybe?) prefixed by _ or __:
@@ -183,7 +183,7 @@ bin/console pixie:import movies --limit 10
 symfony open:local --path="/pixie/movies"
 ```
 
-## Loading a Pixie
+## Loading a Entity
 
 As the data directories (where the csv/json files are located) can be anywhere, there are a few way to indicate them.
 
@@ -216,10 +216,10 @@ Translations are also stored as pixie tables, and have their own section.
 * https://www.stats.govt.nz/large-datasets/csv-files-for-download/
 * https://www.stats.govt.nz/assets/Uploads/Research-and-development-survey/Research-and-development-survey-2021/Download-data/Research-and-development-survey-2021-CSV-notes.csv
 
-### Reading an Existing Pixie
+### Reading an Existing Entity
 
 ```php
-$pixie = new Pixie::Reader('school.pixie');
+$pixie = new Entity::Reader('school.pixie');
 $pixie->select('mo')
 foreach ($pixie->)
 ```

@@ -92,7 +92,7 @@ class SearchController extends AbstractController
         $apiUrl = $this->iriConverter->getIriFromResource(MeiliItem::class, operation:$operation, context: [
             'uri_variables' => ['indexName' => $indexName, 'tableName' => $tableName, 'pixieCode' => $pixieCode],
         ]);
-        $config = $this->pixieService->getConfig($pixieCode);
+        $config = $this->pixieService->selectConfig($pixieCode);
         $table = $config->getTable($tableName);
         assert($table, "Missing $tableName in $pixieCode");
         $footerColumns  = $attrColumns = $textColumns = [];
@@ -295,7 +295,7 @@ class SearchController extends AbstractController
         $index = $this->meiliService->getIndex($indexName);
         $items = $index->search(null);
 
-        $config = $this->pixieService->getConfig($pixieCode);
+        $config = $this->pixieService->selectConfig($pixieCode);
         $table = $config->getTable($tableName);
 
 

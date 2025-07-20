@@ -15,7 +15,7 @@ We need a schema to define the output csv database, which we can create by namin
 
 ```php
 
-$Pixie = new Pixie('movie_and_genre');
+$Entity = new Entity('movie_and_genre');
 $grid = (new \Survos\PixieBundle\Model\Grid('movie'));
 $grid->addRow()
 ```

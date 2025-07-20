@@ -24,26 +24,30 @@
         <twig:simple_datatables
                 :perPage="25"
                 :caller="_self"
-                :data="kv.iterate(max=app.request.get('perPage', 200))"
+                :data="data"
                 :columns="columns"
         >
             <twig:block name="field">
-                {{ row.data.tableName }}.{{ row.field }}
+                {{ row.field|default('~') }}
+{#                {{ row.data.tableName }}.{{ row.field }}#}
             </twig:block>
             <twig:block name="text">
-                {{ row.text|slice(0, 30) }}
+
+                {{ row.original|slice(0, 30) }}
             </twig:block>
             <twig:block name="trans">
-                {% if row.trans %}
-                {% set tr = row.trans|json_decode %}
-                    {% for locale, text in tr %}
-                        <li>{{ locale }}:{{ text|slice(0, 30) }}</li>
-                    {% endfor %}
-                {% endif %}
+                {{ row.t|json_encode }}
+{#                {% if row.trans %}#}
+{#                {% set tr = row.trans|json_decode %}#}
+{#                    {% for locale, text in tr %}#}
+{#                        <li>{{ locale }}:{{ text|slice(0, 30) }}</li>#}
+{#                    {% endfor %}#}
+{#                {% endif %}#}
             </twig:block>
             <twig:block name="debug">
+                {{ row|json_encode }}
                 {#                    {{ dump(row.data(true)) }} #}
-                {{ row.data|length ? row.data|json_encode }}
+{#                {{ row.data|length ? row.data|json_encode }}#}
             </twig:block>
         </twig:simple_datatables>
     </li>

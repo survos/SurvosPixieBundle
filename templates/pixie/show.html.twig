@@ -116,10 +116,10 @@
                             {{ 'num_of_img'|trans(count=row.image_count|default(0)) }}
                             </h5>
                                 @todo: resized
-                                {% for liipCode, url in row.resized %}
+                                {% for liipCode, url in row.resized|default([]) %}
 
                                 {% endfor %}
-                                {% set sais = row.sais %}
+                                {% set sais = row.sais|default([]) %}
                                 {% if sais|length %}
                                     {% set first = sais[0] %}
                                 <div class="mb-2">
@@ -141,7 +141,7 @@
                                             </ul>
                                         {% endif %}
                                     {% endfor %}
-                            {% elseif images|length %}
+                            {% elseif false and images|length %}
 
                             <div class="mb-2">
                                 <img id="imageOrig" class="img-fluid rounded-2"
@@ -295,7 +295,7 @@
         weight: 'material-symbols:scale'
     } %}
     {{ row.dimensions_string|default('') }}
-    {% if row.dimensions %}
+    {% if row.dimensions|default([]) %}
         {% for dimension in row.dimensions %}
             <p class="mb-2 d-flex align-items-center flex-wrap gap-2">
 {#                                {{ ux_icon('tabler:ruler-measure', {width: "30px"}) }}#}
@@ -500,7 +500,8 @@
                     {% if value is iterable %}
                         {% set vv = [] %}
                         {% for v in value %}
-                                {% set translations = v.t() %}
+                                {% set translations = false %}
+{#                                {% set translations = v.t() %}#}
                                 {% if translations %}
                                     {% set value = attribute(translations, locale).label|default(false) %}
                                     {% if value %}
@@ -513,12 +514,13 @@
                         {% set value = vv %}
                     {% else %} {#  value is a simple Item #}
 
-                        {% set translations = value.t() %}
+                        {% set translations = false %}
+{#                        {% set translations = value.t() %}#}
                         {% if  translations %}
                         {% set value = attribute(translations, locale).label|default(false) %}
                         {% else %}
-                            <twig:SourceTranslation :hash="value.key"/>.
-                        MISSING {{ locale }} translation for {{ value.key }}
+{#                            <twig:SourceTranslation :hash="value.key"/>.#}
+                        MISSING {{ locale }} translation for {{ value }}
                         {% endif %}
 {#                    {{ value }}#}
                 {% endif %}

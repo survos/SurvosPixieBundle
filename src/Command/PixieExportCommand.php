@@ -3,19 +3,12 @@
 namespace Survos\PixieBundle\Command;
 
 use Psr\Log\LoggerInterface;
-use Survos\PixieBundle\Event\CsvHeaderEvent;
-use Survos\PixieBundle\Event\ImportFileEvent;
-use Survos\PixieBundle\Event\RowEvent;
-use Survos\PixieBundle\Model\Config;
-use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
-use Survos\PixieBundle\StorageBox;
+use Survos\PixieBundle\Service\PixieService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Yaml\Yaml;
 use Zenstruck\Console\Attribute\Argument;
 use Zenstruck\Console\Attribute\Option;
 use Zenstruck\Console\InvokableServiceCommand;
@@ -61,7 +54,7 @@ final class PixieExportCommand extends InvokableServiceCommand
         $configCode ??= getenv('PIXIE_CODE');
         $this->initialized = true;
         $kv = $pixieService->getStorageBox($configCode);
-        $config = $pixieService->getConfig($configCode);
+        $config = $pixieService->selectConfig($configCode);
         assert($config, $config->getConfigFilename());
         if (empty($dirOrFilename)) {
             $dirOrFilename = $pixieService->getSourceFilesDir($configCode);
@@ -91,7 +84,7 @@ final class PixieExportCommand extends InvokableServiceCommand
 //        dump($configData, $config->getVersion());
 //        dd($dirOrFilename, $config, $configFilename, $pixieService->getPixieFilename($configCode));
 
-        // Pixie databases go in datadir, not with their source? Or defined in the config
+        // Entity databases go in datadir, not with their source? Or defined in the config
         if (!is_dir($dirOrFilename)) {
             $io->error("$dirOrFilename does not exist.  set the directory in config or pass it as the first argument");
             return self::FAILURE;
@@ -100,7 +93,7 @@ final class PixieExportCommand extends InvokableServiceCommand
 
         // export?
 
-        $io->success('Pixie:export success ' . $configCode);
+        $io->success('Entity:export success ' . $configCode);
         return self::SUCCESS;
     }
 

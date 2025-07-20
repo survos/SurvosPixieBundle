@@ -9,8 +9,8 @@ class ImportFileEvent extends Event
 {
 
     public function __construct(
-        public string $filename,
-        public string $pixieDbName
+        public string  $filename,
+        public ?string $pixieDbName = null
     )
     {
     }
@@ -21,7 +21,7 @@ class ImportFileEvent extends Event
         return match ($ext) {
             'json' => 'json',
             'csv',
-                'txt' => 'csv',
+            'txt' => 'csv',
         };
 
     }

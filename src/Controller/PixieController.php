@@ -2,21 +2,33 @@
 
 namespace Survos\PixieBundle\Controller;
 
+use Survos\PixieBundle\Repository\OriginalImageRepository;
+use Survos\PixieBundle\Repository\RowRepository;
+use Survos\PixieBundle\Repository\CoreRepository;
+//use Survos\PixieBundle\Service\SqliteService;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Survos\PixieBundle\Entity\Owner;
+use Survos\PixieBundle\Entity\Row;
+use Survos\PixieBundle\Entity\Core;
 use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Model\Property;
+use Survos\PixieBundle\Repository\StrRepository;
+use Survos\PixieBundle\Service\CoreService;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\PixieTranslationService;
+use Survos\PixieBundle\Service\SqliteService;
 use Survos\PixieBundle\StorageBox;
 use Survos\WorkflowBundle\Service\WorkflowHelperService;
 use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -42,8 +54,16 @@ class PixieController extends AbstractController
         private readonly ParameterBagInterface  $bag,
         private readonly PixieService           $pixieService,
         private EventDispatcherInterface        $eventDispatcher,
+        #[Target('pixieEntityManager')]
+        private EntityManagerInterface          $pixieEntityManager,
+        private StrRepository $strRepository,
+        private RowRepository                   $rowRepository,
+        private SqliteService                   $sqliteService,
         private PixieTranslationService         $translationService,
-        private readonly RequestStack $requestStack,
+        private readonly RequestStack           $requestStack,
+        private readonly CoreRepository $coreRepository,
+        private readonly CoreService $coreService, private readonly
+        OriginalImageRepository $originalImageRepository,
         private readonly ?UrlGeneratorInterface $urlGenerator=null,
         private readonly ?MessageBusInterface   $bus=null,
         private readonly ?WorkflowHelperService $workflowHelperService = null,
@@ -70,6 +90,15 @@ class PixieController extends AbstractController
         return null;
     }
 
+    private function selectDatabase(string $pixieCode): EntityManagerInterface
+    {
+        // really it sets it
+        return $this->sqliteService->setPixieEntityManager($pixieCode);
+        dump($pixieCode);
+//        return $this->pixieEntityManager;
+
+    }
+
     #[Route('/property/{pixieCode}/{tableName}/{propertyCode}', name: 'pixie_show_property', requirements: ['key' => '.+'])]
     #[Template('@SurvosPixie/pixie/property.html.twig')]
     public function schema_property(
@@ -90,6 +119,11 @@ class PixieController extends AbstractController
             }
         }
         assert($property, $propertyCode);
+        $cores = [];
+        foreach ($this->coreRepository->findAll() as $core) {
+            $cores[$core->getCode()] = $core;
+        }
+        dd($cores);
 
         $chart = $this->getChartData($property, $tableName, $kv, limit:  $limit);
         return
@@ -98,6 +132,7 @@ class PixieController extends AbstractController
             'property' => $property,
             'tableName' => $tableName,
             'pixieCode' => $pixieCode,
+                'cores' => $cores,
             'chart' => $chart
         ];
 
@@ -137,28 +172,42 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int     $limit = 5
     ): array|Response
     {
-        $kv = $this->pixieService->getStorageBox($pixieCode);
-        $kv->select($tableName);
-        $pk = $kv->getPrimaryKey($tableName);
-        if (is_numeric($key) && ((int)$key <= 0)) {
-            $item = $kv->getByIndex((int)$key, $tableName);
-            return $this->redirectToRoute('pixie_show_record', ['pixieCode' => $pixieCode, 'tableName' => $tableName, 'key' => $item->getKey()]);
-            // get the first record, we can use this for a thumbnail too.
-        } else {
-            $item = $kv->get($key, $tableName);
-        }
-        if (!$item) {
-            throw $this->createNotFoundException("no key $key in $tableName");
-        }
-        $conf = $this->pixieService->getConfig($pixieCode);
+        $core = null;
+        $conf = $this->pixieService->selectConfig($pixieCode);
+//        dd($this->pixieEntityManager, $tableName, $key);
+        $item = $this->rowRepository->find($key);
+//        $row = $this->rowRepository->findBy([
+//            'key' => $key,
+//            'tableName' => $tableName,
+//        ]);
+//        assert(false, "@todo: use pixieEntityManager instead");
+//        $this->rowRepository->findBy([
+//            'core' => $core,
+//            'tableName' => $tableName,
+//        'key' => $key,
+//        ]);
+//
+//        $kv = $this->pixieService->getStorageBox($pixieCode);
+//        $kv->select($tableName);
+//        $pk = $kv->getPrimaryKey($tableName);
+//        if (is_numeric($key) && ((int)$key <= 0)) {
+//            $item = $kv->getByIndex((int)$key, $tableName);
+//            return $this->redirectToRoute('pixie_show_record', ['pixieCode' => $pixieCode, 'tableName' => $tableName, 'key' => $item->getKey()]);
+//            // get the first record, we can use this for a thumbnail too.
+//        } else {
+//            $item = $kv->get($key, $tableName);
+//        }
+//        if (!$item) {
+//            throw $this->createNotFoundException("no key $key in $tableName");
+//        }
 
         // the fields themselves should have the hash codes, the _translations has the translations
-        $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
+        $this->pixieService->populateRecordWithRelations($item, $conf);
         // what a pain, we need to store this somewhere else!
 
         $table = $conf->getTables()[$tableName];
         $workflow = $table->getWorkflow();
-        assert($item::class == Item::class);
+        assert($item::class == Row::class);
         if (!$item) {
             throw new NotFoundHttpException("No item $key in $tableName / $pixieCode");
         }
@@ -195,8 +244,10 @@ class PixieController extends AbstractController
 
             return $this->redirectToRoute('pixie_show_record', $item->getRp());
         }
-        $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
-        $config = $this->pixieService->getConfig($pixieCode);
+
+        // this is repeated??
+//        $this->pixieService->populateRecordWithRelations($item, $conf, $kv);
+//        $config = $this->pixieService->selectConfig($pixieCode);
 
         // quick hack for groups
         $groups = [];
@@ -231,7 +282,6 @@ class PixieController extends AbstractController
 //        $item = (array)$item;
             return [
             'instance' => $instance??null,
-            'kv' => $kv,
             'workflowEnabled' => (bool)$workflow, // comes from config
             'workflow' => $workflow,
             'key' => $item->getKey(),
@@ -242,7 +292,7 @@ class PixieController extends AbstractController
             'item' => $item, // redundant! use row for data!
             'columns' => array_keys((array)$item),
             'groups' => $groups,
-                'config' => $config
+            'config' => $conf
         ];
 
     }
@@ -263,6 +313,7 @@ class PixieController extends AbstractController
     #[Route('/browse/{pixieCode}/{tableName}.{_format}', name: 'pixie_browse')]
     public function browse(
         Request                      $request,
+        Core $core,
         string                       $pixieCode,
         string                       $tableName,
         string                       $_format = 'html',
@@ -272,6 +323,7 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int     $offset = 0,
     ): Response
     {
+        dd($core);
         // see SearchController for meili and the public-facing browse
         $kv = $this->pixieService->getStorageBox($pixieCode);
         $where = [];
@@ -397,9 +449,9 @@ class PixieController extends AbstractController
             $kv = $this->pixieService->getStorageBox($pixieCode);
             foreach ($kv->getTables() as $tableName => $table) {
                 // how many items in the table
-                $tables[$pixieCode][$tableName]['count'] = $kv->count($tableName);
+                $tables[$pixieCode][$tableName]['count'] = -4; //  $kv->count($tableName);
                 // the key indexes
-                $indexCounts = $this->getCounts($kv, $tableName, $limit);
+                $indexCounts = []; // $this->getCounts($kv, $tableName, $limit);
                 $tables[$pixieCode][$tableName]['indexes'] = $indexCounts;
 //                foreach ($kv->getIndexes($tableName) as $indexName) {
 //                    $tables[$pixieCode][$tableName]['indexes'][$indexName] = $kv->getCounts($indexName, $tableName);
@@ -431,32 +483,80 @@ class PixieController extends AbstractController
 
     #[Route('/{pixieCode}/home', name: 'pixie_homepage')]
     #[Route('/{pixieCode}', name: 'pixie_overview')]
-    public function overview(
+    public function info(
         string                   $pixieCode,
+        ?Config $config = null,
         #[MapQueryParameter] int $limit = 100
     ): Response
     {
 
-        $kv = $this->pixieService->getStorageBox($pixieCode);
+        $conn = $this->pixieEntityManager->getConnection();
+        $sm = $conn->createSchemaManager();
+        foreach ($sm->listViews() as $view) {
+            $viewCode = $view->getName();
+            try {
+                $pdoResult = $conn->executeQuery("SELECT * FROM $viewCode limit $limit");
+                $data[$viewCode] = $pdoResult->fetchAllAssociative();
+            } catch (\Exception $exception) {
+                dd($view, $view->getSql(), $exception->getMessage());
+            }
+        }
+        // $sm->listDatabases(), is not supported by sqlite
+//        dd($data,  $sm->listViews(), $sm->listTables());
+
+        // the controller listener should do this.  We could also add $config to the params
+        $config = $this->pixieService->selectConfig($pixieCode);
+
+
+        $countsByCore = $this->pixieService->getCountsByCore();
+        foreach ($countsByCore as $code => $count) {
+            $core = $this->coreService->getCore($code, $config->getOwner());
+            $data[$code] = $core->getRows()->slice(0, $limit); // $this->rowRepository->findBy(['core.id' => $code], [], $limit);
+        }
+
+//        dump($em->getConnection()->getParams());
+//        dd($this->pixieEntityManager->getConnection()->getDriver(), $this->pixieEntityManager->getConnection());
+//        dd($em->getRepository(Row::class)->count());
+//        dd($this->pixieEntityManager->getRepository(Row::class)->count());
+//        dd($this->rowRepository->count());
+
+        // order?
+        $cores = [];
+        foreach ($this->coreRepository->findAll() as $core) {
+            $cores[] = $core;
+//            dd($core);
+        }
         $tables = [];
 
-        foreach ($kv->getTableNames() as $tableName)
-        {
-            $counts = [];
-            foreach ($kv->getIndexes($tableName) as $indexName) {
-                $counts[$indexName] = $kv->getCounts($indexName, $tableName, $limit);
-            }
+        // @todo: refactor counts to be stored with core / field / stats
+        if (false) {
+            $kv = $this->pixieService->getStorageBox($pixieCode);
+            foreach ($kv->getTableNames() as $tableName)
+            {
+                $counts = [];
+                // this are the FIELD counts, and need to be refactored for relation, category, list and probably attribute
+                foreach ($kv->getIndexes($tableName) as $indexName) {
+                    $counts[$indexName] = -1; // $kv->getCounts($indexName, $tableName, $limit);
+                }
                 $tables[$tableName] = [
-                    'count' => $kv->count($tableName),
+                    'count' => -2, // $kv->count($tableName),
                     'counts' => $counts
                 ];
+            }
+
         }
-        return $this->render('@SurvosPixie/pixie/overview.html.twig', [
+//        return $this->render('@SurvosPixie/pixie/overview.html.twig', [
+        return $this->render('@SurvosPixie/pixie/info.html.twig', [
+            'data' => $data,
+            'countsByCore' => $countsByCore,
+//            'data' => $data,
             'limit' => $limit,
-            'kv' => $kv,
+//            'kv' => $kv,
+        // @todo: harmonize cores and tables
+            'cores' => $cores,
             'tables' => $tables,
             'pixieCode' => $pixieCode,
-            'config' => $this->pixieService->getConfig($pixieCode)
+            'config' => $this->pixieService->selectConfig($pixieCode)
             ]);
     }
 
@@ -467,11 +567,27 @@ class PixieController extends AbstractController
         string                   $pixieCode,
     ): array
     {
-        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
+        // @todo: make automatic!
+        $config = $this->pixieService->selectConfig($pixieCode);
+
+        // the actual schema.  From the museum point of view, maybe not that interesting.
+//        $pixieConn = $this->pixieEntityManager->getConnection();
+//        $fromSchemaManager = $pixieConn->createSchemaManager();
+//        $fromSchema = $fromSchemaManager->introspectSchema();
+//        dd($fromSchema);
+
+
+
+        $cores = [];
+        foreach ($this->coreRepository->findAll() as $core) {
+            $cores[$core->getCode()] = $core;
+        }
             return [
-            'kv' => $this->pixieService->getStorageBox($pixieCode),
-            'config' => $this->pixieService->getConfig($pixieCode),
+                'owner' => $config->getOwner(),
+//            'kv' => $this->pixieService->getStorageBox($pixieCode),
+            'config' => $config,
             'pixieCode' => $pixieCode,
+                'cores' => $cores,
         ];
     }
 
@@ -481,14 +597,16 @@ class PixieController extends AbstractController
         string                   $pixieCode,
     ): array
     {
-        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
-        $kv = $this->pixieService->getStorageBox($pixieCode);
+//        $kv = $this->pixieService->getStorageBox($pixieCode);
+        $config = $this->pixieService->selectConfig($pixieCode);
+
         return [
             'tableName' => 'str', // @todo: move pixie metadata to bundle
             'translationColumn' => 'trans', // in 'str'
-            'table' => $kv->select('str'),
-            'kv' => $kv,
-            'config' => $this->pixieService->getConfig($pixieCode),
+//            'table' => $kv->select('str'),
+//            'kv' => $kv,
+            'data' => $this->strRepository->findBy([], [], 200),
+            'config' => $config,
             'pixieCode' => $pixieCode,
         ];
     }
@@ -500,12 +618,11 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int $limit = 100,
     ): array
     {
-        $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
-        $iKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($pixieCode, mode: PixieInterface::IMAGE_TABLE))->getStorageBox();
+        $config = $this->pixieService->selectConfig($pixieCode);
+
         return [
-            'iKv' => $iKv,
-            'kv' => $this->pixieService->getStorageBox($pixieCode),
-            'config' => $this->pixieService->getConfig($pixieCode),
+            'images' => $this->originalImageRepository->findBy([], [], $limit),
+            'config' => $config,
             'pixieCode' => $pixieCode,
         ];
     }
@@ -590,6 +707,16 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int $limit = 25
     ): array
     {
+        $this->pixieService->selectConfig($pixieCode);
+//        $core = $this->coreRepository->find($tableName);
+        $core = $this->coreService->getCore($tableName);
+        $count = $this->rowRepository->count(['core' => $core]);
+//        dd($count, $tableName, $limit);
+//        $counts = $this->rowRepository->getCounts('core');
+//        dd($counts);
+        // row or instance?
+        $count = $core->getRows()->count();
+        // now core, not table!
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
         assert(file_exists($pixieFilename));
         $kv = $this->pixieService->getStorageBox($pixieCode);

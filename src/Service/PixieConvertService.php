@@ -4,24 +4,24 @@ namespace Survos\PixieBundle\Service;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
-use App\Event\FetchTranslationEvent;
+use App\Dto\Wam\Obj;
 use App\Event\FetchTranslationObjectEvent;
-use App\Service\SourceService;
+use JsonMachine\Items;
 use League\Csv\Info;
 use League\Csv\Reader;
 use League\Csv\SyntaxError;
 use Psr\Log\LoggerInterface;
 use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\PixieBundle\Event\CsvHeaderEvent;
-use Survos\PixieBundle\Event\ImportFileEvent;
 use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\ObjectMapper\ObjectMapper;
+use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use function Symfony\Component\String\u;
-use \JsonMachine\Items;
 
 
 class PixieConvertService
@@ -50,7 +50,7 @@ class PixieConvertService
     {
 
         if (!$config) {
-            $config = $this->pixieService->getConfig($pixieCode);
+            $config = $this->pixieService->selectConfig($pixieCode);
         }
 
         // the csv/json files
@@ -71,6 +71,10 @@ class PixieConvertService
         $files->depth("<3");
         assert($files->count(), "No files (ignoring " . implode(',', $ignore) . ") in {$this->pixieService->getDataRoot()} $dirOrFilename");
 
+//        https://github.com/symfony/symfony/issues/60848
+        $mapper = new ObjectMapper(propertyAccessor: PropertyAccess::createPropertyAccessorBuilder()->disableExceptionOnInvalidPropertyPath()->getPropertyAccessor());
+
+        $dtoClass = Obj::class;
         $fileMap = [];
         foreach ($files as $splFile) {
             if ($splFile->isDir()) {
@@ -79,7 +83,8 @@ class PixieConvertService
             }
 //            assert($splFile->getExtension() <> 'csv', json_encode($ignore));
             $map[$splFile->getRealPath()] = u($splFile->getFilenameWithoutExtension())->snake()->toString();
-                foreach ($config->getFileToTableMap() as $rule => $tableNameRule) {
+//            dump($config->getFileToTableMap());
+            foreach ($config->getFileToTableMap() as $rule => $tableNameRule) {
                 if (preg_match($rule, $splFile->getFilename(), $mm)) {
 //                    dd($mm, $splFile->getFilename(), $tableName);
                     $map[$splFile->getRealPath()] = $tableNameRule;
@@ -106,6 +111,7 @@ class PixieConvertService
 //            array_flip($fileMap);
 
         }
+//        dump($filesByTablename);
 
 //        dd($filesByTablename, $fileMap);
 
@@ -117,7 +123,7 @@ class PixieConvertService
             if ($pattern && !str_contains((string) $tableName, $pattern)) {
                 continue;
             }
-//            AppService::assertKeyExists($tableName, $filesByTablename, "Missing table $tableName look for filename, not table");
+            SurvosUtils::assertKeyExists($tableName, $filesByTablename, "Missing table $tableName look for filename, not table");
             $filenames = $filesByTablename[$tableName];
             foreach ($filenames as $fn) {
 //        foreach ($fileMap as $fn => $tableName) {
@@ -171,6 +177,8 @@ class PixieConvertService
                         dd($headers);
                         }
                 }
+//                dump($rules, $headers);
+
 //                    assert(),
 //                        "look for duplicate key!\n" .
 //                        json_encode($headers, JSON_PRETTY_PRINT));
@@ -201,6 +209,7 @@ class PixieConvertService
 
                 // this is the json/csv iterator
                 foreach ($iterator as $idx => $row) {
+                    $raw = $row;
                     if ($startingAt && ($idx < $startingAt)) {
                         continue;
                     }
@@ -234,7 +243,10 @@ class PixieConvertService
                         $row = $mappedRow;
                     }
                     assert($row);
-
+                    $row = (object)$row;
+                    $e = $mapper->map($row, $dtoClass);
+//                    $row = (array)$e; // ack!
+                    $row = json_decode(json_encode($e), true);
                     // just check the first row
                     if ($idx == 0) {
                         assert(array_key_exists($pk, $row),
@@ -249,13 +261,15 @@ class PixieConvertService
                     if (!$row[$pkName]??null) {
                         // e.g. empty excel rows.  Could handle in the grid:excel-to-csv
                         $this->logger->error("Empty pk, skipping row " . $idx);
-//                        dd($row, $pkName, $idx);
+                        dd($raw, $e, $row, $pkName, $idx);
                         continue;
                     }
                     SurvosUtils::assertKeyExists($pkName, $row, "in $fn");
                     assert($row[$pkName], "no primary key in $tableName row " . json_encode($row, JSON_PRETTY_PRINT));
                     count($dataRules) && dd($dataRules);
-                    $row = $this->applyDataRules($row, $dataRules);
+//                    dump(before: $row);
+//                    $row = $this->applyDataRules($row, $dataRules);
+//                    dd(afterDataRules: $row);
                     if (!$row) {
                         dd($row, $idx, $tableName);
                         continue;
@@ -392,13 +406,18 @@ class PixieConvertService
         }
 
         if ($ext !== 'json') {
-            try {
                 $headerKeys = array_keys($headers);
-                $iterator = $csvReader->getRecords($headerKeys);
+//                $iterator = $csvReader->getRecords($headerKeys);
+            try {
+            $iterator = $csvReader->getRecords();
+//                $iterator = $csvReader->getRecordsAsObject($objClass);
 //                $tableName=='obj' && dd($rules, $mappedHeader, $headers, $headerKeys);
 
             } catch (SyntaxError $error) {
-                dd($headers, $error->getMessage());
+                asort($headerKeys);
+                $x = array_values($headers);
+                asort($x);
+                dd($x, $headers, array_values($headerKeys), $error->getMessage());
             }
         } else {
 

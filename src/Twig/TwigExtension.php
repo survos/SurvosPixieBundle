@@ -33,7 +33,7 @@ class TwigExtension extends AbstractExtension
             new TwigFilter('array_is_list', fn (mixed $s) => is_array($s) && array_is_list($s)),
             new TwigFilter('file_exists', fn (string $s) => file_exists($s)),
             new TwigFilter('json_decode', fn (string $s, bool $asArray=true) => json_decode($s, $asArray)),
-            new TwigFilter('t', function (object $obj, string $property) {
+            new TwigFilter('t', function (object|array $obj, string $property) {
                 $locale = $this->requestStack->getCurrentRequest()->getLocale();
                 if ($_tr = $obj->{PixieInterface::TRANSLATED_STRINGS}??null) {
                     // is empty, or untranslated?

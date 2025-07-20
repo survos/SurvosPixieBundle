@@ -51,18 +51,30 @@ final class PixieMenu implements KnpMenuHelperInterface
         }
 
         if (!$this->isGranted('ROLE_ADMIN')) {
-            return;
+//            return;
         }
+        $config = $this->pixieService->selectConfig($pixieCode);
+        $owner = $config->getOwner();
         $this->add($menu, 'pixie_browse_configs');
 
             $this->addHeading($menu, $pixieCode);
-            foreach (['pixie_schema','flickr_slideshow'] as $pixieRoute) {
+            foreach (['pixie_schema','flickr_slideshow','pixie_images'] as $pixieRoute) {
                 $this->add($menu, $pixieRoute, ['pixieCode' => $pixieCode]);
             }
             // get from config? Or ?
             $this->addHeading($menu, '|');
-            $kv = $this->pixieService->getStorageBox($pixieCode);
 
+            // now coreCode?  but could be other table, like category or lst, right?
+        $tableName = $event->getOption('tableName');
+        $subMenu = $this->addSubmenu($menu, $tableName ?: "choose");
+        $this->add($subMenu, 'pixie_overview', ['pixieCode' => $pixieCode]);
+        foreach ($owner->getCores() as $core) {
+            $tableRp = ['tableName' => $core->getCode(), 'pixieCode' => $pixieCode];
+            $this->add($subMenu, 'pixie_meili_browse', $tableRp, label: $core->getCode());
+        }
+
+            return;
+            $kv = $this->pixieService->getStorageBox($pixieCode);
             $tableName = $event->getOption('tableName');
                 $subMenu = $this->addSubmenu($menu, $tableName ?: "choose");
                 $this->add($subMenu, 'pixie_overview', ['pixieCode' => $pixieCode]);
@@ -97,7 +109,7 @@ final class PixieMenu implements KnpMenuHelperInterface
         }
 
         if ($tableName && $this->isGranted('ROLE_ADMIN')) {
-            $this->addHeading($menu, label: "Pixie Breadcrumbs!");
+            $this->addHeading($menu, label: "Entity Breadcrumbs!");
             $tableRp = ['tableName' => $tableName, 'pixieCode' => $pixieCode];
             $this->add($menu, 'pixie_meili_browse', $tableRp, label: 'Search ' . $tableName);
             if ($key = $event->getOption('itemKey')) {
@@ -114,6 +126,9 @@ final class PixieMenu implements KnpMenuHelperInterface
     {
         $menu = $event->getMenu();
         $options = $event->getOptions();
+        if(str_contains($event->getOption('caller'), 'pixie')) {
+//            dump($event);
+        }
         return;
 
         // we could put the specific active pixie, and a link to all pixies.

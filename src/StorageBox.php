@@ -7,6 +7,7 @@ namespace Survos\PixieBundle;
 // consider: https://github.com/morris/dop for binding arrays as parameters and sub-queries
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Schema\Schema;
+use JetBrains\PhpStorm\Deprecated;
 use \PDO;
 use Psr\Log\LoggerInterface;
 use Survos\CoreBundle\Service\SurvosUtils;
@@ -35,6 +36,7 @@ use function Symfony\Component\String\u;
  * @license Apache 2.0
  */
 
+#[Deprecated]
 class StorageBox
 {
     const MODE_REPLACE = 'replace';
@@ -57,7 +59,7 @@ class StorageBox
      * @param array $tablesToCreate The ADDITIONAL tables to create with writing.  Others may already exist.
      */
     function __construct(private readonly string                              $filename,
-                                     array                                       &$data, // debug data, passed from Pixie
+                                     array                                       &$data, // debug data, passed from Entity
                                      private ?Config                             $config = null, // for creation only.  Shouldn't be in constructor!
 //                                     private array                     $tablesToCreate = [],
 //                                     private ?array                     $regexRules = [],
@@ -77,6 +79,7 @@ class StorageBox
         $path = $this->filename;
 
         // PDO creates the db if it doesn't exist, so check after
+        if (0) // skip creating, everything should be in pixieEntityManager now
         if (!file_exists($path)) {
             $dir = pathinfo($path, PATHINFO_DIRNAME);
             if (!file_exists($dir)) {
@@ -134,7 +137,7 @@ class StorageBox
         // we are over-calling fix!
         static $fixed=[];
         if (in_array($config->code, $fixed)) {
-            return $config;
+//            return $config;
         }
         $fixed[] = $config->code;
         foreach ($config->getTables() as $tableName => $table) {
@@ -145,6 +148,7 @@ class StorageBox
 
 //            $tableName=='obj' && dd($internalProperties, table: $table, uses: $table->getUses(), extends: $table->getExtends());
 //            $tableName=='obj' && dd($config, $table, $tableName, $newProperties);
+            if (false) // this handles extends, which we dont use with the doctrine schema
             if ($extends = $table->getExtends()) {
                 SurvosUtils::assertKeyExists($extends, $templates);
                 /** @var Table $templateTable */
@@ -182,12 +186,13 @@ class StorageBox
                     $table->setPkName($primaryKey);
                     $property->setIndex('PRIMARY');
                 }
+
             }
 
 //            $tableX = $config->tables[$tableName];
             $table->setProperties($newProperties);
             $table->setName($tableName);
-            assert($table->getPkName(), $tableName);
+            assert($table->getPkName(), $tableName . " is missing a pkName " . $config->code);
 //            $tableName=='image' && dump(__LINE__, __METHOD__, $newProperties, $table->getPkName());
 //            dd($tableX, $table);
             assert(count($newProperties), "no new properties $tableName");
@@ -214,16 +219,16 @@ class StorageBox
 
     public function createTables(Config $config): void
     {
-        if ($this->db->inTransaction()) {
-            $this->db->commit();
-        }
-            $sth = $this->db->query($sql = "SELECT name FROM sqlite_master where type='table'");
-        try {
-        } catch (\Exception $e) {
-            throw new \Exception("Unable to create/use : " . $config->code . "\n" . $e->getMessage());
-        }
-        $this->schemaTables = $sth->fetchAll(PDO::FETCH_COLUMN); // load the existing tables
-        $this->beginTransaction();
+//        if ($this->db->inTransaction()) {
+//            $this->db->commit();
+//        }
+//            $sth = $this->db->query($sql = "SELECT name FROM sqlite_master where type='table'");
+//        try {
+//        } catch (\Exception $e) {
+//            throw new \Exception("Unable to create/use : " . $config->code . "\n" . $e->getMessage());
+//        }
+//        $this->schemaTables = $sth->fetchAll(PDO::FETCH_COLUMN); // load the existing tables
+//        $this->beginTransaction();
         if ($hasTranslations = true) {
             $table = (new Table(
                 name: ($tableName = PixieInterface::PIXIE_STRING_TABLE) ,
@@ -272,22 +277,22 @@ class StorageBox
 //            }
 
         }
-        $this->commit();
+//        $this->commit();
 
         // auto-create, or at least validate
+        if (0)
         foreach ($config->getTables() as $tableName => $table) {
             assert($table instanceof Table, $tableName);
             foreach ($table->getProperties() as $property) {
                 assert($property instanceof Property, json_encode($property));
 
                 if ($list = $property->getListTableName()) {
-                    assert($this->hasTable($list), "until auto-create works, create a table for each list, $list");
+//                    assert($this->hasTable($list), "until auto-create works, create a table for each list, $list");
 //                $listTable = $this->getTable($tableName);
                 }
             }
         }
 
-        assert(!$this->db->inTransaction());
     }
 
     public function addFormatter(callable $callable)
@@ -354,11 +359,11 @@ class StorageBox
 
     public function select(string $tableName): self
     {
-        $tables = $this->getTableNames(); // not cached!
-        assert(count($tables), "no tables in $this->filename");
-        if (!in_array($tableName, $tables)) {
-            throw new \LogicException("$tableName $this->filename is not in tables:\n\n" . implode("\n", $tables));
-        };
+//        $tables = $this->getTableNames(); // not cached!
+//        assert(count($tables), "no tables in $this->filename");
+//        if (!in_array($tableName, $tables)) {
+//            throw new \LogicException("$tableName $this->filename is not in tables:\n\n" . implode("\n", $tables));
+//        };
         $this->currentTable = $tableName;
         return $this;
 
@@ -664,13 +669,13 @@ class StorageBox
         );
 //        ($tableName=='str') && dd($sql, $table->getIndexes());
 //        dd($columns, $indexSql, $sql, $primaryKey);
-        try {
-            $result = $this->db->exec($sql);
-//if ($tableName === 'obj') dd($sql);
-        } catch
-        (\Exception $exception) {
-            dd($exception, $sql, $columns, $indexSql);
-        }
+//        try {
+//            $result = $this->db->exec($sql);
+////if ($tableName === 'obj') dd($sql);
+//        } catch
+//        (\Exception $exception) {
+//            dd($exception, $sql, $columns, $indexSql);
+//        }
 //        ($tableName==='obj') && dd($sql, $result, $indexes);
 //        dump($tableName, $sql);
         // still in a transaction, can't do this yet, wait until all tables are created.
@@ -743,6 +748,7 @@ class StorageBox
      */
     public function query(string $sql, array $variables = []): \PDOStatement
     {
+        assert(false, $sql);
         static $preparedStatements = [];
         // cache prepared statements
         if (empty($preparedStatements[$this->filename][$sql])) {
@@ -907,6 +913,7 @@ class StorageBox
         // _raw, if patch then read first and merge
     ): mixed
     {
+        assert(false, "@todo: move to pixieEm\n$key\n\n" . json_encode($value, JSON_PRETTY_PRINT));
         // this isn't true for image and translation tables
 //        SurvosUtils::assertKeyExists(PixieTranslationService::TRANSLATION_KEY, $value);
 //        dump($value[PixieTranslationService::TRANSLATION_KEY], $value); assert(false);
@@ -928,6 +935,8 @@ class StorageBox
         $table = $this->getTable($tableName);
         $keyName = $table->getPkName();
         $props = $table->getPropertiesByCode();
+
+        // remove extra columns from json with https://sqlite.org/forum/info/5928225848d0409f
 
         // e.g. updating marking
         if ($mode === self::MODE_PATCH) {
@@ -1245,7 +1254,7 @@ class StorageBox
     public function getTableNames(): array
     {
         // this does a query!!
-//        assert(false, $this->filename);
+        assert(false, $this->filename);
         $sth = $this->query("SELECT name FROM sqlite_master WHERE type='table';");
         $tableNames = $sth->fetchAll(PDO::FETCH_COLUMN);
         return $tableNames;

@@ -2,33 +2,26 @@
 
 namespace Survos\PixieBundle\Command;
 
+use App\Event\RowEvent;
 use JsonMachine\Items;
 use Psr\Log\LoggerInterface;
-use Survos\PixieBundle\Event\CsvHeaderEvent;
 use Survos\PixieBundle\Event\ImportFileEvent;
-use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Service\PixieConvertService;
 use Survos\PixieBundle\Service\PixieService;
-use Survos\PixieBundle\Service\PixieImportService;
-use Survos\PixieBundle\StorageBox;
+use Symfony\Component\Console\Attribute\Argument;
+use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
-use Zenstruck\Console\Attribute\Argument;
-use Zenstruck\Console\Attribute\Option;
-use Zenstruck\Console\InvokableServiceCommand;
-use Zenstruck\Console\IO;
-use Zenstruck\Console\RunsCommands;
-use Zenstruck\Console\RunsProcesses;
 
 #[AsCommand('pixie:prepare', 'process /raw to /json via the rules key')]
-final class PixiePrepareCommand extends InvokableServiceCommand
+final class PixiePrepareCommand
 {
-    use RunsCommands;
-    use RunsProcesses;
 
     private bool $initialized = false; // so the event listener can be called from outside the command
     private ?ProgressBar $progressBar = null;
@@ -38,27 +31,25 @@ final class PixiePrepareCommand extends InvokableServiceCommand
         private LoggerInterface       $logger,
         private ParameterBagInterface $bag,
         private readonly PixieService $pixieService,
-        private array $openFiles = [], // keep json files open, close at the end
+        private readonly PixieConvertService $pixieConvertService,
+        private array                 $openFiles = [], // keep json files open, close at the end
     )
     {
 
-        parent::__construct();
     }
 
     public function __invoke(
-        IO                                                                                           $io,
-        PixieService                                                                                 $pixieService,
-        PixieConvertService $pixieConvertService,
-        #[Argument(description: 'config code')] ?string                                               $configCode,
-        #[Argument(description: 'sub code, e.g. musdig inst id')] ?string        $subCode=null,
-        #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
-        #[Option(description: "max number of records per table to import")] ?int                     $limit = null,
-        #[Option(description: "overwrite records if they already exist")] bool                       $overwrite = false,
-        #[Option(description: "index after import (default: true)")] ?bool                           $index = null,
-        #[Option(description: "purge db file first")] bool                                           $reset = false,
-        #[Option(description: "Batch size for writing JSON")] int                                          $batch = 500,
-        #[Option('start', description: "starting at (offset)")] int                                  $startingAt = 0,
-        #[Option(description: "table search pattern")] string                                        $pattern = '',
+        SymfonyStyle                                                                     $io,
+        #[Argument('config code')] ?string                                               $configCode,
+        #[Argument('sub code, e.g. musdig inst id')] ?string                             $subCode = null,
+        #[Option('conf directory, default to directory name of first argument')] ?string $dir = null,
+        #[Option("max number of records per table to import")] ?int                      $limit = null,
+        #[Option("overwrite records if they already exist")] bool                        $overwrite = false,
+        #[Option("index after import (default: true)")] ?bool                            $index = null,
+        #[Option("purge db file first")] bool                                            $reset = false,
+        #[Option("Batch size for writing JSON")] int                                     $batch = 500,
+        #[Option("starting at (offset)", name: 'start')] int                             $startingAt = 0,
+        #[Option("table search pattern")] string                                         $pattern = '',
 
     ): int
     {
@@ -71,12 +62,14 @@ final class PixiePrepareCommand extends InvokableServiceCommand
 //            $configCode = pathinfo($dir, PATHINFO_BASENAME);
 //        }
 
+        $pixieService = $this->pixieService;
+        $pixieConvertService = $this->pixieConvertService;
         $index = is_null($index) ? true : $index;
-        $config = $pixieService->getConfig($configCode);
+        $config = $pixieService->selectConfig($configCode);
         $sourceDir = $pixieService->getSourceFilesDir($configCode, subCode: $subCode);
 //        dd($sourceDir);
-        $rawDir = $sourceDir ."/raw";
-        $jsonDir = $sourceDir ."/json";
+        $rawDir = $sourceDir . "/raw";
+        $jsonDir = $sourceDir . "/json";
         assert(file_exists($rawDir), "Missing $rawDir, run git clone or bunny download");
         assert(is_dir($sourceDir), "Invalid source dir: $sourceDir");
 
@@ -93,7 +86,7 @@ final class PixiePrepareCommand extends InvokableServiceCommand
 //            $config = $configWithCsv;
 //        }
 //
-//        if (!file_exists($config) && (file_exists($configInPackages = $this->bag->get('kernel.project_dir') . "/config/packages/Pixie/$config"))) {
+//        if (!file_exists($config) && (file_exists($configInPackages = $this->bag->get('kernel.project_dir') . "/config/packages/Entity/$config"))) {
 //            $config = $configInPackages;
 //        }
 //
@@ -128,24 +121,24 @@ final class PixiePrepareCommand extends InvokableServiceCommand
             }
         }
         $limit = $this->pixieService->getLimit($limit);
-        $this->progressBar = new ProgressBar($this->io()->output(), $limit);
-
-        $pixieConvertService->convert($configCode, $subCode,  null, limit: $limit, startingAt: $startingAt,
+        $this->progressBar = new ProgressBar($io, $limit);
+        
+        $pixieConvertService->convert($configCode, $subCode, null, limit: $limit, startingAt: $startingAt,
 //            context: [
 //                'tags' => $tags ? explode(",", $tags) : [],
 //            ],
             overwrite: $overwrite,
             pattern: $pattern,
-            callback: function ($row, $idx,  Config $config, string $tableName)
-                use ($batch, $limit, $jsonDir, $explodeRules) {
-                if (!$openFile = $this->openFiles[$tableName]??false) {
+            callback: function ($row, $idx, Config $config, string $tableName)
+            use ($batch, $limit, $jsonDir, $explodeRules) {
+                if (!$openFile = $this->openFiles[$tableName] ?? false) {
                     if (!file_exists($jsonDir)) {
                         mkdir($jsonDir, 0777, true);
                     }
                     $stream = fopen($jsonFilename = $jsonDir . "/$tableName.json", "w");
                     fwrite($stream, "[\n");
                     $openFile = [
-                        'stream'=> $stream,
+                        'stream' => $stream,
                         'fileName' => $jsonFilename,
                         'fields' => [],
                         'count' => 0];
@@ -154,16 +147,16 @@ final class PixiePrepareCommand extends InvokableServiceCommand
                 $this->progressBar->advance();
 
                 // we need to know the fields that are being used
-                foreach ($row as $var=>$val) {
+                foreach ($row as $var => $val) {
                     if (empty($val)) {
                         unset($row[$var]);
                     } else {
                         if ($explode = $explodeRules[$tableName][$var] ?? false) {
                             $row[$var] = array_map(
-                                fn($x) => ctype_digit(trim($x))?
+                                fn($x) => ctype_digit(trim($x)) ?
                                     (int)$x :
                                     trim($x),
-                                explode($explode, (string) $row[$var]));
+                                explode($explode, (string)$row[$var]));
                         }
                         if (!array_key_exists($var, $this->openFiles[$tableName]['fields'])) {
                             $this->openFiles[$tableName]['fields'][$var] = 0;
@@ -205,9 +198,9 @@ final class PixiePrepareCommand extends InvokableServiceCommand
             JSON_PRETTY_PRINT));
 
         $consoleTable->render();
-        $io->success($this->getName() . "success.\n$filesFilename");
+        $io->success(self::class . " success.\n$filesFilename");
 
-        return self::SUCCESS;
+        return Command::SUCCESS;
     }
 
 

@@ -17,7 +17,7 @@ rm -rf temp-edu
 
 # Setup a configuration file
 
-Pixie needs a configuration file to understand how to import the data.
+Entity needs a configuration file to understand how to import the data.
 
 By default, config files are located in config/packages/pixie/<code> and the source files are at /data/<code>.  The pixie file (a sqlite database) is located at /pixie/<code>.pixie.db
 

@@ -4,10 +4,15 @@ namespace Survos\PixieBundle\Service;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\SchemaTool;
 use Psr\Log\LoggerInterface;
 use Survos\BootstrapBundle\Event\KnpMenuEvent;
 use Survos\PixieBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
+use Survos\PixieBundle\Entity\Owner;
+use Survos\PixieBundle\Entity\Row;
 use Survos\PixieBundle\Event\StorageBoxEvent;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Meta\PixieInterface;
@@ -16,6 +21,7 @@ use Survos\PixieBundle\Model\Item;
 use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Model\Source;
 use Survos\PixieBundle\Model\Table;
+use Survos\PixieBundle\Repository\CoreRepository;
 use Survos\PixieBundle\StorageBox;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -41,20 +47,25 @@ class PixieService
     public function __construct(
 //        #[Autowire('%kernel.debug%')] private readonly bool                                        $isDebug,
 
-        private readonly bool                       $isDebug = false,
-        private array                               $data = [],
-        private readonly string                     $extension = "pixie.db",
-        private readonly string                     $dbDir = 'pixie',
-        private readonly string                     $dataRoot = 'data', //
-        private readonly string                     $configDir = 'config/packages/pixie',
-        private array                               $bundleConfig = [],
+        private EntityManagerInterface                           $pixieEntityManager,
+        private SqliteService                                    $sqliteService,
+        private readonly CoreRepository                          $coreRepository,
+        private readonly bool                                    $isDebug = false,
+        private array                                            $data = [],
+        private readonly string                                  $extension = "pixie.db",
+        private readonly string                                  $dbDir = 'pixie',
+        private readonly string                                  $dataRoot = 'data', //
+        private readonly string                                  $configDir = 'config/packages/pixie',
+        private array                                            $bundleConfig = [],
+        #[Autowire('%env(DATABASE_PIXIE_URL)%')] private ?string $pixieTemplateUrl = null,
         #[Autowire('%kernel.project_dir%')]
-        private readonly ?string                    $projectDir = null,
-        private readonly ?LoggerInterface           $logger = null,
-        private readonly ?Stopwatch                 $stopwatch = null,
-        private readonly ?PropertyAccessorInterface $accessor = null,
-        private readonly ?SerializerInterface       $serializer = null,
-        private readonly ?WorkflowHelperService     $workflowHelperService = null,
+        private readonly ?string                                 $projectDir = null,
+        private readonly ?LoggerInterface                        $logger = null,
+        private readonly ?Stopwatch                              $stopwatch = null,
+        private readonly ?PropertyAccessorInterface              $accessor = null,
+        private readonly ?SerializerInterface                    $serializer = null,
+        private readonly ?WorkflowHelperService                  $workflowHelperService = null,
+        private ?Config                                          $config = null,
 //        private ?DenormalizerInterface                      $denormalizer = null,
     )
     {
@@ -63,6 +74,7 @@ class PixieService
 //        assert($this->logger);
 //        $this->denormalizer = $this->serializer; // ->denormalize($this->data, DenormalizerInterface::class);
     }
+
 
     /**
      * if null, use the value in survos_pixie.yaml, so dev can be less
@@ -76,12 +88,18 @@ class PixieService
 
     }
 
+    public function getPixieEntityManager(): EntityManagerInterface
+    {
+        return $this->pixieEntityManager;
+
+    }
+
     public function getPixieFilename(string $pixieCode, ?string $filename = null, bool $autoCreateDir = false): string
     {
         if (!$filename) {
             $filename = $pixieCode;
         }
-        $dir = $this->getPixieDbDir() . "/$pixieCode";
+        $dir = $this->getPixieDbDir(); // no longer nested . "/$pixieCode";
         if ($autoCreateDir && !is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
@@ -151,6 +169,8 @@ class PixieService
                            ?Config $config = null,
     ): StorageBox
     {
+        // ideally we could drop this and get the configuration data without the file
+        // this selects the proper database so when others access the em it is the right one
         assert(!str_contains($pixieCode, "/"), "pass in pixieCode, not filename");
 //        assert($filename, $pixieCode . " $filename ");
 
@@ -158,7 +178,7 @@ class PixieService
             $filename = $this->getPixieFilename($pixieCode, $subCode);
         }
         if ($createFromConfig && !$config) {
-            $config = $this->getConfig($pixieCode);
+            $config = $this->selectConfig($pixieCode);
         }
         // always parse config so we have it.  certainly could be optimized
 //        if ($createFromConfig)
@@ -166,7 +186,7 @@ class PixieService
             if (!$config) {
 //                assert(false, "Pass in config for now.");
                 // filename? Or code???  ugh,
-                $config = $this->getConfig($pixieCode);
+                $config = $this->selectConfig($pixieCode);
 
             }
             // the array! someday the model.
@@ -216,6 +236,12 @@ class PixieService
         return $this->data;
     }
 
+    public function getConfig(string $pixieCode): Config
+    {
+        return $this->getConfigFiles()[$pixieCode];
+
+    }
+
     /**
      * @return array<Config>
      */
@@ -258,7 +284,7 @@ class PixieService
                      ->in($this->getConfigDir())->sortByName()->reverseSorting() as $file) {
             // we can optimize later...
             $code = $file->getFilenameWithoutExtension();
-            $config = $this->getConfig($code);
+            $config = $this->selectConfig($code);
             assert($config, "invalid config $code");
 
             $resolvedDataPath = $this->resolveFilename($config->getSourceFilesDir(), 'data');
@@ -298,21 +324,61 @@ class PixieService
 
     }
 
-    // @todo: add custom dataDir, etc.
-    public function getConfig(string $pixieCode): ?Config
+    public function importConfigToCore(Config $config): void
     {
-        assert($pixieCode);
+        $coreCode = $config->getCode();
+        if (!$this->coreRepository)
+            // map config to core fields, then only use Core/Fields and not Table/Columns
+            dd($config);
+
+
+    }
+
+
+    // @todo: add custom dataDir, etc.
+    public function selectConfig(string $pixieCode, bool $switchDatabase = true): ?Config
+    {
         static $configCache = null;
+
+        $conn = $this->pixieEntityManager->getConnection();
+        $currentName = pathinfo($this->dbName($pixieCode), PATHINFO_FILENAME);
+        if ($currentName === $pixieCode) {
+//            $switchDatabase = false;
+        } else {
+//            $conn->selectDatabase($this->dbName($pixieCode));
+        }
+
+        if ($switchDatabase) {
+//            dd($currentName, $pixieCode);
+            try {
+                $this->pixieEntityManager->flush();
+                $this->pixieEntityManager->clear();
+            } catch (\Exception $e) {
+                // warn?
+            }
+            $conn = $this->pixieEntityManager->getConnection();
+            $toDbName = $this->dbName($pixieCode);
+            $conn->selectDatabase($toDbName);
+        }
+
         if (null === $configCache) {
             $configCache = $this->getConfigFiles();
         }
-
-//        if ($extends = $table->getExtends()) {
-//            // deserialize
-//        }
-
-        if ($config = $configCache[$pixieCode] ?? null) {
-            $config = StorageBox::fix($config, $this->getTemplates());
+        try {
+            // this is the owner in the sqlite file, not in the app.
+            if ($config = $configCache[$pixieCode] ?? null) {
+                $config = StorageBox::fix($config, $this->getTemplates());
+            }
+            if (!$config) {
+                return null;
+            }
+            // not sure this should be here -- selectConfig is called during migrate, and owner doesn't yet exist
+            $owner = $this->pixieEntityManager->getRepository(Owner::class)->find($pixieCode);
+            $config->setOwner($owner);
+        } catch (\Exception $e) {
+//            assert(false);
+            $this->logger->warning(" creating " . $pixieCode . "\n\n" . $e->getMessage());
+//            return null;
         }
         return $config;
 
@@ -342,6 +408,8 @@ class PixieService
         } catch (NotNormalizableValueException $exception) {
             dd($configFilename, $exception->getMessage());
         }
+        // nested array access: https://packagist.org/packages/dflydev/dot-access-data
+
         // if the properties are strings, we need to parse them
         foreach ($config->getTables() as $tableName => $table) {
             $properties = [];
@@ -439,7 +507,7 @@ class PixieService
     {
         assert(!$autoCreate);
         if (!$config) {
-            if (!$config = $this->getConfig($pixieCode)) {
+            if (!$config = $this->selectConfig($pixieCode)) {
                 return null;
             }
 
@@ -464,60 +532,6 @@ class PixieService
         return file_exists($dir) ? realpath($dir) : null;
 
 
-    }
-
-    public function populateRecordWithRelations(Item $item, Config $config, StorageBox $kv): Item
-    {
-        $table = $config->getTables()[$item->getTableName()];
-        $properties = $table->getProperties();
-        $data = (array)$item->getData();
-        foreach ($properties as $property) {
-            $propertyName = $property->getCode();
-            if (!$relatedTable = $property->getSubType()) {
-                continue;
-            }
-            {
-                // get the related item from the PK stored in the item, replace it with the actual record, but without the _id?
-                if (!$relatedId = $data[$propertyName] ?? null) {
-                    continue;
-                }
-                // json from sqlite is stored as a string.
-                if (is_string($relatedId) && json_validate($relatedId)) {
-                    $relatedId = json_decode($relatedId);
-                }
-                // the subtype table needs to exist!
-                if ($config->getTable($property->getSubType())) {
-                    // publish these properties as flickr tags, including label and description
-//                    if ($property->getCode() == 'classification') {
-//                        dd($relatedId, $propertyName, $relatedName, $property);
-//                    }
-                    if ($relatedId) {
-                        // @todo: get many-to-many right, e.g. walters coll
-                        if (is_array($relatedId)) {
-                            $data[$propertyName] = [];
-                            foreach ($relatedId as $code) {
-                                // during dev, relations may not be loaded, walters has 4000 creators
-                                if ($relatedItem = $kv->get($code, $property->getSubType())) {
-//                                    dd($data, $propertyName, $relatedItem);
-                                    $data[$propertyName][] = $relatedItem;
-//                                        $data[$propertyName][] = $relatedItem->label();
-                                } // subtype is related table
-                            }
-                        } else {
-                            assert(!is_iterable($relatedId), json_encode($relatedId));
-                            $relatedItem = $kv->get($relatedId, $property->getSubType()); // subtype is related table
-                            $relatedName = str_replace('_id', '', $propertyName);
-                            // @todo: list or 1-many
-                            $data[$relatedName] = $relatedItem;
-//                            if ($propertyName == 'classification') dd($data, $relatedName);
-                        }
-                    }
-                }
-            }
-        }
-        // need to be selective about when we save this.
-        $item->setData($data);
-        return $item;
     }
 
     #[AsMessageHandler]
@@ -595,5 +609,269 @@ class PixieService
 
     }
 
+    public function getCountsByCore(): array
+    {
+        $countsByCore = $this->pixieEntityManager->getRepository(Row::class)->createQueryBuilder('s')
+            ->join('s.core', 'core')
+            ->groupBy('core.code')
+            ->select(["core.id as coreCode, count(s) as count"])
+            ->getQuery()
+            ->getArrayResult();
+//        dd($countsByCore);
+        foreach ($countsByCore as $x) {
+            $data[$x['coreCode']] = $x;
+        }
+        return $data;
+    }
+
+    public function populateRecordWithRelations(Row $item, Config $config): Row
+    {
+        return $item;
+        $table = $config->getTables()[$item->getTableName()];
+        $properties = $table->getProperties();
+        $data = (array)$item->getData();
+        foreach ($properties as $property) {
+            $propertyName = $property->getCode();
+            if (!$relatedTable = $property->getSubType()) {
+                continue;
+            }
+            {
+                // get the related item from the PK stored in the item, replace it with the actual record, but without the _id?
+                if (!$relatedId = $data[$propertyName] ?? null) {
+                    continue;
+                }
+                // json from sqlite is stored as a string.
+                if (is_string($relatedId) && json_validate($relatedId)) {
+                    $relatedId = json_decode($relatedId);
+                }
+                // the subtype table needs to exist!
+                if ($config->getTable($property->getSubType())) {
+                    // publish these properties as flickr tags, including label and description
+//                    if ($property->getCode() == 'classification') {
+//                        dd($relatedId, $propertyName, $relatedName, $property);
+//                    }
+                    if ($relatedId) {
+                        // @todo: get many-to-many right, e.g. walters coll
+                        if (is_array($relatedId)) {
+                            $data[$propertyName] = [];
+                            foreach ($relatedId as $code) {
+                                // during dev, relations may not be loaded, walters has 4000 creators
+                                if ($relatedItem = $kv->get($code, $property->getSubType())) {
+//                                    dd($data, $propertyName, $relatedItem);
+                                    $data[$propertyName][] = $relatedItem;
+//                                        $data[$propertyName][] = $relatedItem->label();
+                                } // subtype is related table
+                            }
+                        } else {
+                            assert(!is_iterable($relatedId), json_encode($relatedId));
+                            $relatedItem = $kv->get($relatedId, $property->getSubType()); // subtype is related table
+                            $relatedName = str_replace('_id', '', $propertyName);
+                            // @todo: list or 1-many
+                            $data[$relatedName] = $relatedItem;
+//                            if ($propertyName == 'classification') dd($data, $relatedName);
+                        }
+                    }
+                }
+            }
+        }
+        // need to be selective about when we save this.
+        $item->setData($data);
+        return $item;
+    }
+
+    public function dbName(string $code, bool $throwErrorIfMissing = false): string
+    {
+        //dd($this->pixieTemplateUrl);
+        $params = $this->pixieEntityManager->getConnection()->getParams();
+        //$dbName = str_replace('pixie_template', $code, $params['path']);
+        $dbName = str_replace(pathinfo($params['path'], PATHINFO_FILENAME), $code, $params['path']);
+        if ($throwErrorIfMissing) {
+            assert(file_exists($dbName), $dbName);
+        }
+        return $dbName;
+
+    }
+
+    public function migrateDatabase(
+        Config $config)
+    {
+        // get the template first (./c d:sch:update --force --em=pixie)
+        $pixieConn = $this->pixieEntityManager->getConnection();
+        $databasePlatform = $pixieConn->getDatabasePlatform();
+        $templateName = $this->dbName('pixie_template', true);
+//        $conn->selectDatabase($templateName);
+        try {
+            $fromSchemaManager = $pixieConn->createSchemaManager();
+            $fromSchema = $fromSchemaManager->introspectSchema();
+        } catch (\Exception $e) {
+            dd($e->getMessage(), $config->getCode());
+        }
+
+        //        $conn->selectDatabase($dbName);
+        $toDbName = $this->dbName($config->getCode(), false);
+//        dd($toDbName, $templateName);
+        $schemaTool = new SchemaTool($this->pixieEntityManager);
+        // now prep for the new database
+
+        // from doctrine:schema:update
+//        $classes = $this->pixieEntityManager->getMetadataFactory()->getAllMetadata();
+//        $toSchema   = $schemaTool->getSchemaFromMetadata($classes);
+//        $sqls = $schemaTool->getUpdateSchemaSql($classes);
+//        dd($sqls);
+//        $fromSchema = $schemaTool->createSchemaForComparison($toSchema);
+//        return $this->platform->getAlterSchemaSQL($schemaDiff);
+        $comparator = $fromSchemaManager->createComparator();
+
+        $this->selectConfig($config->getCode());
+        $toConnection = $this->pixieEntityManager->getConnection();
+//        $toConnection = DriverManager::getConnection(['path' => $toDbName, 'driver' => 'pdo_sqlite']);
+//        $toConnection->selectDatabase($toDbName);
+        // https://til.simonwillison.net/sqlite/enabling-wal-mode
+        // https://www.powersync.com/blog/sqlite-optimizations-for-ultra-high-performance
+        foreach ([
+                     'pragma journal_mode = WAL',
+                     'pragma synchronous = normal',
+                     'pragma journal_size_limit = 6144000'
+                 ] as $pragma) {
+            $toConnection->executeQuery($pragma);
+
+            // @todo: PRAGMA journal_mode=delete; to turn off, maybe before export or something
+        }
+
+        $toSchemaMananger = $toConnection->createSchemaManager();
+        $toSchema = $toSchemaMananger->introspectSchema();
+//        $fromSchemaManager = $fromConnection->createSchemaManager();
+//        $fromSchema = $fromSchemaManager->introspectSchema();
+
+        assert($toSchema !== $fromSchema);
+        $schemaDiff = $comparator->compareSchemas($toSchema, $fromSchema);
+        $queries = $databasePlatform->getAlterSchemaSQL($schemaDiff);
+        foreach ($queries as $query) {
+            try {
+//            dump(diffSql: $diffSql, q: $queries);
+                $toConnection->executeQuery($query);
+            } catch (\Exception $exception) {
+                dd($exception->getMessage());
+                // it already exists.
+            }
+        }
+
+        // templates?
+        $config = StorageBox::fix($config);
+        $views = [];
+        $actualFields = ['label', 'code', 'id'];
+        foreach ($tables = $config->getTables() as $table) {
+            $fieldNames = array_map(fn(Property $property) => $property->getCode(),
+                iterator_to_array($table->getProperties()));
+
+            $fields = array_map(fn(Property $property) => in_array($property->getCode(), $actualFields)
+                ? "row." . $property->getCode()
+                : sprintf("json_extract(data, '$.%s') as %s",
+                    $property->getCode(),
+                    $property->getCode()
+                ),
+                iterator_to_array($table->getProperties()));
+//            foreach ($actualFields as $actualField) {
+//                $fieldNames[] = $actualField;
+//                $fields[] = $actualField;
+//            }
+
+            $view = 'v_' . $table->getName();
+            $views[] = "DROP view if exists $view";
+//             $x = "select json_extract(_data, '\$.$label') as label from row";
+            $views[] = sprintf("CREATE VIEW $view (%s) AS
+                SELECT %s
+                 from row where core_id = '%s'",
+                implode(', ', $fieldNames),
+                implode(', ', $fields),
+                $table->getName());
+//                 from row inner join core on (row.core_id = core.id) where core.id = '%s'",
+
+            foreach ($table->getProperties() as $property) {
+            }
+        }
+        foreach ($views as $view) {
+            try {
+                $toConnection->executeQuery($view);
+            } catch (\Exception $exception) {
+                dd($exception->getMessage(), $view);
+            }
+        }
+        return $toConnection;
+        $tables = [];
+        foreach ($fromSchema->getTables() as $table) {
+            $columns = [];
+            foreach ($table->getColumns() as $column) {
+                $tables[$table->getName()]['columns'][] = $column->getName();
+            }
+        }
+        // @todo: use our Model tables
+//        try {
+//        } catch (\Exception $exception) {
+//            dd($exception, $sourceReferences);
+//        }
+
+
+//        $queries = $schemaDiff->toSql($databasePlatform); // queries to get from one to another schema.
+
+        // now do a diff so we can keep the dbs in sync
+//            $diffSql = join(';', $queries);
+//            dump(diffSql: $diffSql);
+//            $conn->executeQuery($diffSql);
+//        try {
+//        } catch (\Exception $exception) {
+//            // it already exists.
+//        }
+        $sc = $conn->createSchemaManager();
+//        dd($sc->listTables(), $queries);
+
+
+        $schema = new \Doctrine\DBAL\Schema\Schema();
+        $myTable = $schema->createTable("my_table");
+        $myTable->addColumn("id", "integer", ["unsigned" => true]);
+        $myTable->addColumn("username", "string", ["length" => 32]);
+        $myTable->addColumn("age", "integer");
+        $myTable->setPrimaryKey(["id"]);
+        $myTable->addUniqueIndex(["username"]);
+        $myTable->setComment('Some comment');
+
+        $myForeign = $schema->createTable("my_foreign");
+        $myForeign->addColumn("id", "integer");
+        $myForeign->addColumn("user_id", "integer");
+//        $myForeign->addForeignKeyConstraint($myTable, ["user_id"], ["id"], ["onUpdate" => "CASCADE"]);
+
+
+        $queries = $schema->toSql($conn->getDatabasePlatform()); // get queries to create this schema.
+
+        $schemaManager = $conn->createSchemaManager();
+        $comparator = $schemaManager->createComparator();
+        $schemaDiff = $comparator->compareSchemas($fromSchema, $schema);
+
+        $databasePlatform = $conn->getDatabasePlatform();
+        $diffs = $databasePlatform->getAlterSchemaSQL($schemaDiff);
+
+        $sc->introspectSchema();
+        $newSchema = $fromSchemaManager->introspectSchema();
+        foreach ($newSchema->getTables() as $table) {
+            $columns = [];
+            foreach ($table->getColumns() as $column) {
+                $tables[$table->getName()]['columns'][] = $column->getName();
+            }
+        }
+
+
+        return [$tables, $diffs];
+
+//        foreach ($schemaDiff->toSql($databasePlatform) as $sql) {
+//            dump($sql);
+//            $conn->executeQuery($sql);
+//        }
+//        try {
+//        } catch (\Exception $exception) {
+//            // it already exists.
+//        }
+//        dd($fromSchema);
+
+    }
 
 }

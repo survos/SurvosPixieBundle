@@ -4,13 +4,12 @@
 
 {% block body %}
     Images
-
     {name: 'marking', title: '@'},
     {% set columns = {
         image: [
             'marking',
         'key',
-        'imageUrl',
+        'url',
         ],
         resized: [
             {name:'url',block:'imageUrl'},
@@ -21,16 +20,17 @@
         ]
     } %}
 
+
 {#    {% for tableName, table in iKv.tables %}#}
     {% for tableName in ['image'] %}
-        <h3>{{ tableName }} {{ iKv.count(tableName) }}</h3>
+        <h3>{{ tableName }} {{ imageCount|default('~~') }}</h3>
         <li>
         <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
             Browse {{ tableName }}
         </a>
             <twig:simple_datatables
                     :caller="_self"
-                    :data="iKv.iterate(tableName, max=app.request.get('perPage', 200))"
+                    :data="images"
                     :columns="columns[tableName]"
             >
                 <twig:block name="imageUrl">

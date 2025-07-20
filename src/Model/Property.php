@@ -9,8 +9,8 @@ class Property implements \Stringable
 
     // since these are tied to grid-group, we can have relations and categories, though they are mostly used by Museado
 
-    final public const string TYPE_DATABASE = 'db'; // fixed properties, we need to pass it valid subtypes
-    final public const string TYPE_RELATION = 'rel'; // related to another grid
+    final public const string TYPE_DATABASE = 'db'; // fixed properties, e.g. label, dimensions.  We need to pass it valid subtypes
+    final public const string TYPE_RELATION = 'rel'; // related to another core
     final public const string TYPE_CLASSIFICATION = 'cat'; // single relation within this grid, pass in valid subtypes
     final public const string TYPE_LIST = 'list'; // single relation within this grid
     final public const string TYPE_ATTRIBUTE = 'att';

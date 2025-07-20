@@ -4,22 +4,14 @@ namespace Survos\PixieBundle\Command;
 
 use Psr\Log\LoggerInterface;
 use Survos\BunnyBundle\Service\BunnyService;
-use Survos\PixieBundle\Event\CsvHeaderEvent;
-use Survos\PixieBundle\Event\ImportFileEvent;
-use Survos\PixieBundle\Event\RowEvent;
-use Survos\PixieBundle\Model\Config;
-use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
-use Survos\PixieBundle\StorageBox;
+use Survos\PixieBundle\Service\PixieService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Yaml\Yaml;
 use Zenstruck\Console\Attribute\Argument;
 use Zenstruck\Console\Attribute\Option;
 use Zenstruck\Console\InvokableServiceCommand;
@@ -27,7 +19,7 @@ use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
 use Zenstruck\Filesystem\Archive\ZipFile;
-use \ZipArchive;
+use ZipArchive;
 
 #[AsCommand('pixie:sync', "Upload/download directories (as zip) to/from bunny")]
 final class PixieSyncCommand extends InvokableServiceCommand
@@ -70,7 +62,7 @@ final class PixieSyncCommand extends InvokableServiceCommand
         }
         $configCode ??= getenv('PIXIE_CODE');
         $this->initialized = true;
-        $config = $pixieService->getConfig($configCode);
+        $config = $pixieService->selectConfig($configCode);
         assert($config, $config->getConfigFilename());
         if (empty($dirOrFilename)) {
             $dirOrFilename = $pixieService->getSourceFilesDir($configCode);

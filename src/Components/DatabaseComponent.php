@@ -25,7 +25,7 @@ class DatabaseComponent
 
     public function mount(string $pixieCode): void
     {
-        $this->config = $this->pixieService->getConfig($pixieCode);
+        $this->config = $this->pixieService->selectConfig($pixieCode);
     }
 
     #[PreMount]

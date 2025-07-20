@@ -1,0 +1,121 @@
+<?php
+
+namespace Survos\PixieBundle\Entity;
+
+use App\Repository\ImageRepository;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: ImageRepository::class)]
+//#[ORM\UniqueConstraint('image_owner_code', fields: ['owner', 'code'])]
+//#[ORM\Index(fields: ['owner'], name: 'image_owner')]
+class Image
+{
+
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?bool $processImageWithBarcodes = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $originalUrl = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $rights = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $rightsHolder = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $code = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $thumbnailUrl = null;
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function isProcessImageWithBarcodes(): ?bool
+    {
+        return $this->processImageWithBarcodes;
+    }
+
+    public function setProcessImageWithBarcodes(?bool $processImageWithBarcodes): self
+    {
+        $this->processImageWithBarcodes = $processImageWithBarcodes;
+
+        return $this;
+    }
+
+    public function getOriginalUrl(): ?string
+    {
+        return $this->originalUrl;
+    }
+
+    public function setOriginalUrl(?string $originalUrl): static
+    {
+        $this->originalUrl = $originalUrl;
+
+        return $this;
+    }
+
+    public function getRights(): ?string
+    {
+        return $this->rights;
+    }
+
+    public function setRights(?string $rights): static
+    {
+        $this->rights = $rights;
+
+        return $this;
+    }
+
+    public function getRightsHolder(): ?string
+    {
+        return $this->rightsHolder;
+    }
+
+    public function setRightsHolder(?string $rightsHolder): static
+    {
+        $this->rightsHolder = $rightsHolder;
+
+        return $this;
+    }
+
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
+    public function setCode(string $code): static
+    {
+        $this->code = $code;
+
+        return $this;
+    }
+
+    static function calculateCode(string $url, int $bucketPrecision=3): string
+    {
+        $md5 = hash('xxh3', $url);
+        $ext = pathinfo($url, PATHINFO_EXTENSION);
+        $prefix = substr($md5, -$bucketPrecision);
+        return sprintf("%s/%s.%s", $prefix, $md5, $ext);
+    }
+
+    public function getThumbnailUrl(): ?string
+    {
+        return $this->thumbnailUrl;
+    }
+
+    public function setThumbnailUrl(?string $thumbnailUrl): static
+    {
+        $this->thumbnailUrl = $thumbnailUrl;
+
+        return $this;
+    }
+}

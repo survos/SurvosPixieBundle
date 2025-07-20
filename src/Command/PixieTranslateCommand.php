@@ -16,26 +16,21 @@ namespace Survos\PixieBundle\Command;
 //use App\Service\ProjectConfig\PennConfigService;
 //use App\Service\ProjectService;
 use App\Message\TranslationMessage;
-use Survos\CoreBundle\Service\SurvosUtils;
-use Survos\LibreTranslateBundle\Service\TranslationClientService;
-use Survos\PixieBundle\Meta\PixieInterface;
-use Survos\PixieBundle\Service\LibreTranslateService;
-use Survos\PixieBundle\Service\PixieTranslationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\GridGroupBundle\Service\CsvDatabase;
-use Survos\PixieBundle\Event\RowEvent;
+use Survos\LibreTranslateBundle\Service\TranslationClientService;
 use Survos\PixieBundle\Event\StorageBoxEvent;
-use Survos\PixieBundle\Message\PixieTransitionMessage;
+use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
-use Survos\PixieBundle\Service\PixieImportService;
+use Survos\PixieBundle\Service\LibreTranslateService;
 use Survos\PixieBundle\Service\PixieService;
+use Survos\PixieBundle\Service\PixieTranslationService;
 use Survos\PixieBundle\StorageBox;
-use Survos\Scraper\Service\ScraperService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -47,9 +42,8 @@ use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Zenstruck\Console\Attribute\Argument;
 use Zenstruck\Console\Attribute\Option;
-use Zenstruck\Console\ConfigureWithAttributes;
-use Zenstruck\Console\IO;
 use Zenstruck\Console\InvokableServiceCommand;
+use Zenstruck\Console\IO;
 use Zenstruck\Console\RunsCommands;
 use Zenstruck\Console\RunsProcesses;
 
@@ -111,7 +105,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
         $tKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode, isTranslation: true))->getStorageBox();
 //        $tKv = $this->translationService->getTranslationStorageBox($pixieCode);
 //        dd($tKv->getFilename());
-        $config = $this->pixieService->getConfig($configCode);
+        $config = $this->pixieService->selectConfig($configCode);
 
         if ($target==='') {
             $locales = []; // skip translation, just insert into source
@@ -394,7 +388,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
         $pixieService = $this->pixieService;
         // the base pixie (that we're updating)
         $kv = $pixieService->getStorageBox($pixieCode);
-        $config = $pixieService->getConfig($pixieCode);
+        $config = $pixieService->selectConfig($pixieCode);
 
         // the translations.
         $tKv->select(PixieTranslationService::ENGINE);
@@ -495,7 +489,7 @@ final class PixieTranslateCommand extends InvokableServiceCommand
         $tKv->select(PixieTranslationService::ENGINE); // since we're writing
         $pixieService = $this->pixieService;
         $kv = $pixieService->getStorageBox($pixieCode);
-        $config = $pixieService->getConfig($pixieCode);
+        $config = $pixieService->selectConfig($pixieCode);
 
         $where = [];
         if ($marking) {

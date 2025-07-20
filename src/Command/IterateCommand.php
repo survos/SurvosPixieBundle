@@ -2,25 +2,21 @@
 
 namespace Survos\PixieBundle\Command;
 
+use App\Event\RowEvent;
 use Psr\Log\LoggerInterface;
-use Survos\PixieBundle\Event\RowEvent;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
-use Survos\PixieBundle\Model\Config;
-use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
-use Survos\PixieBundle\StorageBox;
+use Survos\PixieBundle\Service\PixieService;
 use Survos\WorkflowBundle\Service\WorkflowHelperService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
 use Symfony\Component\Workflow\Transition;
-use Symfony\Component\Yaml\Yaml;
 use Zenstruck\Console\Attribute\Argument;
 use Zenstruck\Console\Attribute\Option;
 use Zenstruck\Console\InvokableServiceCommand;
@@ -76,7 +72,7 @@ final class IterateCommand extends InvokableServiceCommand
         if ($image) {
 //            $tKv = $pixieService->getTra
         }
-        $config = $pixieService->getConfig($pixieCode);
+        $config = $pixieService->selectConfig($pixieCode);
         assert($kv->tableExists($tableName), "Missing table $tableName: \n" . implode("\n", $kv->getTableNames()));
 
         $table = $config->getTables()[$tableName];

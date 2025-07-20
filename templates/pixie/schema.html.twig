@@ -3,11 +3,49 @@
 {% block title %}{{ pixieCode }} Tables{% endblock %}
 
 {% block body %}
-    Schema
-    {% for tableName, table in config.tables %}
+
+    {% for core in owner.cores %}
+        <h3>{{ core }}</h3>
+        {% for field in core.fields %}
+            <li>
+                <code>{{ field.id }}</code>
+                {{ field.type }}
+                {{ field|short_class }}
+            </li>
+        {% endfor %}
+    {% endfor %}
+    Schema from pixieEntityManager.tables
+    {% for tbl in owner.tables %}
         <li>
+            {{ tbl.name }}
+            {{ tbl.type }}
+        </li>
+    {% endfor %}
+    Schema from <code>config.tables</code>
+    {% for tableName, table in config.tables %}
+        <div class="row">
+            <div class="col-md-6">
+                    {{ block('pixie_table') }}
+            </div>
+            <div class="col-md-6">
+                {% set core = cores[tableName]|default(null) %}
+                {% if core %}
+                <li>Instances: {{ core.instanceCount }}</li>
+                <li>Rows: {{ core.rows|length }}</li>
+                <li>Fields: {{ core.fields|length }}</li>
+                <li>FieldSets: {{ core.fieldSets|length }}</li>
+                <li>idFieldCode: {{ core.idFieldCode }}</li>
+                <li>relatedCounts: {{ core.relatedCounts|json_encode }}</li>
+                {% endif %}
+{#                {{ dump(core) }}#}
+            </div>
+        </div>
+    {% endfor %}
+{% endblock %}
+
+{% block pixie_table %}
         <a href="{{ path('pixie_table', {pixieCode: pixieCode, tableName: tableName}) }}">
-            Browse {{ tableName }}
+            Browse Table {{ tableName }}
         </a>
             {% set columns = [
                 'code',
@@ -22,10 +60,11 @@
                     :data="table.properties"
                     :columns="columns"
             >
+                <twig:block name="code">
+                    {{ row.code }}
+                </twig:block>
                 <twig:block name="settings">
                     {{ row.settings|length ? row.settings|json_encode }}
                 </twig:block>
             </twig:simple_datatables>
-        </li>
-    {% endfor %}
 {% endblock %}
