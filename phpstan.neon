@@ -3,15 +3,14 @@ parameters:
     inferPrivatePropertyTypeFromConstructor: true
     paths:
         - ./src/
-
+        - ./tests
     excludePaths:
        analyse:
-            - ./vendor
+          - ./vendor (?)
 #            - ./src/Service/Libre*
 #            - ./src/EventListener/TranslationRowEventListener*
 #            - ./src/Command/PixieTranslateCommand.php
 #            - ./src/Controller/SearchController.php
-
     reportUnmatchedIgnoredErrors: false
 #    checkMissingIterableValueType: false
 #    checkGenericClassInNonGenericObjectType: false
