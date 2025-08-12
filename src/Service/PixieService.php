@@ -52,7 +52,7 @@ class PixieService
         private readonly CoreRepository                          $coreRepository,
         private readonly bool                                    $isDebug = false,
         private array                                            $data = [],
-        private readonly string                                  $extension = "pixie.db",
+        private readonly string                                  $extension = "db",
         private readonly string                                  $dbDir = 'pixie',
         private readonly string                                  $dataRoot = 'data', //
         private readonly string                                  $configDir = 'config/packages/pixie',

@@ -196,11 +196,15 @@
                                 <div class="d-flex align-items-center gap-2 justify-content-center px-2 pt-0 pb-1 thumb-main mt-3">
                                     {# this is kinda hacky, should probably be in javascript #}
                                     {% for i in row.images|default([]) %}
-                                        {% set imageUrl = i.orig %}
+                                        {% set imageUrl = i.url|default(null) %}
+                                        {% if imageUrl %}
 {#                                        #}{# candidate for gLightbox or a slideshow or carousel or something #}
                                         <a class="thumb_items" href="{{ imageUrl }}" target="_blank">
 {#                                            <img class="img-fluid d-block" src="{{ i.thumb }}" style="max-width: 70px"/>#}
                                         </a>
+                                        {% else %}
+                                            {{ dump(i) }}
+                                        {% endif %}
                                     {% endfor %}
                                 </div>
                             </div>

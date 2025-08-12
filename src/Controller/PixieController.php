@@ -24,6 +24,7 @@ use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\PixieTranslationService;
 use Survos\PixieBundle\Service\SqliteService;
 use Survos\PixieBundle\StorageBox;
+use Survos\PixieBundle\SurvosPixieBundle;
 use Survos\WorkflowBundle\Service\WorkflowHelperService;
 use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -718,19 +719,33 @@ class PixieController extends AbstractController
         $count = $core->getRows()->count();
         // now core, not table!
         $pixieFilename = $this->pixieService->getPixieFilename($pixieCode);
-        assert(file_exists($pixieFilename));
-        $kv = $this->pixieService->getStorageBox($pixieCode);
+        assert(file_exists($pixieFilename), "Missing $pixieFilename");
+
+        // we don't need kv anymore, just use doctrine.
+        $entityClass = Row::class;
+        $entityClass = 'Survos\\PixieBundle\\Entity\\' . ucfirst($tableName);
+        assert(class_exists($entityClass), "Invalid class $entityClass");
+        $repo = $this->pixieEntityManager->getRepository($entityClass);
+
+
+        $first = $repo->createQueryBuilder('r')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+//        $kv = $this->pixieService->getStorageBox($pixieCode);
         {
 //            $count = $kv->count($tableName);
 //            dd($tableName, $count);
             $tableData = [
-                'first' => $kv->iterate($tableName)->current(),
-                'count' => $kv->count($tableName) // we could cache this someday, like ->closeWithCounts()
+                'first' => $first,
+                'count' => $repo->count(), // APPROX??
             ];
 
             $charts = [];
-            $table = $kv->getTable($tableName);
+            // @todo: new security with entities.
+            $table = $this->pixieEntityManager->getConnection();
 //            $tableSchema = $kv->inspectSchema()[$tableName];
+            if (0)
             foreach ($table->getProperties() as $property) {
                 if ($condition = $property->getSetting('security')) {
                     if (!$this->isGranted($condition)) {
