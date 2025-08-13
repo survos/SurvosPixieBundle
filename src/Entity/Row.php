@@ -14,7 +14,11 @@ use Survos\WorkflowBundle\Traits\MarkingTrait;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: RowRepository::class)]
-#[ORM\Index(name: 'row_core', fields: ['core'])]
+#[ORM\UniqueConstraint(name: 'uniq_row_core_idwithin', columns: ['core_id','id_within_core'])]
+#[ORM\Index(name: 'row_core', columns: ['core_id'])]
+#[ORM\Index(name: 'row_core_label', columns: ['core_id','label'])]
+#[ORM\Index(name: 'row_core_code', columns: ['core_id','code'])]
+#[ORM\Index(name: 'row_core_marking', columns: ['core_id','marking'])] // optional but handy for workflows
 #[Groups(['row.read'])]
 class Row implements MarkingInterface, \Stringable
 {
@@ -52,7 +56,8 @@ class Row implements MarkingInterface, \Stringable
     #[ORM\Column(nullable: true)]
     private ?array $raw = null;
 
-    public function __construct(?Core $core=null, ?string $id=null)
+    public function __construct(
+        ?Core $core=null, ?string $id=null)
     {
         $this->initCoreId($core, $id);
         $core->addRow($this); // if this is too slow, update rowCount here.

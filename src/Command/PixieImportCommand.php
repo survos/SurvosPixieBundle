@@ -40,10 +40,9 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 #[AsCommand('pixie:import', 'Import csv to Row Entities, a file or directory of files"', aliases: ['import', 'p:imp'])]
 final class PixieImportCommand extends Command
 {
-    private SymfonyStyle $io;
-
+    private SymfonyStyle $io; // for use in methods without passing $io
     private bool $initialized = false; // so the event listener can be called from outside the command
-    private ?ProgressBar $progressBar=null;
+    private ?ProgressBar $progressBar = null;
     private $total = 0; // hack to bypass count for large JSON files, e.g. smk
 
     public function __construct(
@@ -55,11 +54,11 @@ final class PixieImportCommand extends Command
         private EventDispatcherInterface                   $eventDispatcher,
         #[Autowire('%env(SITE_BASE_URL)%')] private string $baseUrl,
         private CoreRepository                             $coreRepository,
-        private PixieImportService $pixieImportService,
+        private PixieImportService                         $pixieImportService,
         private ImportHandler                              $importHandler,
         private readonly SqliteService                     $sqliteService,
-        private readonly CoreService $coreService,
-        private readonly TableRepository $tableRepository,
+        private readonly CoreService                       $coreService,
+        private readonly TableRepository                   $tableRepository,
     )
     {
         parent::__construct();
@@ -82,23 +81,24 @@ EOL
     }
 
     public function __invoke(
-        SymfonyStyle                                                                                            $io,
-        #[Argument(description: 'config code')] ?string                                               $configCode=null,
-        #[Argument(description: 'sub code, e.g. musdig inst id')] ?string                             $subCode = null,
-        #[Option(description: 'conf directory, default to directory name of first argument')] ?string $dir = null,
-        #[Option(description: "max number of records per table to import")] ?int                      $limit = null,
-        #[Option(description: "overwrite records if they already exist")] bool                        $overwrite = false,
-        #[Option(description: "queue 'source' strings in translation db")] ?bool                      $populate = null,
-        #[Option(description: "dispatch translation requests")] ?bool                                 $translate = null,
-        #[Option(description: "persist images to -images.pixie.db (pixie:media?)")] ?bool             $persist = null,
-        #[Option(description: "index after import (default: true)")] ?bool                            $index = null,
-        #[Option(description: "purge db file first")] ?bool                                            $reset = null,
-        #[Option(description: "Batch size for commit")] int                                           $batch = 500,
-        #[Option(description: "total if known (slow to calc)")] int                                   $total = 0,
-        #[Option(description: "dump the n-th record and stop")] ?int                                   $dump = null,
-        #[Option("starting at (offset)", name: 'start')] int                                   $startingAt = 0,
-        #[Option(description: "table search pattern")] ?string                                         $pattern = null,
-        #[Option(description: 'tags (for listeners)')] ?string                                        $tags = null,
+        SymfonyStyle                                                         $io,
+        #[Argument('config code')] ?string                                   $configCode = null,
+        #[Argument('sub code, e.g. musdig inst id')] ?string                 $subCode = null,
+        #[Option('conf directory, default to directory name of first argument')]
+        ?string                                                              $dir = null,
+        #[Option("max number of records per table to import")] ?int          $limit = null,
+        #[Option("overwrite records if they already exist")] bool            $overwrite = false,
+        #[Option("queue 'source' strings in translation db")] ?bool          $populate = null,
+        #[Option("dispatch translation requests")] ?bool                     $translate = null,
+        #[Option("persist images to -images.pixie.db (pixie:media?)")] ?bool $persist = null,
+        #[Option("index after import (default: true)")] ?bool                $index = null,
+        #[Option("purge db file first")] ?bool                               $reset = null,
+        #[Option("Batch size for commit")] int                               $batch = 500,
+        #[Option("total if known (slow to calc)")] int                       $total = 0,
+        #[Option("dump the n-th record and stop")] ?int                      $dump = null,
+        #[Option("starting at (offset)", name: 'start')] int                 $startingAt = 0,
+        #[Option("table search pattern")] ?string                            $pattern = null,
+        #[Option('tags (for listeners)')] ?string                            $tags = null,
 
     ): int
     {
@@ -187,7 +187,7 @@ EOL
             overwrite: $overwrite, pattern: $pattern,
             callback: function ($row, \Survos\PixieBundle\Model\Table $table, $idx, StorageBox $kv) use ($batch, $limit, $dump) {
                 $this->progressBar->advance();
-                if ($dump && $idx===$dump) {
+                if ($dump && $idx === $dump) {
                     dump($row);
                 }
 //                dd($row);
@@ -195,7 +195,7 @@ EOL
                 // testing only
 //                $this->pixieEntityManager->flush();
 
-            // moved to importService
+                // moved to importService
 //                if (!$core = $pixieEm->getRepository(Core::class)->find($coreCode = $table->getName())) {
 //                    $core = new Core($coreCode);
 //                    $pixieEm->persist($core);
@@ -230,7 +230,7 @@ EOL
         $kv = $this->pixieService->getStorageBox($configCode, $subCode);
 
         $consoleTable = new Table($io);
-        $consoleTable->setHeaders(['table', 'count','url']);
+        $consoleTable->setHeaders(['table', 'count', 'url']);
         // these counts should match up with the meili facet counts
 
 
@@ -329,7 +329,7 @@ EOL
             }
         }
 
-        $count= $count??$this->total??0;
+        $count = $count ?? $this->total ?? 0;
 //        $this->io->writeln("Init progressBar with " . $count);
 //        $this->progressBar = new ProgressBar($this->io->output(), $count);
 //        $this->progressBar->setProgress(0);
@@ -391,7 +391,7 @@ EOL
         $greetInput = new ArrayInput([
             // the command name is passed as first argument
             'command' => 'pixie:index',
-            'configCode'    => $pixieCode,
+            'configCode' => $pixieCode,
 //            '--yell'  => true,
         ]);
 

@@ -168,8 +168,7 @@ final class PixieIndexCommand extends InvokableServiceCommand
             foreach ($this->tasks as $task) {
                 $taskUid = $task->taskUid;
                 // @todo: add task model
-                $status = $this->meiliClient->waitForTask($taskUid);
-                dump($status);
+//                $status = $this->meiliClient->waitForTask($taskUid);
 //                $status = $this->meiliClient->getTask();
             }
 

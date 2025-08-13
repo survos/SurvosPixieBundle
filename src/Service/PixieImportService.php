@@ -6,6 +6,7 @@ namespace Survos\PixieBundle\Service;
 
 use Survos\PixieBundle\Entity\OriginalImage;
 use Survos\PixieBundle\Entity\Owner;
+use Survos\PixieBundle\Entity\RowImportState;
 use Survos\PixieBundle\Model\OriginalImage as OriginalImageModel;
 use Survos\PixieBundle\Service\SqliteService;
 use Survos\PixieBundle\Entity\Core;
@@ -38,6 +39,7 @@ use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\Model\Translation;
 use Survos\PixieBundle\StorageBox;
+use Survos\PixieBundle\Util\ImportUtil;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\ObjectMapper\ObjectMapper;
@@ -800,6 +802,55 @@ class PixieImportService
         // argh, this should work and cleanup a lot!  but it doesn't
 //        $this->importHandler->process($owner->getCode(), $r);
 //        dd($row, $rowId);
+
+        // 1) Ensure we have the row’s id within core
+        $pk = $table->getPkName();
+//        dd($id, $core->getId());
+
+        $idWithinCore = $id; // (string)($rowObj->{$pk} ?? $rowObj[$pk] ?? null);
+        assert($idWithinCore);
+//        if (!$idWithinCore) {
+//            // if you assert earlier, you can skip this guard
+//            continue;
+//        }
+
+// 2) Compute content hash from the source payload you consider authoritative
+//    (often the mapped "rowObj" after header mapping / data rules).
+//    Optionally include a version salt so changes in mapping code force reprocess.
+
+        $hash = ImportUtil::contentHash(
+            ['v' => 'pixie-import-v1', 'core' => $tableName, 'row' => $r],
+            ignoreKeys: ['updated_at', '_debug', 'taskId'],   // add any ephemeral keys you want to ignore
+            unicodeNormalize: true                  // if you ingest mixed Unicode sources
+        );
+
+// 3) Look up previous state
+        /** @var RowImportState|null $state */
+        if (!$state = $this->entityManager->find(RowImportState::class, [
+            'core_id' => $core->getId(),        // Core primary key (string in your schema)
+            'row_id'  => $idWithinCore,         // id within core (not the composite Row::id)
+        ])) {
+            $state = new RowImportState(
+                $core->getId(),
+                $id
+            );
+            $this->entityManager->persist($state);
+        }
+
+        $overwrite = false;
+// 4) Skip unchanged rows unless overwrite was requested
+        if ($state && !$overwrite && $state->contentHash === $hash) {
+            $this->logger->warning("Skipping the write");
+            // still let your progress bar advance if you need to
+//            if ($callback) {
+//                if (!$callback($rowObj, $table, $idx, $kv)) {
+////                    break; // preserve your batching / limit semantics
+//                }
+//            }
+        } else {
+            $state->contentHash = $hash;
+        }
+
         return $r;
 
     }

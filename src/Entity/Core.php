@@ -42,6 +42,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: CoreRepository::class)]
 #[ORM\UniqueConstraint(name: 'core_unique', columns: ['code'])]
 #[UniqueEntity(['code'])]
+#[ORM\Table(name: 'core')]
+#[ORM\Index(name: 'IDX_CORE_OWNER', columns: ['owner_id'])]
+#[ORM\Index(name: 'IDX_CORE_CORE_CODE', columns: ['core_code'])]
 #[ApiResource(operations: [new Get(), new Put(), new Delete(), new Patch(),
     new GetCollection()], shortName: 'projectCores',
     denormalizationContext: ['groups' => ['projectCore.write']],

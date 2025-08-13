@@ -11,6 +11,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 #[ORM\Entity(repositoryClass: OriginalImageRepository::class)]
+#[ORM\Index(name: 'IDX_ORIGIMG_ROW', columns: ['row_id'])]
 class OriginalImage
 {
     use TimestampableEntity;
