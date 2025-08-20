@@ -24,7 +24,6 @@ class RelationRepository extends ServiceEntityRepository
 
     public function __construct(
         ManagerRegistry $registry,
-        private InstanceRepository $instanceRepository
     )
     {
         parent::__construct($registry, Relation::class);

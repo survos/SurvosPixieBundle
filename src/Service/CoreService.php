@@ -62,7 +62,7 @@ class CoreService
 //        private ProjectConfigFactoryService $projectConfigFactory,
         private EntityManagerInterface $pixieEntityManager,
         private FormFactoryInterface                          $formFactory,
-        private readonly CoreRepository $coreRepository,
+//        private readonly CoreRepository $coreRepository,
         private array                             $cores = []
 
     ) {
@@ -281,7 +281,7 @@ class CoreService
 //            $core = $this->getCoreByCode($coreCode = $core);
 //            assert($core, "$coreCode not found in cores. " . join(',', array_keys($project->getProjectCores()->toArray())));
 //        }
-//        $coreCode = $core->getCode();
+//        $coreCode = $core->code;
         // @todo: cache by class, code, etc.
         if (! $core = $project->getProjectCore($coreCode, false)) {
             //            $project->getProjectCores()->filter(fn(Core $core) => $core->getCore() === $core)?->first())
@@ -310,8 +310,8 @@ class CoreService
         //                /** @var NestedListItem $rootInstance */
         //                $rootInstance = new $root;
         //                $rootInstance
-        //                    ->setCode('root_', $core->getCode() . '_' . $key)
-        //                    ->setLabel($core->getCode() . ' ' . $key . ' Root');
+        //                    ->setCode('root_', $core->code . '_' . $key)
+        //                    ->setLabel($core->code . ' ' . $key . ' Root');
         //                $this->persistWithProject($rootInstance, $project);
         //            }
         //        $project->addProjectCore($core);
@@ -689,22 +689,26 @@ class CoreService
      */
     public function getCore(string $tableName, ?Owner $owner=null): Core
     {
-
-        $ownerCode = $owner?->getCode();
-        if ( empty($owner) || empty($this->cores[$owner->getCode()])) {
-            foreach ($this->coreRepository->findAll() as $core) {
+        assert(false, "get from pixieservice");
+        // switch the database
+        $this->pixieService->getConfig($owner->pixieCode);
+        $coreRepository = $this->entityManager->getRepository(Core::class);
+        $ownerCode = $owner?->code;
+        // this doesn't pass the smell test.
+        if ( empty($owner) || empty($this->cores[$owner->code])) {
+            foreach ($coreRepository->findAll() as $core) {
 //                assert($core->getOwner(), "Missing owner in core");
 //                if ($core->getOwner() !== $owner) {
 //                    dd($core->getOwner(), $owner);
 //                }
 //                assert($core->getOwner() === $owner);
-                $this->cores[$core->getCode()][$core->getCoreCode()] = $core;
+                $this->cores[$core->code] = $core;
             }
         }
 
 //        if (!$core = $this->coreRepository->find($tableName)) {
-//        if (!$core = $this->cores[$owner->getCode()][$tableName]??null) {
-        if (!$core = $this->coreRepository->findOneBy(['code' => $tableName])) {
+//        if (!$core = $this->cores[$owner->code][$tableName]??null) {
+        if (!$core = $coreRepository->findOneBy(['code' => $tableName])) {
             $core = new Core($tableName, $owner);
 //            foreach ($this->coreRepository->findAll() as $existingCore) {
 //                dump($existingCore->get   Code(), $existingCore);
@@ -718,6 +722,7 @@ class CoreService
         if (!$this->pixieEntityManager->contains($core)) {
             dd($core, $this->cores);
         }
+        dd($core, $owner);
 //        dd($this->serializer->serialize($core, 'json', ['groups' => 'core.read']));
         return $core;
 

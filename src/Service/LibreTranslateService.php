@@ -7,7 +7,6 @@ use App\Entity\Instance;
 use App\Entity\LabelInterface;
 use App\Entity\Project;
 use App\Entity\ProjectInterface;
-use App\Repository\InstanceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Flintstone\Flintstone;
 use Flintstone\Formatter\JsonFormatter;

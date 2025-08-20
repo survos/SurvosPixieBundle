@@ -4,7 +4,6 @@ namespace Survos\PixieBundle\Service;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
-use App\Dto\Wam\Obj;
 use App\Event\FetchTranslationObjectEvent;
 use JsonMachine\Items;
 use League\Csv\Info;
@@ -39,7 +38,7 @@ class PixieConvertService
 
     public function convert(string $pixieCode,
                            ?string $subCode,
-                           ?Config $config=null,
+                           Config $config,
                            int    $limit = 0,
                            int    $startingAt = 0,
                            bool $overwrite = false, // individual records
@@ -49,14 +48,16 @@ class PixieConvertService
                            ?callable $callback=null): void
     {
 
-        if (!$config) {
-            $config = $this->pixieService->selectConfig($pixieCode);
-        }
+//        if (!$config) {
+//            $config = $this->pixieService->selectConfig($pixieCode);
+//        }
 
         // the csv/json files
         // this won't work for md, but we shouldn't be using convert for md.
         $dirOrFilename = $this->pixieService->getSourceFilesDir(
-            $pixieCode, subCode: 'raw');
+            $pixieCode,
+            config: $config,
+            subCode: 'raw');
 
         assert(file_exists($dirOrFilename), $dirOrFilename);
         $finder = new Finder();
@@ -243,10 +244,10 @@ class PixieConvertService
                         $row = $mappedRow;
                     }
                     assert($row);
-                    $row = (object)$row;
-                    $e = $mapper->map($row, $dtoClass);
+                    // mapper is now in injest, not prepare
+//                    $e = $mapper->map($row, $dtoClass);
 //                    $row = (array)$e; // ack!
-                    $row = json_decode(json_encode($e), true);
+//                    $row = json_decode(json_encode($e), true);
                     // just check the first row
                     if ($idx == 0) {
                         assert(array_key_exists($pk, $row),
@@ -261,7 +262,7 @@ class PixieConvertService
                     if (!$row[$pkName]??null) {
                         // e.g. empty excel rows.  Could handle in the grid:excel-to-csv
                         $this->logger->error("Empty pk, skipping row " . $idx);
-                        dd($raw, $e, $row, $pkName, $idx);
+                        dd($raw, $row, $pkName, $idx);
                         continue;
                     }
                     SurvosUtils::assertKeyExists($pkName, $row, "in $fn");

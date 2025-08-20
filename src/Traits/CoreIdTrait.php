@@ -17,7 +17,7 @@ trait CoreIdTrait
     // each class will overwrite core with something like this:
 //    #[ORM\ManyToOne(inversedBy: 'rows')]
 //    #[ORM\JoinColumn(nullable: false, referencedColumnName: 'code')]
-    protected Core $core;
+//    public Core $core;
 
     public function getCore(): ?Core
     {
@@ -54,7 +54,7 @@ trait CoreIdTrait
 
     public static function RowIdentifier(Core $core, string $id): string
     {
-        return $core->getCoreCode() . '-' . $id;
+        return $core->code . '-' . $id;
     }
     public function getUniqueIdentifiers(): array
     {
@@ -71,7 +71,7 @@ trait CoreIdTrait
     #[Groups(['pc.read','pc.code'])]
     public function getCoreCode(): string
     {
-        return $this->getCore()->getCoreCode();
+        return $this->getCore()->code;
     }
 
 
@@ -111,6 +111,6 @@ trait CoreIdTrait
 
     public function getCoreCodeFromSheetName(): string
     {
-        return $this->getCore()->getCode();
+        return $this->getCore()->code;
     }
 }

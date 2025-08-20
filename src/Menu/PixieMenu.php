@@ -6,6 +6,8 @@ use Survos\BootstrapBundle\Event\KnpMenuEvent;
 use Survos\BootstrapBundle\Service\MenuService;
 use Survos\BootstrapBundle\Traits\KnpMenuHelperInterface;
 use Survos\BootstrapBundle\Traits\KnpMenuHelperTrait;
+use Survos\PixieBundle\Entity\Str;
+use Survos\PixieBundle\Entity\StrTranslation;
 use Survos\PixieBundle\Service\PixieService;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -53,9 +55,10 @@ final class PixieMenu implements KnpMenuHelperInterface
         if (!$this->isGranted('ROLE_ADMIN')) {
 //            return;
         }
-        $config = $this->pixieService->selectConfig($pixieCode);
-        $owner = $config->getOwner();
+        $config = $this->pixieService->getReference($pixieCode);
+        $owner = $config->ownerRef;
         $this->add($menu, 'pixie_browse_configs');
+
 
             $this->addHeading($menu, $pixieCode);
             foreach (['pixie_schema','flickr_slideshow','pixie_images'] as $pixieRoute) {
@@ -66,11 +69,19 @@ final class PixieMenu implements KnpMenuHelperInterface
 
             // now coreCode?  but could be other table, like category or lst, right?
         $tableName = $event->getOption('tableName');
+        $subMenu = $this->addSubmenu($menu, "Trans");
+        foreach ([Str::class, StrTranslation::class] as $class) {
+            $shortClass = new \ReflectionClass($class)->getShortName();
+            $this->add($subMenu, 'pixie_overview', ['pixieCode' => $pixieCode], label: $shortClass);
+        }
+
         $subMenu = $this->addSubmenu($menu, $tableName ?: "choose");
+
+
         $this->add($subMenu, 'pixie_overview', ['pixieCode' => $pixieCode]);
-        foreach ($owner->getCores() as $core) {
-            $tableRp = ['tableName' => $core->getCode(), 'pixieCode' => $pixieCode];
-            $this->add($subMenu, 'pixie_meili_browse', $tableRp, label: $core->getCode());
+        foreach ($owner->cores as $core) {
+            $tableRp = ['tableName' => $core->code, 'pixieCode' => $pixieCode];
+            $this->add($subMenu, 'pixie_meili_browse', $tableRp, label: $core->code);
         }
 
             return;

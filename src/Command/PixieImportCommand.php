@@ -11,7 +11,6 @@ use Survos\PixieBundle\Model\Translation;
 use Survos\PixieBundle\Repository\TableRepository;
 use Survos\PixieBundle\Service\CoreService;
 use Survos\PixieBundle\Service\ImportHandler;
-use Survos\PixieBundle\Service\SqliteService;
 use Doctrine\ORM\EntityManagerInterface;
 use JsonMachine\Items;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -47,18 +46,12 @@ final class PixieImportCommand extends Command
 
     public function __construct(
         private LoggerInterface                            $logger,
-        private ParameterBagInterface                      $bag,
         private readonly PixieService                      $pixieService,
         #[Target('pixieEntityManager')]
         private EntityManagerInterface                     $pixieEntityManager,
         private EventDispatcherInterface                   $eventDispatcher,
         #[Autowire('%env(SITE_BASE_URL)%')] private string $baseUrl,
-        private CoreRepository                             $coreRepository,
         private PixieImportService                         $pixieImportService,
-        private ImportHandler                              $importHandler,
-        private readonly SqliteService                     $sqliteService,
-        private readonly CoreService                       $coreService,
-        private readonly TableRepository                   $tableRepository,
     )
     {
         parent::__construct();
@@ -118,10 +111,19 @@ EOL
         }
 
         $pixieService = $this->pixieService;
-        $config = $pixieService->selectConfig($configCode);
+
+        $ctx  = $pixieService->getReference($configCode);
+        $em   = $ctx->em;
+        $core = $pixieService->getCore('row', $configCode);
+        $config = $ctx->config;
+//        dd(count($core->rows), $ctx->ownerRef->name, $config);
+// ... persist rows, etc.
+//        $em->flush();
+
+//        $config = $pixieService->selectConfig($configCode);
         // make sure the local owner is set.
 
-        assert($config, "Missing $configCode");
+//        assert($config, "Missing $configCode");
         $sourceDir = $pixieService->getSourceFilesDir($configCode, subCode: $subCode);
         assert(is_dir($sourceDir), "Invalid source dir: $sourceDir");
 
@@ -237,8 +239,8 @@ EOL
         // ack
         $owner = $this->pixieEntityManager->find(Owner::class, $configCode);
         foreach ($config->getTables() as $table) {
-            $core = $this->coreService->getCore($table->getName(), $owner);
-            $count = $core->getRowCount();
+            $core = $this->pixieService->getCore($table->getName(), $owner);
+            $count = $core->rowCount;
 //            $count = -3; // $kv->count($table->getName());
             $url = sprintf("%s://%s", $configCode, $subCode);
             // table? Or core?
@@ -261,7 +263,7 @@ EOL
         }
         // this only queues source translations, so unrelated to indexing
         if ($populate) {
-            $cli = "pixie:translate --queue $configCode";
+            $cli = "pixie:translate  $configCode";
             $this->io->warning('bin/console ' . $cli);
 //            $this->runCommand($cli);
         }

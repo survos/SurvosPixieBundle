@@ -24,9 +24,6 @@ use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Tree\Traits\NestedSetEntity;
 use Knp\DoctrineBehaviors\Contract\Entity\TranslatableInterface;
 use Knp\DoctrineBehaviors\Model\Translatable\TranslatableTrait;
-use Survos\ApiGrid\Api\Filter\JsonSearchFilter;
-use Survos\ApiGrid\Api\Filter\MultiFieldSearchFilter;
-use Survos\ApiGrid\State\MeiliSearchStateProvider;
 use Survos\CoreBundle\Entity\RouteParametersInterface;
 use Survos\PixieBundle\Entity\Field\CategoryField;
 use Survos\PixieBundle\Entity\Field\Field;
@@ -49,49 +46,48 @@ use Gedmo\Mapping\Annotation as Gedmo;
 #[ORM\Index(name: "instance_core", columns: ['core_id'])]
 //#[ORM\Index(name: "rename_notification_idx", columns: ["rename_notification"], options: ["where" => "rename_notification = TRUE"])]
 
-#[ApiResource(
-    operations: [new Get(),
-        new GetCollection(
-            name: 'core',
-            uriTemplate: "doctrine/{coreId}",
-            uriVariables: ['core'],
-        )],
-
-    # @todo: secure new Put(), new Delete(), new Patch(), new Post(),
-    denormalizationContext: [
-        'groups' => ['instance.write', 'tree'],
-    ],
-    normalizationContext: [
-        'groups' => ['instance.read', 'tree', 'rp'],
-    ]
-)]
-#[GetCollection(
-    uriTemplate: "meili/{ownerId}/{projectId}/{coreId}/{indexName}",
-    uriVariables: ["ownerId", "projectId", "coreId","indexName"],
-//    requirements: ['core' => '\d+'],
-    provider: MeiliSearchStateProvider::class,
-    denormalizationContext: [
-        'groups' => ['instance.write', 'tree'],
-    ],
-    normalizationContext: [
-        'groups' => ['instance.read', 'tree', 'rp'],
-    ]
-)]
-#[ApiFilter(OrderFilter::class, properties: ['name', 'code'], arguments: [
-    'orderParameterName' => 'order',
-])]
-#[ApiFilter(UriFacetFilter::class, properties: ['coreId'], arguments: ['searchParameterName' => 'coreId'])]
-// can we move this to a property
-#[ApiFilter(JsonSearchFilter::class, properties: ['attributes'], arguments: ['searchParameterName' => 'attribute_search'])]
-#[ApiFilter(SearchFilter::class, properties: [
-    'project' => 'exact',
-    'code' => 'exact',
-    'label' => 'partial',
-    'description' => 'partial',
-    'referenceCount' => 'exact',
-    'core' => 'exact',
-])]
-#[ApiFilter(MultiFieldSearchFilter::class, properties: ['label', 'code'])]
+//#[ApiResource(
+//    operations: [new Get(),
+//        new GetCollection(
+//            name: 'core',
+//            uriTemplate: "doctrine/{coreId}",
+//            uriVariables: ['core'],
+//        )],
+//
+//    # @todo: secure new Put(), new Delete(), new Patch(), new Post(),
+//    denormalizationContext: [
+//        'groups' => ['instance.write', 'tree'],
+//    ],
+//    normalizationContext: [
+//        'groups' => ['instance.read', 'tree', 'rp'],
+//    ]
+//)]
+//#[GetCollection(
+//    uriTemplate: "meili/{ownerId}/{projectId}/{coreId}/{indexName}",
+//    uriVariables: ["ownerId", "projectId", "coreId","indexName"],
+////    requirements: ['core' => '\d+'],
+//    provider: MeiliSearchStateProvider::class,
+//    denormalizationContext: [
+//        'groups' => ['instance.write', 'tree'],
+//    ],
+//    normalizationContext: [
+//        'groups' => ['instance.read', 'tree', 'rp'],
+//    ]
+//)]
+//#[ApiFilter(OrderFilter::class, properties: ['name', 'code'], arguments: [
+//    'orderParameterName' => 'order',
+//])]
+//#[ApiFilter(UriFacetFilter::class, properties: ['coreId'], arguments: ['searchParameterName' => 'coreId'])]
+//// can we move this to a property
+//#[ApiFilter(JsonSearchFilter::class, properties: ['attributes'], arguments: ['searchParameterName' => 'attribute_search'])]
+//#[ApiFilter(SearchFilter::class, properties: [
+//    'project' => 'exact',
+//    'code' => 'exact',
+//    'label' => 'partial',
+//    'description' => 'partial',
+//    'referenceCount' => 'exact',
+//    'core' => 'exact',
+//])]
 //#[Gedmo\Tree(type: 'nested')]
 class Instance implements
     IdInterface,

@@ -2,6 +2,7 @@
 
 namespace Survos\PixieBundle\EventListener;
 
+use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Service\PixieService;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -14,6 +15,7 @@ final class PixieControllerEventListener
         private RequestStack $requestStack,
 //        #[Target('pixieEntityManager')] private EntityManagerInterface $pixieEntityManager,
         private PixieService $pixieService,
+        private LoggerInterface $logger,
     )
     {
 
@@ -24,9 +26,11 @@ final class PixieControllerEventListener
         $request = $this->requestStack->getCurrentRequest();
         $pixieCode =  $request->get('pixieCode');
         if ($pixieCode) {
-            $this->pixieService->selectConfig($pixieCode);
+            // maybe...
+//            $this->pixieService->selectConfig($pixieCode);
+            $ctx = $this->pixieService->getReference($pixieCode); // iffy too
+            $this->logger->warning("Setting pixie service to $pixieCode");
             // now we can also check permissions!
-//            was $this->sqliteService->setPixieEntityManager($pixieCode);
         }
     }
 }

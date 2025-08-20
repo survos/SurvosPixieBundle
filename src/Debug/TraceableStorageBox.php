@@ -19,8 +19,9 @@ use Symfony\Component\Stopwatch\Stopwatch;
 final class TraceableStorageBox extends StorageBox
 {
 //    private Stopwatch $stopwatch;
-    function __construct(private readonly string                    $filename,
-                                     private array                     &$data, // debug data, passed from Entity
+    function __construct(
+        private readonly ?string                    $filename=null,
+                                     private array                     &$data=[], // debug data, passed from Entity
                                      private readonly ?Config $config=null, // for creation only.  Shouldn't be in constructor!
                                      private readonly ?string                   $currentTable = null,
                                      private readonly ?int                      $version = 1,

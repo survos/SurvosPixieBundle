@@ -1,0 +1,74 @@
+{% extends '@SurvosPixie/pixie/layout.html.twig' %}
+
+{% block body %}
+
+{# packages/pixie-bundle/templates/pixie/schema_compiled.html.twig #}
+{% set pixie = pixie ?? '(unknown)' %}
+{% set coreCount = coreCount ?? 0 %}
+{% set cores = cores ?? [] %}
+
+<div class="container my-4">
+    <h1 class="h3">Compiled schema: <code>{{ pixie }}</code></h1>
+    <p class="text-muted mb-4">
+        {{ coreCount }} core{{ coreCount == 1 ? '' : 's' }} found.
+    </p>
+
+    {% if cores is empty %}
+        <div class="alert alert-warning">No compiled schema found. Try running <code>bin/console pixie:schema:sync {{ pixie }}</code>.</div>
+    {% endif %}
+
+    {% if cores|length > 1 %}
+        <nav class="mb-3">
+            <ul class="nav nav-pills flex-wrap gap-2">
+                {% for c in cores %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="#core-{{ c.core|e('html_attr') }}">{{ c.core }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    {% endif %}
+
+    {% for c in cores %}
+        <section id="core-{{ c.core|e('html_attr') }}" class="mb-5">
+            <h2 class="h5 d-flex align-items-center gap-3">
+                <span class="badge text-bg-secondary">{{ loop.index }}</span>
+                <span>Core: <code>{{ c.core }}</code></span>
+                <span class="text-muted small">(pk: <code>{{ c.pk }}</code>, {{ c.fieldCount }} fields)</span>
+            </h2>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th class="text-center" style="width: 3rem;">#</th>
+                        <th>code</th>
+                        <th>kind</th>
+                        <th>target</th>
+                        <th>delim</th>
+                        <th class="text-center">translatable</th>
+                        <th class="text-end">position</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for f in c.fields %}
+                        <tr>
+                            <td class="text-center">{{ loop.index }}</td>
+                            <td><code>{{ f.code }}</code></td>
+                            <td><code>{{ f.kind ?? '' }}</code></td>
+                            <td><code>{{ f.targetCore ?? '' }}</code></td>
+                            <td><code>{{ f.delim ?? '' }}</code></td>
+                            <td class="text-center">
+                                {% if f.translatable %}<span class="badge text-bg-success">yes</span>{% else %}<span class="badge text-bg-secondary">no</span>{% endif %}
+                            </td>
+                            <td class="text-end">{{ f.position is not null ? f.position : '' }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endfor %}
+</div>
+
+{% endblock %}

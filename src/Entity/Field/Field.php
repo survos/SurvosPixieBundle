@@ -138,7 +138,7 @@ class Field implements
 //
     #[ORM\ManyToOne(targetEntity: Core::class, inversedBy: 'fields')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    protected Core $core;
+    public Core $core;
 
     #[ORM\ManyToOne(targetEntity: FieldSet::class, inversedBy: 'fields')]
     #[ORM\JoinColumn(nullable: true)]
@@ -266,7 +266,7 @@ class Field implements
     static public function createId(string $code, ?Owner $owner=null): string
     {
         return $code; // for now, skip owner, too messy
-//        return sprintf("%s-%s", $owner->getCode(), $code);
+//        return sprintf("%s-%s", $owner->code, $code);
     }
 
     public function isMultiField(): ?bool

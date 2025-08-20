@@ -15,8 +15,6 @@ use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Table;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieImportService;
-use Survos\PixieBundle\Service\SqliteService;
-use Survos\PixieBundle\StorageBox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Yaml\Yaml;
 use function PHPUnit\Framework\assertCount;
@@ -288,19 +286,6 @@ class PixieTest extends KernelTestCase
 //        # csv
 //
 //    }
-
-    public function testMigration()
-    {
-        /** @var SqliteService $service */
-        $service = static::getContainer()->get(SqliteService::class);
-
-        /** @var PixieService $pixieService */
-        $pixieService = static::getContainer()->get(PixieService::class);
-        $filename = $pixieService->getPixieFilename(self::TEST_CODE);
-        [$tables, $diffs] = $service->playWithSqliteSchema($filename);
-        self::assertTrue(count($diffs) > 0);
-
-    }
 
     // this happens after each test!
     public function tearDown(): void

@@ -15,16 +15,21 @@ use function Symfony\Component\String\u;
 class RelationService
 {
     public function __construct(
-        private readonly RelationRepository     $relationRepository,
-        private readonly EntityManagerInterface $pixieEntityManager,
-        private readonly ?AppService             $appService = null,
+        // circular reference.  Needs refactoring anyway
+//        private PixieService $pixieService
     ) {
+    }
+
+    private function getRepo(): RelationRepository
+    {
+        return $this->pixieService->getReference()->repo(Relation::class);
     }
 
     public function deleteRelations(InstanceInterface $instance)
     {
+
         // could also go through the relations remove them from management, but I think this is better.
-        return $this->relationRepository->createQueryBuilder('e')
+        return $this->getRepo()->createQueryBuilder('e')
             ->andWhere('e.leftInstanceId = :instanceId')
             ->orWhere('e.rightInstanceId = :instanceId')
             ->setParameter('instanceId', $instance->getId())
@@ -43,7 +48,7 @@ class RelationService
 
         $code = Relation::createCode($leftInstance->getCode(), $rightInstanceCode, $relationField->getCode());
         if (! array_key_exists($code, $seen)) {
-            if (! $relation = $this->relationRepository->findOneBy([
+            if (! $relation = $this->getRepo()->findOneBy([
                 'code' => $code,
             ])) {
                 $relation = new Relation($leftInstance, $rightInstanceCode, $relationField, $rightInstance, $code);
@@ -65,14 +70,15 @@ class RelationService
     public function addInstanceRelations(InstanceInterface $instance)
     {
         // get the references and relationships, which are NOT managed by Doctrine
-        $relations = $this->relationRepository->getRelations($instance);
+        $relations = $this->getRepo()->getRelations($instance);
         /** @var Relation $relation */
         foreach ($relations as $relation) {
             /** @var InstanceInterface $rightInstance */
-            if ($rightInstance = $this->pixieEntityManager->find($relation->getRelationField()->getRightCore()->getEntityClass(), $relation->getRightInstanceId())) {
-                $relation->setRightInstance($rightInstance);
-                $instance->addRelation($relation);
-            }
+            dd($relation);
+//            if ($rightInstance = $this->pixieEntityManager->find($relation->getRelationField()->getRightCore()->getEntityClass(), $relation->getRightInstanceId())) {
+//                $relation->setRightInstance($rightInstance);
+//                $instance->addRelation($relation);
+//            }
         }
     }
 
@@ -148,13 +154,12 @@ class RelationService
                         ->setIsReverse(true)
                         ->setLabel($reverseLabel);
                     $reverseFieldSet->addField($reverseRelationField);
-                    $this->appService?->validate($reverseFieldSet);
+//                    $this->appService?->validate($reverseFieldSet);
 
                 }
             }
-            $relationField->setCurrentLocale($projectCore->getProjectLocale()); // hack, not persisted or needed
+//            $relationField->setCurrentLocale($projectCore->getProjectLocale()); // hack, not persisted or needed
 //            $relationField->getImportFields()
-            $this->appService?->validate($relationField);
 
             $seen[$relationField->__toString()] = $relationField;
 //            dd($seen, $key, $relationField->getId(), $relationField->getCode());

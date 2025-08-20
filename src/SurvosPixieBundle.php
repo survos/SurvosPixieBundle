@@ -4,49 +4,69 @@
 
 namespace Survos\PixieBundle;
 
-use App\Command\PixieMediaCommand;
-use App\Service\Handler\BelvedereHandler;
-use App\Service\Handler\LarcoHandler;
 use Survos\CoreBundle\Traits\HasAssetMapperTrait;
 use Survos\PixieBundle\Command\IterateCommand;
 use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
 use Survos\PixieBundle\Command\PixieIndexCommand;
+use Survos\PixieBundle\Command\PixieInjestCommand;
 use Survos\PixieBundle\Command\PixieMakeCommand;
+use Survos\PixieBundle\Command\PixieMediaCommand;
+use Survos\PixieBundle\Command\PixieMeiliSettingsCommand;
+use Survos\PixieBundle\Command\PixieMigrateCommand;
 use Survos\PixieBundle\Command\PixiePrepareCommand;
+use Survos\PixieBundle\Command\PixieSchemaDumpCommand;
+use Survos\PixieBundle\Command\PixieSchemaSyncCommand;
+use Survos\PixieBundle\Command\PixieStatsShowCommand;
 use Survos\PixieBundle\Command\PixieSyncCommand;
 use Survos\PixieBundle\Components\DatabaseComponent;
 use Survos\PixieBundle\Components\RowComponent;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Controller\SearchController;
-use Survos\PixieBundle\CsvSchema\Parser;
 use Survos\PixieBundle\DataCollector\PixieDataCollector;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
+use Survos\PixieBundle\Dto\Attributes\Mapper as MapperAttr;
 use Survos\PixieBundle\EventListener\CsvHeaderEventListener;
 use Survos\PixieBundle\EventListener\PixieControllerEventListener;
+use Survos\PixieBundle\EventListener\PixiePostLoadListener;
 use Survos\PixieBundle\EventListener\TranslationRowEventListener;
+use Survos\PixieBundle\Import\Ingest\CsvIngestor;
+use Survos\PixieBundle\Import\Ingest\JsonIngestor;
 use Survos\PixieBundle\Menu\PixieItemMenu;
 use Survos\PixieBundle\Menu\PixieMenu;
+use Survos\PixieBundle\Repository\CoreDefinitionRepository;
 use Survos\PixieBundle\Repository\CoreRepository;
+use Survos\PixieBundle\Repository\FieldDefinitionRepository;
 use Survos\PixieBundle\Repository\FieldRepository;
-use Survos\PixieBundle\Repository\InstanceRepository;
 use Survos\PixieBundle\Repository\OriginalImageRepository;
-use Survos\PixieBundle\Repository\OwnerRepository;
-use Survos\PixieBundle\Repository\ReferenceRepository;
-use Survos\PixieBundle\Repository\RelationRepository;
 use Survos\PixieBundle\Repository\RowRepository;
 use Survos\PixieBundle\Repository\StrRepository;
+use Survos\PixieBundle\Repository\StrTranslationRepository;
 use Survos\PixieBundle\Repository\TableRepository;
+use Survos\PixieBundle\Schema\YamlSchemaSynchronizer;
 use Survos\PixieBundle\Service\CoreService;
+use Survos\PixieBundle\Service\DtoMapper;
+use Survos\PixieBundle\Service\DtoRegistry;
+use Survos\PixieBundle\Service\EventQueryService;
 use Survos\PixieBundle\Service\ImportHandler;
 use Survos\PixieBundle\Service\LibreTranslateService;
+use Survos\PixieBundle\Service\LocaleContext;
+use Survos\PixieBundle\Service\MeiliIndexer;
+use Survos\PixieBundle\Service\MeiliSettingsBuilder;
 use Survos\PixieBundle\Service\PixieConvertService;
+use Survos\PixieBundle\Service\PixieDocumentProjector;
+use Survos\PixieBundle\Service\PixieEntityManagerProvider;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\PixieTranslationService;
 use Survos\PixieBundle\Service\ReferenceService;
 use Survos\PixieBundle\Service\RelationService;
-use Survos\PixieBundle\Service\SqliteService;
+use Survos\PixieBundle\Service\RowIngestor;
+use Survos\PixieBundle\Service\SchemaViewService;
+use Survos\PixieBundle\Service\SqlViewService;
+use Survos\PixieBundle\Service\StatsCollector;
+use Survos\PixieBundle\Service\TranslationResolver;
+use Survos\PixieBundle\StorageBox;
 use Survos\PixieBundle\Twig\TwigExtension;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
@@ -68,83 +88,122 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
     {
         parent::build($container);
 
-        // Register this class as a pass, to eliminate the need for the extra DI class
-        // https://stackoverflow.com/questions/73814467/how-do-i-add-a-twig-global-from-a-bundle-config
+        // Autoconfigure DTO classes annotated with #[Mapper] -> tag "pixie.dto"
+        $container->registerAttributeForAutoconfiguration(
+            MapperAttr::class,
+            static function (Definition $definition, MapperAttr $attr, \ReflectionClass $ref): void {
+                $definition->addTag('pixie.dto', [
+                    'priority' => $attr->priority,
+                    'when' => $attr->when,
+                    'except' => $attr->except,
+                    'cores' => $attr->cores,
+                ]);
+            }
+        );
+
+        // If you still want this class as a compiler pass for other reasons, keep it.
+        // Otherwise, you can drop the addCompilerPass($this) call entirely.
         $container->addCompilerPass($this);
     }
 
     public function process(ContainerBuilder $container): void
     {
-        $isGranted = [];
-        return;
-
-        // get the normalizer/serializer
-        $normalizer = $container->get('serializer');
-
-
-        $taggedServices = $container->findTaggedServiceIds('container.service_subscriber');
-        dd($taggedServices);
+        // Intentionally no-op (remove dd/experiments).
+        // You can add other pass-time tweaks here later if needed.
     }
-
-
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $builder->register(PixieImportService::class)
-            ->setAutowired(true)
-            ->setArgument('$logger', new Reference('logger'))
-            ->setArgument('$purgeBeforeImport', $config['purge_before_import'])
-        ;
 
-        /* @ack!! these needs to be in a translation bundle and optionally wired */
-        $builder->register(PixieTranslationService::class)
-            ->setAutowired(true)
-        ;
-        $builder->register(LibreTranslateService::class)
-            ->setAutowired(true)
-        ;
-
-        foreach ([DatabaseComponent::class, RowComponent::class, SqliteService::class, CoreService::class,
-                     ReferenceRepository::class,
-                     ImportHandler::class,
-
-//                     LarcoHandler::class,
-//                     BelvedereHandler::class,
-
-                     RelationRepository::class,
-                     OwnerRepository::class, // maybe better to have Settings or a different name at least
-                     InstanceRepository::class,
-                     OriginalImageRepository::class,
-                     RelationService::class,
-                     CoreRepository::class,
-                     RowRepository::class,
-                     StrRepository::class,
-                     TableRepository::class,
-                     FieldRepository::class,
-                     ReferenceService::class] as $componentClass) {
-            $builder->register($componentClass)
-                ->setPublic(true)
+        foreach ([
+                     \Survos\PixieBundle\Dto\Generic\Obj::class,
+                     // add more bundle DTOs here as you create them:
+                     // \Survos\PixieBundle\Dto\Cleveland\Obj::class,
+                 ] as $dtoClass) {
+            $builder->register($dtoClass)
                 ->setAutowired(true)
                 ->setAutoconfigured(true)
-            ;
+                ->setPublic(false);
         }
 
-        $builder->register(ImportHandler::class)
-            ->setPublic(true)
+        // repos are not public, but do need the tag
+        foreach ([CoreRepository::class,
+                     FieldRepository::class,
+                     FieldDefinitionRepository::class,
+                     TableRepository::class,
+                     StrRepository::class,
+                     StrTranslationRepository::class,
+                     OriginalImageRepository::class,
+                     RowRepository::class,
+                     CoreDefinitionRepository::class] as $class) {
+            $builder->register($class)
+                ->setAutowired(true)
+                ->setAutoconfigured(true)
+                ->addTag('doctrine.repository_service')//                ->setPublic(true)
+            ;
+
+        }
+
+        // Core services
+        foreach ([
+                     StatsCollector::class,
+                     PixieService::class,
+                     PixieImportService::class,
+                     PixieEntityManagerProvider::class,
+                     CoreService::class,
+                     LocaleContext::class,
+                     MeiliSettingsBuilder::class,
+                     JsonIngestor::class,
+                     CsvIngestor::class,
+                     YamlSchemaSynchronizer::class,
+                     PixieDocumentProjector::class,
+                     EventQueryService::class,
+                     TranslationResolver::class,
+                     PixieTranslationService::class,
+                     LibreTranslateService::class,
+                     MeiliIndexer::class,
+                     PixieConvertService::class,
+                     ReferenceService::class,
+                     RelationService::class,
+                     RowIngestor::class,
+                     SchemaViewService::class,
+                     SqlViewService::class,
+                     DtoMapper::class,
+                     DtoRegistry::class,
+                     DatabaseComponent::class,
+                     RowComponent::class,
+                 ] as $svc) {
+            $builder->register($svc)
+                ->setAutowired(true)
+                ->setAutoconfigured(true)
+                ->setPublic(true);
+        }
+
+        // PixieService args
+        $builder->getDefinition(PixieImportService::class)
+            ->setArgument('$logger', new Reference('logger'))
+            ->setArgument('$purgeBeforeImport', $config['purge_before_import']);
+
+        $builder->getDefinition(PixieConvertService::class)
+            ->setArgument('$logger', new Reference('logger'))
+            ->setArgument('$purgeBeforeImport', $config['purge_before_import']);
+
+        $builder->getDefinition(PixieService::class)
             ->setAutowired(true)
             ->setAutoconfigured(true)
-//            ->setArgument('$handlers', Auto)
-        ;
+            ->setArgument('$isDebug', $config['debug'])
+            ->setArgument('$dataRoot', $config['data_root'])
+            ->setArgument('$configDir', $config['config_dir'])
+            ->setArgument('$dbDir', $config['db_dir'])
+            ->setArgument('$bundleConfig', $config)
+            ->setArgument('$stopwatch', new Reference('debug.stopwatch'))
+            ->setArgument('$serializer', new Reference('serializer'))
+            ->setArgument('$logger', new Reference('logger'));
 
-        $builder->register(PixieConvertService::class)
-            ->setAutowired(true)
-            ->setArgument('$logger', new Reference('logger'))
-            ->setArgument('$purgeBeforeImport', $config['purge_before_import'])
-        ;
-
+        // Twig extension (if Twig is installed)
         if (class_exists(Environment::class)) {
             $builder
-                ->setDefinition('survos.pixie_bundle', new Definition(TwigExtension::class))
+                ->setDefinition('survos.pixie_bundle.twig_extension', new Definition(TwigExtension::class))
                 ->setArgument('$requestStack', new Reference('request_stack', ContainerInterface::NULL_ON_INVALID_REFERENCE))
                 ->addTag('twig.extension')
                 ->setAutoconfigured(true)
@@ -152,109 +211,104 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                 ->setPublic(false);
         }
 
-        // @todo: get the bootstrap bundle configuration and add pixieCode
-        foreach ([PixieMenu::class, PixieItemMenu::class] as $class) {
-            $builder->autowire($class)
-                ->setAutowired(true)
-                ->setAutoconfigured(true)
-                ->setPublic(true);
-        }
-        $builder->autowire(SqliteServce::class)
+        // Controllers
+        $builder->autowire(PixieController::class)
+            ->addTag('controller.service_arguments')
             ->setAutowired(true)
+            ->setAutoconfigured(true)
             ->setPublic(true);
 
-        $builder->autowire(PixieController::class)
-            ->addTag('container.service_subscriber')
-            ->addTag('controller.service_arguments')
-            ->setArgument('$bus', new Reference('debug.traced.messenger.bus.default', ContainerInterface::NULL_ON_INVALID_REFERENCE))
-            ->setArgument('$chartBuilder', new Reference('chartjs.builder', ContainerInterface::NULL_ON_INVALID_REFERENCE))
-        ;
-
         $builder->autowire(SearchController::class)
-            ->addTag('container.service_subscriber')
             ->addTag('controller.service_arguments')
-            ->setArgument('$iriConverter', new Reference('api_platform.symfony.iri_converter', ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ->setAutowired(true)
             ->setAutoconfigured(true)
-        ;
+            ->setPublic(true);
 
+        // Data collector
         $builder->autowire(PixieDataCollector::class)
             ->setArgument('$pixieService', new Reference(PixieService::class))
-            ->addTag('data_collector', [
-                'template' => '@SurvosPixie/DataCollector/pixie_debug_profile.html.twig'
-            ]);
+            ->addTag('data_collector', ['template' => '@SurvosPixie/DataCollector/pixie_debug_profile.html.twig'])
+            ->setPublic(true);
 
-
-        // storageBoxService, right?  Then get an instance of the storageBox? PixieService?
+        // StorageBox helpers
         foreach ([StorageBox::class, TraceableStorageBox::class] as $storageBoxClass) {
             $builder->register($storageBoxClass)
                 ->setAutowired(true)
                 ->setAutoconfigured(true)
                 ->setArgument('$logger', new Reference('logger'))
-            ;
-
+                ->setPublic(true);
         }
 
+        // Event listeners
+        foreach ([TranslationRowEventListener::class, CsvHeaderEventListener::class, PixiePostLoadListener::class, PixieControllerEventListener::class] as $listener) {
+            $builder->register($listener)
+                ->setAutowired(true)
+                ->setAutoconfigured(true)
+                ->setPublic(true);
+        }
+
+        // Commands
         foreach ([
+                     PixieStatsShowCommand::class,
+                     PixieMeiliSettingsCommand::class,
+                     PixieMigrateCommand::class,
+                     PixieMediaCommand::class,
                      PixiePrepareCommand::class,
                      PixieImportCommand::class,
                      PixieExportCommand::class,
-//                     PixieTranslateCommand::class,
+                     PixieInjestCommand::class,
+                     PixieSchemaDumpCommand::class,
+                     PixieSchemaSyncCommand::class,
                      IterateCommand::class,
-//                     PixieMediaCommand::class,
                      PixieIndexCommand::class,
                      PixieSyncCommand::class,
-                     PixieMakeCommand::class] as $commandClass) {
-            // check https://github.com/zenstruck/console-extra/issues/59
+                     PixieMakeCommand::class,
+                 ] as $commandClass) {
             $builder->autowire($commandClass)
                 ->setAutoconfigured(true)
                 ->addTag('console.command');
         }
+    }
 
-        $builder->register(PixieService::class)
-            ->setAutowired(true)
-            ->setAutoconfigured(true)
-            ->setArgument('$isDebug', $config['debug']) // or in config $builder->getParameter('kernel.debug'))
-            ->setArgument('$dataRoot', $config['data_root'])
-            ->setArgument('$configDir', $config['config_dir'])
-            ->setArgument('$dbDir', $config['db_dir'])
-            ->setArgument('$bundleConfig', $config)
-            ->setArgument('$stopwatch', new Reference('debug.stopwatch'))
-            ->setArgument('$serializer', new Reference('serializer'))
-            ->setArgument('$logger', new Reference('logger'))
-        ;
+    public function configure(DefinitionConfigurator $definition): void
+    {
+        $root = $definition->rootNode();
+        $root
+            ->children()
+            // Use a filename extension compatible with your PixieService expectation
+            ->scalarNode('extension')->defaultValue('db')->info("pixie DB filename extension, e.g. 'db'")->end()
+            ->scalarNode('db_dir')->defaultValue('pixie')->info("directory for pixie db files")->end()
+            ->scalarNode('data_root')->defaultValue('data')->info("root for csv/json data")->end()
+            ->scalarNode('transport')->defaultNull()->info("default messenger transport for iterate")->end()
+            ->booleanNode('debug')->defaultFalse()->info("turn on profiler hooks (kernel.debug?)")->end()
+            ->booleanNode('purge_before_import')->defaultFalse()->end()
+            ->integerNode('limit')->defaultValue(0)->info("default limit for import/index/translate")->end()
+            ->scalarNode('config_dir')->defaultValue('config/packages/pixie')->end()
+            ->end();
 
-        // register our listener.  We could disable or set priority in the config
-        foreach ([TranslationRowEventListener::class, CsvHeaderEventListener::class, PixieControllerEventListener::class] as $listenerClass) {
-            $builder->register($listenerClass)
-                ->setAutowired(true)
-                ->setAutoconfigured(true)
-                ->setPublic(true)
-            ;
-
-        }
+        $this->addPixiesSection($root);
     }
 
     private function addPixiesSection(ArrayNodeDefinition $rootNode): void
     {
-        $children = $rootNode->children();  // Start with children() on the root node
+        $children = $rootNode->children();
 
         $this->addCoresSection($children);
         $this->addTablesSection($children, 'templates');
         $this->addPixiesSectionChildren($children);
 
-        $children->end();  // End the children block
+        $children->end();
     }
 
     private function addCoresSection(NodeBuilder $children): void
     {
-        // global, not specific to an individual pixie
         $children
             ->arrayNode('cores')
             ->arrayPrototype()
-                ->children()
-                    ->scalarNode('icon')->end()
-                    ->scalarNode('icon_class')->end()
-                ->end()
+            ->children()
+            ->scalarNode('icon')->end()
+            ->scalarNode('icon_class')->end()
+            ->end()
             ->end()
             ->end();
     }
@@ -263,102 +317,50 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
     {
         $pixieRoot = $children
             ->arrayNode('pixies')
+            ->useAttributeAsKey('code')
             ->arrayPrototype()
             ->children();
 
         $pixieRoot->scalarNode('version')->defaultValue('1.1')->end();
         $pixieRoot->scalarNode('code')->defaultNull()->end();
         $pixieRoot->scalarNode('type')->defaultValue('museum')->end();
-        $pixieRoot->arrayNode('files')
-            ->scalarPrototype()
-            ->end();
+
+        $pixieRoot->arrayNode('files')->scalarPrototype()->end()->end();
 
         $pixieRoot->arrayNode('members')
             ->arrayPrototype()
             ->children()
             ->scalarNode('email')->defaultNull()->end()
             ->scalarNode('roles')->defaultNull()->end()
+            ->end()
+            ->end()
             ->end();
 
         $this->addTablesSection($pixieRoot);
-
         $this->addSourceSection($pixieRoot);
     }
 
-    private function addTablesSection(NodeBuilder $pixieRoot, string $key='tables'): void
+    private function addTablesSection(NodeBuilder $parent, string $key = 'tables'): void
     {
-//        if ($key === 'templates') return;
-        // like pixies, tables are keyed by some value, but have a prototype beneath them of rules, properties, translatableFields, etc.
-        $tableRoot = $pixieRoot->arrayNode($key)
+        $tableRoot = $parent->arrayNode($key)
             ->useAttributeAsKey('name')
             ->arrayPrototype()
             ->children()
-            ->integerNode('total')->info("if total is known for progressBar")->defaultNull()->end()
-            ->booleanNode('has_images')->info("if images display thumbnail")->defaultNull()->end()
-            ->scalarNode('extends')->info("inherits table data from templates")->defaultNull()->end()
-//            ->scalarNode('name')->info("key...")->defaultNull()->end()
-
-            ->arrayNode('rules')
-            ->scalarPrototype()
-            ->end()
-            ->end()
-
-            // @todo: patches in larco.yaml
-//            ->arrayNode('patches')
-//                ->scalarPrototype()
-//            ->end()
-//            ->end()
-
-
+            ->integerNode('total')->defaultNull()->info("if total is known for progress bar")->end()
+            ->booleanNode('has_images')->defaultNull()->info("if images display thumbnail")->end()
+            ->scalarNode('extends')->defaultNull()->info("inherits table data from templates")->end()
+            ->arrayNode('rules')->scalarPrototype()->end()->end()
             ->scalarNode('workflow')->end()
-            ->scalarNode('parent')->info("the related table (parent) in 1toMany")->defaultNull()->end()
-
-
-            ->arrayNode('translatable')->info("text fields to translate")->scalarPrototype()->end()->end()
-            ->arrayNode('facets')->info("facets in tombstone")->scalarPrototype()->end()->end()
-            ->arrayNode('extras')->info("extras column")->scalarPrototype()->end()->end()
-
-            ->arrayNode('uses')->info("get definitions from the 'internal' key in templates")
-                ->scalarPrototype()->info('key to internal table')->cannotBeEmpty()->end()
+            ->scalarNode('parent')->defaultNull()->info("related parent table in 1:N")->end()
+            ->arrayNode('translatable')->scalarPrototype()->end()->end()
+            ->arrayNode('facets')->scalarPrototype()->end()->end()
+            ->arrayNode('extras')->scalarPrototype()->end()->end()
+            ->arrayNode('uses')->scalarPrototype()->end()->info("use definitions from templates['internal']")->end()
+            ->arrayNode('properties')->scalarPrototype()->end()->end()
             ->end()
-
-            ->arrayNode('properties')
-            ->beforeNormalization()
-            ->ifString()
-            ->then(function (string $v): array { dd($v); return ['name' => $v]; })
-            ->ifArray()
-            ->then(function ($v): void {dd($v); })
-            ->ifString()
-            ->then(fn($propData) => dd(Parser::parseConfigHeader($propData)))
-            ->end()
-
-        ->scalarPrototype()->defaultValue(["*.zip"])->end()
-
-        ->scalarPrototype()
-        ->end()
-        ->end()
-
-        ->end();
-//        dd($pixieRoot, $tableRoot);
-
-//        $this
-//            ->addPropertiesSection($tableRoot, 'properties');
-
-    }
-    private function addPropertiesSection(NodeBuilder $pixieRoot, string $name='properties'): void
-    {
-        $pixieRoot
-            ->arrayNode($name)
-            ->beforeNormalization()
-                ->ifString()
-                    ->then(function (string $v): array { dd($v); return ['name' => $v]; })
-                ->ifArray()
-                    ->then(function ($v): void {dd($v); })
-                ->ifString()
-                    ->then(fn($propData) => dd(Parser::parseConfigHeader($propData)))
             ->end();
-
     }
+
     private function addSourceSection(NodeBuilder $pixieRoot): void
     {
         $source = $pixieRoot
@@ -371,98 +373,74 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
 
         $source
             ->scalarNode('instructions')->end()
-            ->scalarNode('units')->info("mm or cm")->defaultValue('cm')->end()
+            ->scalarNode('units')->defaultValue('cm')->info("mm or cm")->end()
             ->scalarNode('label')->end()
             ->scalarNode('flickr_album_id')->end()
             ->scalarNode('approx_image_count')->end()
-            ->scalarNode('license')->info("license in md format, e.g. 'CC BY-NC-SA' ")->end()
+            ->scalarNode('license')->info("e.g. 'CC BY-NC-SA'")->end()
             ->scalarNode('moderation')->defaultValue('all')->info("moderate before flickr upload (none|all)")->end()
             ->scalarNode('description')->end()
-            ->scalarNode('origin')->isRequired()->info("data source, e.g. api, github, musdig")->end()
-            // @todo: validate country and locale
+            ->scalarNode('origin')->isRequired()->info("data source: api, github, musdig")->end()
             ->scalarNode('country')->info("2-letter country code")->end()
             ->scalarNode('locale')->end()
-
             ->scalarNode('notes')->end()
-            ->scalarNode('dir')->info('defaults to <projectDir>/data')->end();
-
-        $links = $source->arrayNode('links')->children();
-        # this isn't right.
-        foreach (['facebook', 'twitter','github','instagram','flickr', 'api', 'contact', 'license',
-                     'web',
-                     'website', 'search','info'] as $socialMedia) {
-            $links->scalarNode($socialMedia)->end();
-        }
-
-        $links->end()->end();
-
-        $source
-            ->arrayNode('ignore')->info("array of patterns to ignore")
-                ->beforeNormalization()
-                ->ifString()
-                ->then(fn($value) => [$value])
-                ->end()
-                ->scalarPrototype()->defaultValue(["*.zip"])->end()
+            ->scalarNode('dir')->info('defaults to <projectDir>/data')->end()
+            ->arrayNode('links')
+            ->children()
+            ->scalarNode('facebook')->end()
+            ->scalarNode('twitter')->end()
+            ->scalarNode('github')->end()
+            ->scalarNode('instagram')->end()
+            ->scalarNode('flickr')->end()
+            ->scalarNode('api')->end()
+            ->scalarNode('contact')->end()
+            ->scalarNode('license')->end()
+            ->scalarNode('web')->end()
+            ->scalarNode('website')->end()
+            ->scalarNode('search')->end()
+            ->scalarNode('info')->end()
             ->end()
-            ->scalarNode('include')
             ->end()
-        ->end()
-        ->end();
-
+            ->arrayNode('ignore')
+            ->beforeNormalization()->ifString()->then(fn($v) => [$v])->end()
+            ->scalarPrototype()->end()
+            ->end()
+            ->scalarNode('include')->end()
+            ->end()->end();
     }
 
     private function addGitSection(NodeBuilder $sourceRoot): void
     {
         $sourceRoot
             ->arrayNode('git')
-                ->children()
-                    ->scalarNode('repo')->end()
-                    ->booleanNode('lfs')->defaultFalse()->end()
-                    ->scalarNode('lsf_include')->end()
-                ->end()
+            ->children()
+            ->scalarNode('repo')->end()
+            ->booleanNode('lfs')->defaultFalse()->end()
+            ->scalarNode('lsf_include')->end()
+            ->end()
             ->end();
     }
 
-    private function addBuildSection(NodeBuilder $sourceRoot, string $nodeName='build'): void
+    private function addBuildSection(NodeBuilder $sourceRoot, string $nodeName = 'build'): void
     {
         $sourceRoot
             ->arrayNode($nodeName)
-                ->arrayPrototype()
-                    ->children()
-                        ->scalarNode('action')->end()
-                        ->scalarNode('source')->end()
-                        ->scalarNode('target')->end()
-                        ->scalarNode('unzip')->end()
-                        ->scalarNode('cmd')->end()
-                    ->end()
-                ->end()
-            ->end();
-    }
-
-
-    public function configure(DefinitionConfigurator $definition): void
-    {
-        // see https://github.com/tacman/pwa-bundle/tree/1.2.x/src/Resources/config/definition for best practices
-        $rootNode = $definition->rootNode();
-        $rootNode
+            ->arrayPrototype()
             ->children()
-            ->scalarNode('extension')->info("the pixie db extension")->defaultValue('.pixie.db')->end()
-            ->scalarNode('db_dir')->info("where to store the pixie db files")->defaultValue('pixie]')->end()
-            ->scalarNode('data_root')->info("root for csv/json data")->defaultValue('data')->end()
-            ->scalarNode('transport')->info("default transport for iterate, e.g. sync")->defaultNull()->end()
-            ->booleanNode('debug')->info("turn on profiler (kernel.debug?)")->defaultValue(false)->end()
-            ->booleanNode('purge_before_import')->info("purge db before import")->defaultValue(false)->end()
-            ->integerNode('limit')->info("import, index, translation, etc. limit")->defaultValue(0)->end()
-            ->scalarNode('config_dir')->info("location of .pixie.yaml config files")->defaultValue('config/packages/pixie')->end()
+            ->scalarNode('action')->end()
+            ->scalarNode('source')->end()
+            ->scalarNode('target')->end()
+            ->scalarNode('unzip')->end()
+            ->scalarNode('cmd')->end()
+            ->end()
+            ->end()
             ->end();
-        $this->addPixiesSection($rootNode);
     }
 
     public function getPaths(): array
     {
         $dir = realpath(__DIR__ . '/../assets/');
-        assert(file_exists($dir), 'asset path must exist for the assets in ' . __DIR__);
+        assert($dir && file_exists($dir), 'asset path must exist for the assets in ' . __DIR__);
         return [$dir => '@survos/pixie'];
     }
-
 }

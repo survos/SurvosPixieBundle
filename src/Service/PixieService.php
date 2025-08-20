@@ -4,6 +4,8 @@ namespace Survos\PixieBundle\Service;
 
 // see https://github.com/bungle/web.php/blob/master/sqlite.php for a wrapper without PDO
 
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -11,6 +13,7 @@ use Psr\Log\LoggerInterface;
 use Survos\BootstrapBundle\Event\KnpMenuEvent;
 use Survos\PixieBundle\CsvSchema\Parser;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
+use Survos\PixieBundle\Entity\Core;
 use Survos\PixieBundle\Entity\Owner;
 use Survos\PixieBundle\Entity\Row;
 use Survos\PixieBundle\Event\StorageBoxEvent;
@@ -18,11 +21,10 @@ use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Meta\PixieInterface;
 use Survos\PixieBundle\Model\Config;
 use Survos\PixieBundle\Model\Item;
+use Survos\PixieBundle\Model\PixieContext;
 use Survos\PixieBundle\Model\Property;
 use Survos\PixieBundle\Model\Source;
 use Survos\PixieBundle\Model\Table;
-use Survos\PixieBundle\Repository\CoreRepository;
-use Survos\PixieBundle\StorageBox;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -36,6 +38,8 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Yaml\Yaml;
 use Survos\WorkflowBundle\Service\WorkflowHelperService;
+use Survos\PixieBundle\Entity\CoreDefinition;
+use Survos\PixieBundle\Entity\FieldDefinition;
 
 
 class PixieService
@@ -48,8 +52,6 @@ class PixieService
 //        #[Autowire('%kernel.debug%')] private readonly bool                                        $isDebug,
 
         private EntityManagerInterface                           $pixieEntityManager,
-        private SqliteService                                    $sqliteService,
-        private readonly CoreRepository                          $coreRepository,
         private readonly bool                                    $isDebug = false,
         private array                                            $data = [],
         private readonly string                                  $extension = "db",
@@ -57,7 +59,6 @@ class PixieService
         private readonly string                                  $dataRoot = 'data', //
         private readonly string                                  $configDir = 'config/packages/pixie',
         private array                                            $bundleConfig = [],
-        #[Autowire('%env(DATABASE_PIXIE_URL)%')] private ?string $pixieTemplateUrl = null,
         #[Autowire('%kernel.project_dir%')]
         private readonly ?string                                 $projectDir = null,
         private readonly ?LoggerInterface                        $logger = null,
@@ -66,6 +67,7 @@ class PixieService
         private readonly ?SerializerInterface                    $serializer = null,
         private readonly ?WorkflowHelperService                  $workflowHelperService = null,
         private ?Config                                          $config = null,
+        public ?string $currentPixieCode = null, // hackish
 //        private ?DenormalizerInterface                      $denormalizer = null,
     )
     {
@@ -136,9 +138,10 @@ class PixieService
     }
 
     // fetch via an event, rather than injecting the service
-    #[AsEventListener(event: StorageBoxEvent::class, priority: 50)]
+//    #[AsEventListener(event: StorageBoxEvent::class, priority: 50)]
     public function storageBoxListener(StorageBoxEvent $event): void
     {
+        return;
         $mode = $event->getMode();
 //        if ($event->isTranslation()) {
 //            $mode = PixieInterface::PIXIE_TRANSLATION;
@@ -161,7 +164,7 @@ class PixieService
         $event->setStorageBox($kv);
     }
 
-    function getStorageBox(string  $pixieCode,
+    function getStorageBoxXX(string  $pixieCode,
                            ?string $subCode = null,
                            ?string $filename = null, // since files can share a config?
                            bool    $destroy = false,
@@ -265,6 +268,7 @@ class PixieService
             }
             $config = $this->serializer->denormalize($pixie, Config::class);
             $config->setPixieFilename($this->getPixieFilename($code));
+            $config->code = $code;
 
 
             // eh.
@@ -335,122 +339,186 @@ class PixieService
     }
 
 
-    // @todo: add custom dataDir, etc.
-    public function selectConfig(string $pixieCode, bool $switchDatabase = true): ?Config
+    /** @return list<class-string> */
+    private function pixieEntityClasses(EntityManagerInterface $em): array
     {
-        static $configCache = null;
-
-        $conn = $this->pixieEntityManager->getConnection();
-        $currentName = pathinfo($this->dbName($pixieCode), PATHINFO_FILENAME);
-        if ($currentName === $pixieCode) {
-//            $switchDatabase = false;
-        } else {
-//            $conn->selectDatabase($this->dbName($pixieCode));
-        }
-
-        if ($switchDatabase) {
-//            dd($currentName, $pixieCode);
-            try {
-                $this->pixieEntityManager->flush();
-                $this->pixieEntityManager->clear();
-            } catch (\Exception $e) {
-                // warn?
+        $out = [];
+        foreach ($em->getMetadataFactory()->getAllMetadata() as $m) {
+            $name = $m->getName();
+            if (str_starts_with($name, 'Survos\\PixieBundle\\Entity\\')) {
+                $out[] = $name;
             }
-            $conn = $this->pixieEntityManager->getConnection();
-            $toDbName = $this->dbName($pixieCode);
-            $conn->selectDatabase($toDbName);
+        }
+        sort($out);
+        return $out;
+    }
+
+// PixieService.php
+    public function getCoreInContext(PixieContext $ctx, string $tableName, bool $autoCreate=false): ?Core
+    {
+        $em       = $ctx->em;
+        $coreRepo = $em->getRepository(Core::class);
+
+        // Make sure we have a managed Owner proxy now
+        if (!$ctx->ownerRef) {
+            assert(false, "ctx must have an owner");
+            // Owner must already exist; error out if not.
+            $exists = (bool)$em->getConnection()->fetchOne(
+                'SELECT 1 FROM owner WHERE id = ?', [$ctx->pixieCode]
+            );
+            if (!$exists) {
+                throw new \RuntimeException("Owner '{$ctx->pixieCode}' not found in current pixie DB.");
+            }
+            $ctx->ownerRef = $em->getReference(Owner::class, $ctx->pixieCode);
         }
 
-        if (null === $configCache) {
-            $configCache = $this->getConfigFiles();
-        }
-        try {
-            // this is the owner in the sqlite file, not in the app.
-            if ($config = $configCache[$pixieCode] ?? null) {
-                $config = StorageBox::fix($config, $this->getTemplates());
+        $core = $coreRepo->findOneBy(['code' => $tableName]);
+        if ($autoCreate) {
+            if (!$core) {
+                $core = new Core($tableName, $tableName);
+                $core->owner = $ctx->ownerRef;             // owning side
+                $em->persist($core);
+            } elseif ($core->owner === null) {
+                $core->owner = $ctx->ownerRef;             // repair if missing
             }
-            if (!$config) {
-                return null;
-            }
-            // not sure this should be here -- selectConfig is called during migrate, and owner doesn't yet exist
-            $owner = $this->pixieEntityManager->getRepository(Owner::class)->find($pixieCode);
-            $config->setOwner($owner);
-        } catch (\Exception $e) {
-//            assert(false);
-            $this->logger->warning(" creating " . $pixieCode . "\n\n" . $e->getMessage());
-//            return null;
         }
-        return $config;
 
-        dd($pixieCode, $this->bundleConfig);
-        static $configs = [];
-        if ($config = $configs[$pixieCode] ?? false) {
-            return $config;
+        return $core;
+    }
+
+    /** Fail-fast version you can use inside services */
+    public function requireContext(object|string|null $subject = null): PixieContext
+    {
+        $ctx = $this->contextFor($subject);
+        if (!$ctx) {
+            throw new \RuntimeException('PixieContext not set. Call setCurrentPixieCode() first or pass a code.');
         }
-        $configFilename = $this->getConfigFilename($pixieCode);
-        assert($configFilename, "$configFilename $pixieCode");
-        if (!file_exists($configFilename)) {
+        return $ctx;
+    }
+
+    public function getCore(string $tableName, string|Owner $ownerInput): Core
+    {
+        $ownerCode = \is_string($ownerInput) ? $ownerInput : (string)$ownerInput->code;
+
+        $ctx      = $this->getReference($ownerCode);
+        $em       = $ctx->em;
+        $coreRepo = $em->getRepository(Core::class);
+
+        // Core codes are globally unique in your schema (unique index on code),
+        // so scoping by owner is not required; if you later scope by owner, add it here.
+        $core = $coreRepo->findOneBy(['code' => $tableName]);
+        if (!$core) {
+            $core = new Core($tableName, $tableName); // don’t pass Owner here
+            $core->owner = $ctx->ownerRef;            // set owning side; no $owner->addCore() needed
+            $em->persist($core);
+        }
+
+        return $core;
+    }
+
+
+
+    public function getCoreXX(string $tableName, string|Owner $ownerInput): Core
+    {
+        // 1) Resolve owner code/id (don’t trust cross-EM objects)
+        $ownerCode = is_string($ownerInput) ? $ownerInput : (string)$ownerInput->code;
+        $ownerId   = is_string($ownerInput)
+            ? $ownerInput                       // if your PK == code
+            : (property_exists($ownerInput, 'id') ? (string)$ownerInput->id : (string)$ownerInput->code);
+
+        // 2) Switch DB/EM for this owner
+        $this->getConfig($ownerCode);           // sets $this->pixieEntityManager to the right EM
+        $em       = $this->pixieEntityManager;
+        $coreRepo = $em->getRepository(Core::class);
+
+        // 3) Get a MANAGED Owner reference in THIS EM
+        $ownerRef = $em->getReference(Owner::class, $ownerId); // lightweight, no SELECT unless needed
+
+        // (Optional) sanity: ensure the owner row exists in this DB
+        // $exists = (bool)$em->getConnection()->fetchOne('SELECT 1 FROM owner WHERE id = ?', [$ownerId]);
+        // if (!$exists) { throw new \RuntimeException("Owner '$ownerId' not found in current DB"); }
+
+        // 4) Find Core by code (code is unique). Prefer also scoping by owner if code isn’t truly global.
+        $core = $coreRepo->findOneBy(['code' => $tableName]);
+        if (!$core) {
+            // Constructor should be side-effect free; don’t pass $owner here
+            $core = new Core($tableName, $tableName);
+            $core->owner = $ownerRef;           // set the owning side; no addCore() needed
+            $em->persist($core);
+        }
+
+        return $core;
+    }
+
+// ...
+
+
+    /** If you REALLY need a managed Owner later (and only after you persist it) */
+    public function attachOwnerRef(PixieContext $ctx): void
+    {
+        $exists = (bool) $ctx->em->getConnection()
+            ->fetchOne('SELECT 1 FROM owner WHERE id = ?', [$ctx->pixieCode]);
+        $ctx->ownerRef = $exists ? $ctx->em->getReference(Owner::class, $ctx->pixieCode) : null;
+    }
+
+
+
+    // @todo: add custom dataDir, etc.
+// PixieService.php
+
+// PixieService.php
+
+    /** @deprecated Use getReference() + getConfigSnapshot() */
+    private function selectConfig(string $pixieCode): ?\Survos\PixieBundle\Model\Config
+    {
+        assert(false);
+        // 1) Load and normalize Config (from bundle config)
+        $configs = $this->getConfigFiles(pixieCode: $pixieCode);
+        $config  = $configs[$pixieCode] ?? null;
+        assert($config !== null, "Missing $pixieCode in selectConfig()");
+        if (!$config) {
             return null;
         }
-        assert(file_exists($configFilename), "$configFilename does not exist");
+
+        // Expand templates / normalize tables & properties
+        $config = \Survos\PixieBundle\StorageBox::fix($config, $this->getTemplates());
+
+        // Ensure filenames/dirs are set
+        if (!$config->getPixieFilename()) {
+            $config->setPixieFilename($this->getPixieFilename($pixieCode));
+        }
+        if (!$config->getDataDir()) {
+            $resolved = $this->resolveFilename($config->getSourceFilesDir(), 'data');
+            $config->dataDir = $resolved;
+        }
+
+        // 2) SWITCH the EM/connection to this pixie DB if not already
+        $em     = $this->pixieEntityManager;
+        $conn   = $em->getConnection();
+
+        $params       = $conn->getParams();
+        $currentPath  = $params['path'] ?? null;                 // current sqlite path
+        $targetPath   = $this->dbName($pixieCode);               // desired sqlite path for this pixie
+
+        if ($currentPath !== $targetPath) {
+            // Finish any pending work on the old DB, then switch
+            try { $em->flush(); } catch (\Throwable $ignore) {}
+            $em->clear();
+        }
+
+        // 3) Optionally attach Owner (if present in this pixie DB)
         try {
-            $configData = Yaml::parseFile($configFilename, Yaml::PARSE_CONSTANT); // so we can use php constants!
-            $yaml = Yaml::dump($configData);
-
-
-//        $yaml = file_get_contents($configFilename);
-//        $config = $this->denormalizer->denormalize($configData, Config::class);
-//        dd(config: $config, data: $configData);
-//        $config->setConfigFilename($configFilename);
-            $config = $this->serializer->deserialize(
-                $yaml,
-                Config::class, 'yaml');
-        } catch (NotNormalizableValueException $exception) {
-            dd($configFilename, $exception->getMessage());
-        }
-        // nested array access: https://packagist.org/packages/dflydev/dot-access-data
-
-        // if the properties are strings, we need to parse them
-        foreach ($config->getTables() as $tableName => $table) {
-            $properties = [];
-            $table->setName($tableName);
-            foreach ($table->getProperties() as $propIndex => $propData) {
-                if (is_string($propData)) {
-                    $property = Parser::parseConfigHeader($propData);
-                } else {
-                    $property = new Property(
-                        index: $propData['index'] ?? null,
-                        code: $propData['name'] ?? dd($propData),
-                        generated: $propData['generated'] ?? true,
-                        initial: $propData['initial'] ?? null,
-                        type: $propData['type'] ?? null // maybe default type based on code?
-                    );
-                }
-                // better would be to look for ## or something like that
-                if ($propIndex == 0) {
-                    $primaryKey = $property->getCode();
-                    $table->setPkName($primaryKey);
-                    $property->setIndex('PRIMARY');
-                }
-                $properties[] = $property;
+            $owner = $em->getRepository(\Survos\PixieBundle\Entity\Owner::class)->find($pixieCode);
+            if ($owner) {
+                $config->setOwner($owner);
             }
-            $table->setProperties($properties);
+        } catch (\Throwable $e) {
+            $this->logger?->warning("selectConfig($pixieCode): owner lookup failed: ".$e->getMessage());
         }
 
-        $config->code = $pixieCode; // quirky
-        $config->setConfigFilename($configFilename);
-//        dd($config);
-        assert($config instanceof Config);
-//        assert($config->source, $configFilename . " missing source key");
-//        assert($config->source instanceof Source);
-        foreach ($config->getTables() as $idx => $table) {
-            assert($table instanceof Table, "table $idx is not of class Table");
-        }
-//        dd($config, $configFilename, $config);
-        $configs[$pixieCode] = $config;
-//        dd($config);
         return $config;
     }
+
 
     public function getConfigFilename(string $pixieCode): string
     {
@@ -611,17 +679,19 @@ class PixieService
 
     public function getCountsByCore(): array
     {
-        $countsByCore = $this->pixieEntityManager->getRepository(Row::class)->createQueryBuilder('s')
-            ->join('s.core', 'core')
-            ->groupBy('core.code')
-            ->select(["core.id as coreCode, count(s) as count"])
+        $rows = $this->pixieEntityManager->getRepository(Row::class)
+            ->createQueryBuilder('r')
+            ->join('r.core', 'c')
+            ->groupBy('c.code')
+            ->select('c.code AS coreCode, COUNT(r) AS count')
             ->getQuery()
             ->getArrayResult();
-//        dd($countsByCore);
-        foreach ($countsByCore as $x) {
-            $data[$x['coreCode']] = $x;
+
+        $out = [];
+        foreach ($rows as $x) {
+            $out[$x['coreCode']] = (int)$x['count'];
         }
-        return $data;
+        return $out;
     }
 
     public function populateRecordWithRelations(Row $item, Config $config): Row
@@ -692,186 +762,413 @@ class PixieService
 
     }
 
-    public function migrateDatabase(
-        Config $config)
+
+    /**
+     * Switch the shared pixie EM connection to the DB file for $pixieCode,
+     * WITHOUT querying any tables. Safe to call before schema exists.
+     */
+    public function switchToPixieDatabase(string $pixieCode): EntityManagerInterface
     {
-        // get the template first (./c d:sch:update --force --em=pixie)
-        $pixieConn = $this->pixieEntityManager->getConnection();
-        $databasePlatform = $pixieConn->getDatabasePlatform();
-        $templateName = $this->dbName('pixie_template', true);
-//        $conn->selectDatabase($templateName);
-        try {
-            $fromSchemaManager = $pixieConn->createSchemaManager();
-            $fromSchema = $fromSchemaManager->introspectSchema();
-        } catch (\Exception $e) {
-            dd($e->getMessage(), $config->getCode());
+        $em   = $this->pixieEntityManager;
+        $conn = $em->getConnection();
+
+        $targetPath  = $this->dbName($pixieCode);           // desired sqlite path
+        $currentPath = $conn->getParams()['path'] ?? null;
+
+        if ($currentPath !== $targetPath) {
+            try { $em->flush(); } catch (\Throwable $ignore) {}
+            $em->clear();
+            $conn->selectDatabase($targetPath);             // will create an empty file if missing
         }
 
-        //        $conn->selectDatabase($dbName);
-        $toDbName = $this->dbName($config->getCode(), false);
-//        dd($toDbName, $templateName);
-        $schemaTool = new SchemaTool($this->pixieEntityManager);
-        // now prep for the new database
+        // Make current pixie visible to listeners using this service
+        $this->currentPixieCode = $pixieCode;
 
-        // from doctrine:schema:update
-//        $classes = $this->pixieEntityManager->getMetadataFactory()->getAllMetadata();
-//        $toSchema   = $schemaTool->getSchemaFromMetadata($classes);
-//        $sqls = $schemaTool->getUpdateSchemaSql($classes);
-//        dd($sqls);
-//        $fromSchema = $schemaTool->createSchemaForComparison($toSchema);
-//        return $this->platform->getAlterSchemaSQL($schemaDiff);
-        $comparator = $fromSchemaManager->createComparator();
+        return $em;
+    }
 
-        $this->selectConfig($config->getCode());
-        $toConnection = $this->pixieEntityManager->getConnection();
-//        $toConnection = DriverManager::getConnection(['path' => $toDbName, 'driver' => 'pdo_sqlite']);
-//        $toConnection->selectDatabase($toDbName);
-        // https://til.simonwillison.net/sqlite/enabling-wal-mode
-        // https://www.powersync.com/blog/sqlite-optimizations-for-ultra-high-performance
+    /**
+     * Ensure the Pixie schema (Owner/Core/Row/etc.) exists in the given EM.
+     * Idempotent: if tables already exist, this is a no-op.
+     */
+    public function ensureSchema(EntityManagerInterface $em): void
+    {
+        $sm = $em->getConnection()->createSchemaManager();
+        // Bootstrap check on a canonical table
+        if ($sm->tablesExist(['owner'])) {
+            return;
+        }
+
+        $tool    = new SchemaTool($em);
+        $classes = [];
+        foreach ($em->getMetadataFactory()->getAllMetadata() as $meta) {
+            $name = $meta->getName();
+            if (str_starts_with($name, 'Survos\\PixieBundle\\Entity\\')) {
+                $classes[] = $meta;
+            }
+        }
+
+        // Create/align schema for Pixie entities
+        if ($classes) {
+            // 'saveMode' = true keeps existing tables, creates missing parts
+            $tool->updateSchema($classes, true);
+        }
+    }
+
+
+
+    public function migrateDatabase(Config $config, EntityManagerInterface $em): void
+    {
+        $toDbPath = $this->absolutePath($this->dbName($config->getCode(), false));
+
+        $targetConn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'path'   => $toDbPath,
+        ]);
+        $platform  = $targetConn->getDatabasePlatform();
+        $sm        = $targetConn->createSchemaManager();
+
+        // CURRENT (what exists now)
+        $current = $sm->introspectSchema();
+
+        // DESIRED (from ORM metadata)
+        $allMeta = $em->getMetadataFactory()->getAllMetadata();
+        if (!$allMeta) {
+            throw new \RuntimeException('No Doctrine metadata found.');
+        }
+        $desired = (new SchemaTool($em))->getSchemaFromMetadata($allMeta);
+
+        // If target is empty, create schema directly (fewer SQLite quirks)
+        if (\count($current->getTables()) === 0) {
+            $sql = $platform->getCreateSchemaSQL($desired);
+        } else {
+            $comparator = $sm->createComparator();
+            $diff       = $comparator->compareSchemas($current, $desired);
+
+            if ($diff->isEmpty()) {
+                return; // nothing to do
+            }
+
+            // DBAL 4 way:
+            $sql = $platform->getAlterSchemaSQL($diff);
+        }
+
+        // SQLite: safer to disable FKs during schema changes
+        $targetConn->executeStatement('PRAGMA foreign_keys = OFF;');
+        try {
+            foreach ($sql as $ddl) {
+                $targetConn->executeStatement($ddl);
+            }
+        } finally {
+            $targetConn->executeStatement('PRAGMA foreign_keys = ON;');
+        }
+    }
+
+    /**
+     * Apply template→target schema diff and (re)create views for a pixie DB.
+     * Must be called AFTER switchToPixieDatabase() and ensureSchema().
+     */
+    public function migrateDatabaseXX(Config $config, EntityManagerInterface $em): void
+    {
+        $code = $config->getCode();
+
+
+        /** build absolute paths (no relatives!) */
+        $templatePath = $this->absolutePath($this->dbName('pixie_template', true)); // e.g. /full/path/pixie/pixie_template.db
+        $toDbPath     = $this->absolutePath($this->dbName($code, false));           // e.g. /full/path/pixie/immigration.db
+
+// quick sanity checks help catch path issues before PDO does
+        assert(is_dir(dirname($templatePath)) && is_readable(dirname($templatePath)), "Template dir not readable");
+        assert(is_dir(dirname($toDbPath))      && is_writable(dirname($toDbPath)),   "Target dir not writable");
+
+// open **separate** connections
+        $templateConn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'path'   => $templatePath,
+        ]);
+
+        $targetConn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'path'   => $toDbPath,
+        ]);
+
+// read schemas
+        $templateSm = $templateConn->createSchemaManager();
+        $targetSm   = $targetConn->createSchemaManager();
+
+        $current  = $targetSm->introspectSchema();   // TARGET: what's there now
+        $desired  = $templateSm->introspectSchema(); // TEMPLATE: what we want
+
+// IMPORTANT: comparator from the TARGET schema manager
+        $comparator = $targetSm->createComparator();
+
+// diff = SQL to transform CURRENT into DESIRED (target -> template)
+        $diff = $comparator->compareSchemas($current, $desired);
+dump($diff);
+
+        if (!$diff->isEmpty()) {
+            // For SQLite it’s often safer to disable FKs during structural changes
+            $targetConn->executeStatement('PRAGMA foreign_keys = OFF;');
+            try {
+                foreach ($diff->toSaveSql($targetConn->getDatabasePlatform()) as $sql) {
+                    $targetConn->executeStatement($sql);
+                }
+            } finally {
+                $targetConn->executeStatement('PRAGMA foreign_keys = ON;');
+            }
+        }
+        dd();
+
+        // We use the SAME connection and hop between template and target.
+        $conn         = $em->getConnection();
+        $platform     = $conn->getDatabasePlatform();
+        $toDbPath     = $this->dbName($code, false);
+        $templatePath = $this->dbName('pixie_template', true);
+
+        $schemaManager = $conn->createSchemaManager();
+        $comparator    = $schemaManager->createComparator();
+
+        // 1) Read FROM (template) schema
+        $conn->selectDatabase($templatePath);
+        $fromSchemaManager = $conn->createSchemaManager();
+        try {
+            $fromSchema        = $fromSchemaManager->introspectSchema();
+            // 2) Read TO (target) schema
+        } catch (\Exception $exception) {
+            dd($templatePath, $exception->getMessage());
+            return;
+        }
+        try {
+            $conn->selectDatabase($toDbPath);
+        } catch (\Exception $exception) {
+            dump($toDbPath, $exception->getMessage());
+        }
+
         foreach ([
                      'pragma journal_mode = WAL',
                      'pragma synchronous = normal',
                      'pragma journal_size_limit = 6144000'
                  ] as $pragma) {
-            $toConnection->executeQuery($pragma);
-
-            // @todo: PRAGMA journal_mode=delete; to turn off, maybe before export or something
+            $conn->executeQuery($pragma);
         }
 
-        $toSchemaMananger = $toConnection->createSchemaManager();
-        $toSchema = $toSchemaMananger->introspectSchema();
-//        $fromSchemaManager = $fromConnection->createSchemaManager();
-//        $fromSchema = $fromSchemaManager->introspectSchema();
+        $toSchemaManager = $conn->createSchemaManager();
+        $toSchema        = $toSchemaManager->introspectSchema();
 
-        assert($toSchema !== $fromSchema);
+        // 3) Diff + apply
         $schemaDiff = $comparator->compareSchemas($toSchema, $fromSchema);
-        $queries = $databasePlatform->getAlterSchemaSQL($schemaDiff);
-        foreach ($queries as $query) {
+        $queries    = $platform->getAlterSchemaSQL($schemaDiff);
+        foreach ($queries as $sql) {
             try {
-//            dump(diffSql: $diffSql, q: $queries);
-                $toConnection->executeQuery($query);
-            } catch (\Exception $exception) {
-                dd($exception->getMessage());
-                // it already exists.
+                $conn->executeQuery($sql);
+            } catch (\Throwable $e) {
+                // ignore idempotent failures
             }
         }
 
-        // templates?
-        $config = StorageBox::fix($config);
-        $views = [];
-        $actualFields = ['label', 'code', 'id'];
-        foreach ($tables = $config->getTables() as $table) {
-            $fieldNames = array_map(fn(Property $property) => $property->getCode(),
-                iterator_to_array($table->getProperties()));
-
-            $fields = array_map(fn(Property $property) => in_array($property->getCode(), $actualFields)
-                ? "row." . $property->getCode()
-                : sprintf("json_extract(data, '$.%s') as %s",
-                    $property->getCode(),
-                    $property->getCode()
-                ),
-                iterator_to_array($table->getProperties()));
-//            foreach ($actualFields as $actualField) {
-//                $fieldNames[] = $actualField;
-//                $fields[] = $actualField;
-//            }
-
-            $view = 'v_' . $table->getName();
-            $views[] = "DROP view if exists $view";
-//             $x = "select json_extract(_data, '\$.$label') as label from row";
-            $views[] = sprintf("CREATE VIEW $view (%s) AS
-                SELECT %s
-                 from row where core_id = '%s'",
-                implode(', ', $fieldNames),
-                implode(', ', $fields),
-                $table->getName());
-//                 from row inner join core on (row.core_id = core.id) where core.id = '%s'",
-
-            foreach ($table->getProperties() as $property) {
-            }
-        }
-        foreach ($views as $view) {
-            try {
-                $toConnection->executeQuery($view);
-            } catch (\Exception $exception) {
-                dd($exception->getMessage(), $view);
-            }
-        }
-        return $toConnection;
-        $tables = [];
-        foreach ($fromSchema->getTables() as $table) {
-            $columns = [];
-            foreach ($table->getColumns() as $column) {
-                $tables[$table->getName()]['columns'][] = $column->getName();
-            }
-        }
-        // @todo: use our Model tables
-//        try {
-//        } catch (\Exception $exception) {
-//            dd($exception, $sourceReferences);
-//        }
-
-
-//        $queries = $schemaDiff->toSql($databasePlatform); // queries to get from one to another schema.
-
-        // now do a diff so we can keep the dbs in sync
-//            $diffSql = join(';', $queries);
-//            dump(diffSql: $diffSql);
-//            $conn->executeQuery($diffSql);
-//        try {
-//        } catch (\Exception $exception) {
-//            // it already exists.
-//        }
-        $sc = $conn->createSchemaManager();
-//        dd($sc->listTables(), $queries);
-
-
-        $schema = new \Doctrine\DBAL\Schema\Schema();
-        $myTable = $schema->createTable("my_table");
-        $myTable->addColumn("id", "integer", ["unsigned" => true]);
-        $myTable->addColumn("username", "string", ["length" => 32]);
-        $myTable->addColumn("age", "integer");
-        $myTable->setPrimaryKey(["id"]);
-        $myTable->addUniqueIndex(["username"]);
-        $myTable->setComment('Some comment');
-
-        $myForeign = $schema->createTable("my_foreign");
-        $myForeign->addColumn("id", "integer");
-        $myForeign->addColumn("user_id", "integer");
-//        $myForeign->addForeignKeyConstraint($myTable, ["user_id"], ["id"], ["onUpdate" => "CASCADE"]);
-
-
-        $queries = $schema->toSql($conn->getDatabasePlatform()); // get queries to create this schema.
-
-        $schemaManager = $conn->createSchemaManager();
-        $comparator = $schemaManager->createComparator();
-        $schemaDiff = $comparator->compareSchemas($fromSchema, $schema);
-
-        $databasePlatform = $conn->getDatabasePlatform();
-        $diffs = $databasePlatform->getAlterSchemaSQL($schemaDiff);
-
-        $sc->introspectSchema();
-        $newSchema = $fromSchemaManager->introspectSchema();
-        foreach ($newSchema->getTables() as $table) {
-            $columns = [];
-            foreach ($table->getColumns() as $column) {
-                $tables[$table->getName()]['columns'][] = $column->getName();
-            }
-        }
-
-
-        return [$tables, $diffs];
-
-//        foreach ($schemaDiff->toSql($databasePlatform) as $sql) {
-//            dump($sql);
-//            $conn->executeQuery($sql);
-//        }
-//        try {
-//        } catch (\Exception $exception) {
-//            // it already exists.
-//        }
-//        dd($fromSchema);
-
+        // 4) (Re)create views based on config (idempotent)
+        $this->createOrReplaceViews($config, $em);
     }
+
+    private function absolutePath(string $maybeRelative): string
+    {
+        if ($maybeRelative[0] === '/') return $maybeRelative;
+        return rtrim($this->projectDir ?? \dirname(__DIR__, 2), '/') . '/' . ltrim($maybeRelative, '/');
+    }
+
+
+    /**
+     * Create/replace per-table SQL views for easy SELECTs from JSON rows.
+     * Idempotent.
+     */
+    private function createOrReplaceViews(Config $config, EntityManagerInterface $em): void
+    {
+        $conn = $em->getConnection();
+
+        $config = StorageBox::fix($config); // expand templates
+        $actualFields = ['label', 'code', 'id'];
+
+        $viewSql = [];
+        foreach ($config->getTables() as $table) {
+            $fieldNames = array_map(
+                fn(Property $p) => $p->getCode(),
+                iterator_to_array($table->getProperties())
+            );
+
+            $columns = array_map(
+                fn(Property $p) => in_array($p->getCode(), $actualFields, true)
+                    ? "row." . $p->getCode()
+                    : sprintf("json_extract(data, '$.%s') AS %s", $p->getCode(), $p->getCode()),
+                iterator_to_array($table->getProperties())
+            );
+
+            $viewName = 'v_' . $table->getName();
+            $viewSql[] = "DROP VIEW IF EXISTS $viewName";
+            $viewSql[] = sprintf(
+                "CREATE VIEW %s (%s) AS
+                 SELECT %s
+                 FROM row WHERE core_id = '%s'",
+                $viewName,
+                implode(', ', $fieldNames),
+                implode(', ', $columns),
+                $table->getName()
+            );
+        }
+
+        foreach ($viewSql as $sql) {
+            try {
+                $conn->executeQuery($sql);
+            } catch (\Throwable $e) {
+                // keep going; views are best-effort
+            }
+        }
+    }
+    /**
+     * Resolve a PixieContext from an entity or a code.
+     * - Row: uses $row->getCoreCode()
+     * - string: treated as config/pixie code
+     * - otherwise: falls back to $this->currentPixieCode
+     */
+    public function contextFor(object|string|null $subject = null): ?PixieContext
+    {
+        // 1) explicit code given
+        if (\is_string($subject) && $subject !== '') {
+            return $this->getReference($subject);
+        }
+
+        // 2) entity-based inference (extend with other entity types if desired)
+        if ($subject instanceof Row) {
+            $code = $subject->getCoreCode();     // your Row already exposes this
+            if ($code) {
+                return $this->getReference($code);
+            }
+        }
+
+        // 3) fallback to the service-wide "current" code
+        if ($this->currentPixieCode) {
+            return $this->getReference($this->currentPixieCode);
+        }
+
+        // Could also throw here if you prefer hard failure:
+        // throw new \RuntimeException('Unable to resolve PixieContext; set currentPixieCode or pass a code.');
+        return null;
+    }
+
+    /**
+     * Set the current pixie code explicitly (CLI/controllers can call this).
+     */
+    public function setCurrentPixieCode(?string $code): void
+    {
+        $this->currentPixieCode = $code ?: null;
+    }
+
+    public function getReference(?string $pixieCode=null): PixieContext
+    {
+        if (!$pixieCode) {
+            $pixieCode = $this->currentPixieCode;
+        } else {
+            $em = $this->switchToPixieDatabase($pixieCode); // switch sqlite file
+            $this->ensureSchema($em);                       // ensure ORM tables exist
+        }
+
+        $config = $this->buildConfigSnapshot($pixieCode, $em); // <- from current EM
+
+        $ownerRef = null;
+        if ((bool)$em->getConnection()->fetchOne('SELECT 1 FROM owner WHERE id = ?', [$pixieCode])) {
+            $ownerRef = $em->getReference(Owner::class, $pixieCode);
+        }
+
+        $this->currentPixieCode = $pixieCode;
+        return new PixieContext($pixieCode, $config, $em, $ownerRef);
+    }
+
+
+
+//    public function getReference(string $pixieCode): PixieContext
+//    {
+//        // 1) Switch the EM to this pixie DB (creates empty file if missing)
+//        $em = $this->switchToPixieDatabase($pixieCode);
+//
+//        // 2) Ensure the ORM schema for Pixie entities exists (idempotent)
+//        $this->ensureSchema($em);
+//
+//        // 3) Pure config snapshot (never attach a managed entity to Config)
+//        $config = $this->getConfigSnapshot($pixieCode);
+//
+//        // 4) Owner proxy (if the row exists)
+//        $ownerRef = null;
+//        if ((bool)$em->getConnection()->fetchOne('SELECT 1 FROM owner WHERE id = ?', [$pixieCode])) {
+//            $ownerRef = $em->getReference(Owner::class, $pixieCode);
+//        }
+//
+//        // 5) Remember for contextFor()/setCurrentPixieCode()
+//        $this->currentPixieCode = $pixieCode;
+//
+//        return new PixieContext($pixieCode, $config, $em, $ownerRef);
+//    }
+
+    /**
+     * Build a pure, immutable Config snapshot for the current pixie,
+     * using compiled schema (CoreDefinition/FieldDefinition) from the given EM.
+     */
+    /**
+     * Build a pure, immutable Config snapshot for the current pixie,
+     * using compiled schema (CoreDefinition/FieldDefinition) from the given EM.
+     * If no compiled schema exists yet, fall back to the YAML tables unchanged.
+     */
+    private function buildConfigSnapshot(string $pixieCode, EntityManagerInterface $em): Config
+    {
+        // base copy from bundle YAML (labels, paths etc.)
+        $yaml = $this->getConfigFiles(pixieCode: $pixieCode)[$pixieCode]
+            ?? throw new \RuntimeException("Unknown pixie '$pixieCode'");
+
+        $cfg = clone $yaml;
+        $cfg->setOwner(null); // NEVER attach managed entities to Config
+        $cfg->setPixieFilename($this->getPixieFilename($pixieCode));
+        $cfg->dataDir = $this->resolveFilename($cfg->getSourceFilesDir(), 'data');
+
+        // read compiled schema (if any)
+        $coreDefs = $em->getRepository(CoreDefinition::class)
+            ->findBy(['ownerCode' => $pixieCode], ['core' => 'ASC']);
+
+        // If there is no compiled schema, keep YAML-provided tables intact
+        if (!$coreDefs) {
+            return $cfg; // << fallback
+        }
+
+        // Rebuild properties from compiled schema
+        $tables = [];
+        foreach ($coreDefs as $def) {
+            $tName = $def->core;
+            $pk    = $def->pk;
+
+            $fds = $em->getRepository(FieldDefinition::class)
+                ->findBy(['ownerCode' => $pixieCode, 'core' => $tName], ['position' => 'ASC', 'id' => 'ASC']);
+
+            $props = [];
+            foreach ($fds as $fd) {
+                $p = new Property($fd->code);
+                // Optionally derive flags from kind/target/delim:
+                // $p->setSubType($fd->getTargetCore());
+                $props[] = $p;
+            }
+
+            // keep the YAML table object but replace pk/properties
+            $t = $cfg->getTable($tName);
+            if ($t) {
+                $t->setPkName($pk);
+                $t->setProperties($props);
+                $tables[$tName] = $t;
+            }
+        }
+
+        // Only override tables if we actually reconstructed at least one
+        if ($tables) {
+            $cfg->setTables($tables);
+        }
+
+        return $cfg;
+    }
+
 
 }

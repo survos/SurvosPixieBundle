@@ -241,6 +241,12 @@ class Property implements \Stringable
         return $this->settings[$var]??$default;
     }
 
+    public function getDefault()
+    {
+        return $this->settings['default']??null;
+
+    }
+
 
     public function __toString(): string
     {

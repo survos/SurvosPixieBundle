@@ -1,14 +1,15 @@
 <?php
 
 namespace Survos\PixieBundle\Entity;
-// ./c make:entity Survos\\PixieBundle\\Entity\\Row
 
+use ApiPlatform\Metadata\ApiProperty;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Survos\PixieBundle\Contract\TranslatableByCodeInterface;
+use Survos\PixieBundle\Entity\Traits\TranslatableFieldsByCode;
 use Survos\PixieBundle\Repository\RowRepository;
-use Survos\PixieBundle\Traits\CoreIdTrait;
 use Survos\WorkflowBundle\Traits\MarkingInterface;
 use Survos\WorkflowBundle\Traits\MarkingTrait;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -16,27 +17,71 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Entity(repositoryClass: RowRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_row_core_idwithin', columns: ['core_id','id_within_core'])]
 #[ORM\Index(name: 'row_core', columns: ['core_id'])]
-#[ORM\Index(name: 'row_core_label', columns: ['core_id','label'])]
-#[ORM\Index(name: 'row_core_code', columns: ['core_id','code'])]
+//#[ORM\Index(name: 'row_core_label', columns: ['core_id','label'])]
+//
+//#[ORM\Index(name: 'row_core_code', columns: ['core_id','id'])]
 #[ORM\Index(name: 'row_core_marking', columns: ['core_id','marking'])] // optional but handy for workflows
 #[Groups(['row.read'])]
-class Row implements MarkingInterface, \Stringable
+class Row implements TranslatableByCodeInterface, MarkingInterface, \Stringable
 {
-    use CoreIdTrait;
     use MarkingTrait;
+    use TranslatableFieldsByCode;
+
+
+// NOT mapped: transient resolved strings for this request/run, resolved in PixiePostLoadListener::class
+    private array $_resolved = [];
+
+    // Codes for all translatable fields (uniform!)
+    #[ApiProperty(description: 'Codes for all translatable fields (uniform!)')]
+    #[ORM\Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    private ?array $t_codes = null;
+
+    // Virtuals for common fields (others are accessed via $row->translated('field'))
+    #[ApiProperty(description: 'label used when this row is presented in a list (e.g. facet)')]
+    public string $label       { get => $this->translated('label'); }
+
+    #[ApiProperty(description: 'The raw label from which the translation code comes from.  Might not be unique.  Not translated.')]
+    #[ORM\Column(type: Types::STRING)]
+    public string $rawLabel;
+
+    #[ApiProperty(description: 'shortcut to description')]
+    public string $description { get => $this->translated('description'); }
+
+    // ——— API used by importer / normalizers ———
+    public function bindTranslatableCode(string $field, string $code): void
+    {
+        $this->t_codes ??= [];
+        $this->t_codes[$field] = $code;
+    }
+
+    /** field => code (used by the listener) */
+    public function getStrCodeMap(): array
+    {
+        return $this->t_codes ?? [];
+    }
+
+    // ——— called by the postLoad listener ———
+    public function __setResolvedString(string $field, ?string $value): void
+    {
+        $this->_resolved[$field] = $value ?? '';
+    }
+
+    protected function translated(string $field): string
+    {
+        return $this->_resolved[$field] ?? '';
+    }
 
     #[ORM\ManyToOne(inversedBy: 'rows')] # , cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
-    protected Core $core;
-
-    #[ORM\Column(length: 255)]
-    private ?string $label = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $description = null;
+    public Core $core;
 
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
-    private ?array $data = null;
+    #[ApiProperty(description: 'the normalized object that meilisearch indexes, all of the important data in key/value pairs EXCEPT translatable strings')]
+    public ?array $data = null;
+
+    #[ORM\Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    #[ApiProperty(description: 'the raw data for debugging')]
+    public ?array $rawData  = null;
 
     /**
      * keyed by locale, then by translatable field name, e.g. en.label, en.description
@@ -54,44 +99,39 @@ class Row implements MarkingInterface, \Stringable
     private Collection $images;
 
     #[ORM\Column(nullable: true)]
-    private ?array $raw = null;
+    #[ApiProperty(description: 'The original json data, before any normalization or cleanup.  Debug only, should not be read in production')]
+    public ?array $raw = null;
+
+    #[ORM\Column(type: Types::STRING)]
+//    #[Assert\NotNull()]
+    #[Groups(['row.read'])]
+    private(set) ?string $idWithinCore;
+
+    #[ORM\Column(type: Types::STRING)]
+    #[ORM\Id()]
+    #[Groups(['row.read'])]
+    #[ApiProperty(description: 'single key, composite of core.code - row.idWithinCore')]
+    private(set) ?string $id;
+
+    public static function RowIdentifier(Core $core, string $id): string
+    {
+        return $core->code . '-' . $id;
+    }
+
 
     public function __construct(
-        ?Core $core=null, ?string $id=null)
+        ?Core $core=null,
+        ?string $id=null)
     {
-        $this->initCoreId($core, $id);
-        $core->addRow($this); // if this is too slow, update rowCount here.
+        $this->core = $core;
+        $this->idWithinCore = $id;
+        $this->id = self::RowIdentifier($core, $id);
+//        $this->initId(id: Row::RowIdentifier($core, $idWithinCore));
+//        $core->addRow($this); // if this is too slow, update rowCount here.
+        $this->core = $core;
+        $core->rowCount++;
+
         $this->images = new ArrayCollection();
-    }
-
-
-    public function getLabel(): ?string
-    {
-        return $this->label;
-    }
-
-    public function setLabel(string $label): static
-    {
-        $this->label = $label;
-
-        return $this;
-    }
-
-    public function getDescription(): ?string
-    {
-        return $this->description;
-    }
-
-    public function setDescription(?string $description): static
-    {
-        $this->description = $description;
-
-        return $this;
-    }
-
-    public function getData(): ?array
-    {
-        return $this->data;
     }
 
     public function getRawValue(string $key, mixed $default=null, bool $throwErrorIfMissing = true): mixed
@@ -99,30 +139,12 @@ class Row implements MarkingInterface, \Stringable
         return $this->data[$key] ?? $default;
     }
 
-    public function getRawAll(string $key, mixed $default=null, bool $throwErrorIfMissing = true): array
-    {
-        return $this->data;
-    }
-
-    public function setData(?array $data): static
-    {
-        $this->data = $data;
-
-        return $this;
-    }
-
-    public function __toString()
-    {
-        return $this->getId();
-    }
-
-    // this is the meilisearch Key
-    public function getKey()
-    {
-        return $this->getId();
-    }
+    public function __toString() { return $this->id; }
 
     /**
+     *
+     * Someday we may move images to be handled in postload, but for now we'll keep them as a relation.
+     *
      * @return Collection<int, OriginalImage>
      */
     public function getImages(): Collection
@@ -154,18 +176,19 @@ class Row implements MarkingInterface, \Stringable
 
     public function getOwner(): Owner
     {
-        return $this->getCore()->getOwner();
+        return $this->core->owner;
 
     }
 
-    public function setRaw(?array $raw): static
+    public function setLabel(string $label): static
     {
-        $this->raw = $raw;
-
+        $this->rawLabel = $label;
         return $this;
     }
-    public function getRaw(): ?array
+
+    public function setData(array $data): static
     {
-        return $this->raw;
+        $this->data = $data;
+        return $this;
     }
 }

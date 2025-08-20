@@ -79,7 +79,7 @@ class FieldSet implements RouteParametersInterface, \Stringable,
 
     public function __construct(?string $code = null, ?Core $core = null)
     {
-        $this->initId($core->getId() . '-' . $code, $code);
+        $this->initId($core->id . '-' . $code, $code);
         if ($core) {
             $core->addFieldSet($this);
         }

@@ -10,7 +10,7 @@ use App\Entity\MeiliItem;
 use App\Entity\Owner;
 use App\Form\LabelFormType;
 use Survos\ApiGrid\Model\Column;
-use Survos\ApiGrid\Service\MeiliService;
+use Survos\MeiliBundle\Service\MeiliService;
 use Survos\InspectionBundle\Services\InspectionService;
 use Survos\PixieBundle\Service\PixieService;
 use Symfony\Bridge\Twig\Attribute\Template;

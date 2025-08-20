@@ -2,44 +2,40 @@
 
 namespace Survos\PixieBundle\Command;
 
-use App\Event\RowEvent;
 use Psr\Log\LoggerInterface;
+use Survos\PixieBundle\Entity\Row;
 use Survos\PixieBundle\Message\PixieTransitionMessage;
+use Survos\PixieBundle\Service\LocaleContext;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\WorkflowBundle\Service\WorkflowHelperService;
+use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
 use Symfony\Component\Workflow\Transition;
-use Zenstruck\Console\Attribute\Argument;
-use Zenstruck\Console\Attribute\Option;
-use Zenstruck\Console\InvokableServiceCommand;
-use Zenstruck\Console\IO;
-use Zenstruck\Console\RunsCommands;
-use Zenstruck\Console\RunsProcesses;
 
 #[AsCommand('pixie:iterate', 'Iterative over a pixie database, sending events"')]
-final class IterateCommand extends InvokableServiceCommand
+final class IterateCommand extends Command
 {
-    use RunsCommands;
-    use RunsProcesses;
-
     private bool $initialized = false; // so the event listener can be called from outside the command
     private ProgressBar $progressBar;
 
     public function __construct(
         private LoggerInterface           $logger,
-        private ParameterBagInterface     $bag,
         private readonly PixieService     $pixieService,
+        private LocaleContext             $localeContext,
         private ?WorkflowHelperService    $workflowHelperService = null,
         private ?EventDispatcherInterface $eventDispatcher = null,
-        private ?MessageBusInterface      $bus = null,
+        private PixieImportService        $pixieImportService,
     )
     {
 
@@ -47,33 +43,37 @@ final class IterateCommand extends InvokableServiceCommand
     }
 
     public function __invoke(
-        IO                                                                            $io,
-        PixieService                                                                  $pixieService,
-        PixieImportService                                                            $pixieImportService,
-        #[Argument(description: 'config code')] string                                $pixieCode,
-        #[Argument(description: 'table name')] string                                 $tableName,
-        #[Autowire('%env(DEFAULT_TRANSPORT)%')] ?string                               $defaultTransport = null,
-        #[Option(description: 'use image database')] bool                         $image = false,
-        #[Option(description: 'workflow transition')] ?string                         $transition = null,
+        SymfonyStyle                                           $io,
+        #[Argument(description: 'config code')] string         $pixieCode,
+        #[Argument(description: 'table name')] string          $tableName,
+//        #[Autowire('%env(DEFAULT_TRANSPORT)%')] ?string        $defaultTransport = null,
+        #[Option(description: 'use image database')] bool      $image = false,
+        #[Option(description: 'workflow transition')] ?string  $transition = null,
         // marking CAN be null, which is why we should set it when inserting
-        #[Option(description: 'workflow marking')] ?string                            $marking = null,
-        #[Option(description: 'message transport')] ?string                           $transport = null,
-        #[Option(description: 'tags (for listeners)')] ?string                        $tags = null,
-        #[Option(name: 'index', description: 'index after flush')] ?bool              $indexAfterFlush = false,
-        #[Option] int                                                                 $limit = 0,
-        #[Option] string                                                              $dump = '',
-        #[Option('trans', "use the translation pixie, not the normal data one")] bool $trans = false,
-
+        #[Option(description: 'workflow marking')] ?string     $marking = null,
+        #[Option(description: 'message transport')] ?string    $transport = null,
+        #[Option(description: 'tags (for listeners)')] ?string $tags = null,
+        #[Option] int                                          $limit = 0,
+        #[Option] string                                       $dump = '',
+        #[Option('switch to locale')] string                   $locale = 'en'
     ): int
     {
-        $transport ??= $defaultTransport;
-        // do we need the Config?  Or is it all in the StorageBox?
-        $kv = $pixieService->getStorageBox($pixieCode);
-        if ($image) {
-//            $tKv = $pixieService->getTra
+//        $transport ??= $defaultTransport;
+
+        if ($locale) {
+            $this->localeContext->set($locale);
+            $io->note('Locale set to ' . $this->localeContext->get());
         }
-        $config = $pixieService->selectConfig($pixieCode);
-        assert($kv->tableExists($tableName), "Missing table $tableName: \n" . implode("\n", $kv->getTableNames()));
+
+        $ctx = $this->pixieService->getReference($pixieCode);
+        $config = $ctx->config;
+
+        $rowRepo = $ctx->repo(Row::class);
+        $rows = $rowRepo->findBy([], [], 10);
+        foreach ($rows as $row) {
+            dd($row);
+        }
+
 
         $table = $config->getTables()[$tableName];
         $workflow = null;
@@ -99,7 +99,6 @@ final class IterateCommand extends InvokableServiceCommand
         }
         {
             $io->title($tableName);
-            $kv->select($tableName);
             $where = [];
             if ($marking) {
                 $where = ['marking' => $marking];
@@ -208,12 +207,6 @@ final class IterateCommand extends InvokableServiceCommand
                     'transport' => $transport
                 ])
         );
-
-        if ($indexAfterFlush) { // || $transport==='sync') { @todo: check for tags, e.g. create-owners
-            $cli = "pixie:index $pixieCode  --reset"; // trans simply _gets_ existing translations
-            $this->io()->warning('bin/console ' . $cli);
-            $this->runCommand($cli);
-        }
 
         $io->success($this->getName() . ' success ' . $kv->getFilename());
         return self::SUCCESS;

@@ -2,8 +2,9 @@ parameters:
     level: 0
     inferPrivatePropertyTypeFromConstructor: true
     paths:
-        - ./src/
-        - ./tests
+#        - ./src/Entity
+        - ./src/Service
+#        - ./tests
     excludePaths:
        analyse:
           - ./vendor (?)

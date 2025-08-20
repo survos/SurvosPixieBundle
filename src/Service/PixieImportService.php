@@ -8,7 +8,7 @@ use Survos\PixieBundle\Entity\OriginalImage;
 use Survos\PixieBundle\Entity\Owner;
 use Survos\PixieBundle\Entity\RowImportState;
 use Survos\PixieBundle\Model\OriginalImage as OriginalImageModel;
-use Survos\PixieBundle\Service\SqliteService;
+use Survos\PixieBundle\Model\PixieContext;
 use Survos\PixieBundle\Entity\Core;
 use Survos\PixieBundle\Entity\Instance;
 use Survos\PixieBundle\Entity\Row;
@@ -17,7 +17,6 @@ use Survos\PixieBundle\Entity\Row;
 use Survos\PixieBundle\Entity\Str;
 use App\Event\FetchTranslationObjectEvent;
 use App\Metadata\ITableAndKeys;
-use Survos\PixieBundle\Repository\InstanceRepository;
 use Survos\PixieBundle\Repository\RowRepository;
 use Survos\PixieBundle\Repository\StrRepository;
 use Survos\PixieBundle\Repository\CoreRepository;
@@ -53,22 +52,24 @@ use function Symfony\Component\String\u;
 
 class PixieImportService
 {
+    // do NOT inject these, get them from the current EM
+//    private RowRepository                     $rowRepository;
+
     public function __construct(
         private readonly PixieService             $pixieService,
         private readonly LoggerInterface          $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
         #[Target('pixieEntityManager')]
         private EntityManagerInterface            $entityManager,
-        private CoreService                       $coreService,
-        private PropertyAccessorInterface $propertyAccessor,
+        private RowIngestor $rowIngestor,
+//private PixieEntityManagerProvider $provider,
+//        private PropertyAccessorInterface         $propertyAccessor,
 //        private ImportHandler                     $importHandler,
-        private CoreRepository                    $coreRepository,
-        private OriginalImageRepository $originalImageRepository,
-        private InstanceRepository                $instanceRepository,
-        private RowRepository                     $rowRepository,
-        private StrRepository                     $translateTextRepository,
+//        private CoreRepository                    $coreRepository,
+//        private OriginalImageRepository $originalImageRepository,
+//        private InstanceRepository                $instanceRepository,
+//        private StrRepository                     $strRepository,
         private readonly SerializerInterface      $serializer,
-        private readonly SqliteService            $sqliteService,
         public bool                               $purgeBeforeImport = false,
         private array                             $listsByLabel = [],
 
@@ -90,12 +91,11 @@ class PixieImportService
                            ?callable   $callback = null): StorageBox
     {
 
-        $config = $this->pixieService->selectConfig($pixieCode);
-        if (!$kv) {
-
-        }
-        $owner = $config->getOwner();
-//        $owner = $this->entityManager->getRepository(Owner::class)->find($pixieCode);
+        $ctx = $this->pixieService->getReference($pixieCode);
+        $strRepo = $ctx->repo(Str::class);
+        $config = $ctx->config;
+        $rowRepository = $ctx->repo(Row::class);
+        $owner = $ctx->ownerRef;
         assert($owner, "Missing owner $pixieCode in PIXIE owner table");
 
         // the json files, slightly processed in :prepare, no csv
@@ -135,7 +135,7 @@ class PixieImportService
             }
 
 
-            $this->coreService->getCore($tableName, $owner);
+            $this->pixieService->getCore($tableName, $owner);
             SurvosUtils::assertKeyExists($tableName, $filesByTablename, "Missing table $tableName look for filename, not table");
             $filenames = $filesByTablename[$tableName];
             foreach ($filenames as $fn)
@@ -277,7 +277,7 @@ class PixieImportService
                             context: $context);
                         $event = $this->eventDispatcher->dispatch($rowEvent);
                         $rowObj = $event->row;
-                        
+
                         if ($event->type !== RowEvent::DISCARD) {
                             $row = $this->addRow($rowObj, $table, $owner); // insert row from file iterator
                         } else {
@@ -300,7 +300,7 @@ class PixieImportService
                     }
 //                    $row['saisImages'][] = $item->addImage($imageEntity);
 
-                    $rowObj = $this->handleRelations($kv, $row, $config, $pixieCode, $table, $owner, $rowObj);
+                    $rowObj = $this->handleRelations($ctx, $row, $config, $pixieCode, $table, $owner, $rowObj);
 
 //                    $rowObj = $this->handleImages($kv, $row, $config, $pixieCode, $table, $owner, $rowObj);
 
@@ -362,10 +362,8 @@ class PixieImportService
 
     public function addImage(Row $row, OriginalImageModel $original, ?string $thumbUrl=null): OriginalImage
     {
-//        $pixieEm = $this->sqliteService->getPixieEntityManager($original->root);
-//        dump($this->pixieEntityManager->getConnection()->getDriver());
         /** @var OriginalImage */
-        if (!$image = $this->originalImageRepository->find($original->getKey())) {
+        if (!$image = $this->repo($this->entityManager, OriginalImage::class)->find($original->getKey())) {
             // create the entity
             $image = new OriginalImage($original->imageUrl, $original->getKey(), $original->root);
             $row->addImage($image);
@@ -492,7 +490,7 @@ class PixieImportService
      * @param Table $table
      * @return array $row modified row, side effect of creating lists.
      */
-    public function handleRelations(?StorageBox $kv,
+    public function handleRelations(PixieContext $ctx,
                                     Row         $item,
                                     Config      $config,
                                     string      $pixieCode,
@@ -500,6 +498,7 @@ class PixieImportService
                                     Owner       $owner,
                                     array       $row): array
     {
+        $strRepo = $ctx->repo(Str::class);
         foreach ($table->getProperties() as $property) {
 
             $propertyCode = $property->getCode();
@@ -540,8 +539,9 @@ class PixieImportService
                     $this->listsByLabel[$relatedTableName] = [];
                     // eh, don't we have this as a pixie table?
 
-                    // use core instances!
-                    foreach ($this->rowRepository->findAll() as $rowEntity) {
+                    // use core instances!  This seems bad, could be too many row
+                    // should be on-demand
+                    foreach ($this->repo($this->entityManager, Row::class)->findAll() as $rowEntity) {
                         $this->listsByLabel[$rowEntity->getCoreCode()][$rowEntity->getLabel()] = $rowEntity->getId();
                     }
 //                    dd($this->listsByLabel);
@@ -574,7 +574,8 @@ class PixieImportService
                             //
                         } elseif (in_array($valueType, ['@label', '@labels'])) {
 //                                dd($relatedRowData);
-                            if (!$sourceLang = $item->getCore()->getOwner()->getLocale() ?? null) {
+                            $owner = $item->getCore()->owner;
+                            if (!$sourceLang = $owner->locale ?? null) {
                                 if (!$sourceLang = $config->getSource()->locale) {
                                     assert(false, "unable to get source language");
                                     dd($row);
@@ -602,7 +603,7 @@ class PixieImportService
                                             $sourceLang,
                                             $sourceLang,
                                             row: $item,
-                                            storageBox: $kv,
+                                            ctx: $ctx,
                                             pixieCode: $pixieCode,
                                             table: $relatedTableName,
                                             key: $relatedId,
@@ -616,19 +617,15 @@ class PixieImportService
                                         assert($translationModel->isSource(), "translations have been moved.");
 //                                        dd($translationModel->toArray(), $translationModel->getHash());
                                         // same as in handleRelations, need to refactor.
-
-                                        if (!$tt = $this->translateTextRepository->find($translationModel->getHash())) {
-                                            $tt = new Str(
-                                                $translationModel->getText(),
-                                                $translationModel->getSource(),
-                                                $translationModel->getHash()
+                                        $hash = $translationModel->getHash();
+                                        if (!$str = $strRepo->find($hash)) {
+                                            $str = new Str(
+                                                code: $translationModel->getHash(),
+                                                original: $translationModel->getText(),
+                                                srcLocale: $translationModel->getSource(),
                                             );
-                                            $this->entityManager->persist($tt);
+                                            $this->entityManager->persist($str);
                                         }
-
-//                                        if (!$kv->has($translationModel->getHash(), table: PixieInterface::PIXIE_STRING_TABLE, preloadKeys: true)) {
-//                                            $kv->set($translationModel->toArray(), PixieInterface::PIXIE_STRING_TABLE);
-//                                        }
                                     }
 
                                     // the label and _translations have been set
@@ -725,6 +722,15 @@ class PixieImportService
         return $c;
     }
 
+    /** @template T of object */
+    public function repo(EntityManagerInterface $em, string $class)
+    {
+        assert($em === $this->entityManager);
+        /** @var \Doctrine\Persistence\ObjectRepository<T> */
+        return $em->getRepository($class);
+    }
+
+
     /** the one and only place it's add to the database, to core, etc. */
     public function addRow(array|object $row, Table $table, Owner $owner): Row
     {
@@ -732,7 +738,7 @@ class PixieImportService
         $tableName = $table->getName();
 
         $id = $row[$pkName]; // unique within core
-        $core = $this->coreService->getCore($tableName, $owner);
+        $core = $this->pixieService->getCore($tableName, $owner);
         $rowId = Row::RowIdentifier($core, $id);
 
         // @todo: inject the handler based on the configCode
@@ -748,17 +754,19 @@ class PixieImportService
             dd($instance);
         }
 
+        $rowRepository = $this->entityManager->getRepository(Row::class);
 
         /** @var Row $r */
-        if (!$r = $this->rowRepository->find($rowId)) {
+        if (!$r = $rowRepository->find($rowId)) {
             $r = new Row($core, $id);
             assert($r->getId() === $rowId, "$rowId is not " . $r->getId());
             $this->entityManager->persist($r);
         }
 
+
         // hard-coded hack for testing mapper
 
-        $targetClass = 'App\\Dto\\' . ucfirst($owner->getCode())
+        $targetClass = 'App\\Dto\\' . ucfirst($owner->code)
             . '\\' . ucfirst($table->getName());
         // or use the base class?
         if (class_exists($targetClass)) {
@@ -772,6 +780,12 @@ class PixieImportService
             }
             $merged = (array)$this->mergeObjects($entity, (object)$row);
             $row = (array)$this->mergeObjects($entity, (object)$row);
+            $ctx = $this->pixieService->getReference($owner->pixieCode);
+
+//            $config = $ctx->config;
+//            $table = $config->getTable($core->code);
+//            $this->rowIngestor->ingest((array)$merged, $r, $owner->locale, ['label','description']);
+//            dd($merged, $row, $entity, $r->getResolvedStrings(), $r->getStrCodeMap());
 
             $rawEntity = $this->serializer->normalize(
                 $entity,
@@ -782,30 +796,30 @@ class PixieImportService
                 ]
             );
 
-            $r->setRaw($rawEntity);
+            $r->raw = $rawEntity;
         }
 
 //        $entity->json = $row;
 
-        $label = $row[Instance::DB_LABEL_FIELD]??null;
-        if (!$label) {
-            // y
-            $label = 'row ' . $rowId;
-            dump($row, Instance::DB_LABEL_FIELD);
-        }
-        $r->setLabel($label);
+//        $label = $row[Instance::DB_LABEL_FIELD]??null;
+//        if (!$label) {
+//            // y
+//            $label = 'row ' . $rowId;
+//            dump($row, Instance::DB_LABEL_FIELD);
+//        }
+//        $r->lla($label);
 
 //        $row = json_encode($row, JSON_FORCE_OBJECT);
 
         // this should be in the RowWorkflow!  here for testing only
-//        assert($owner->getPixieCode(), "missing pixieCode in ".$owner->getCode());
+//        assert($owner->getPixieCode(), "missing pixieCode in ".$owner->code);
         // argh, this should work and cleanup a lot!  but it doesn't
-//        $this->importHandler->process($owner->getCode(), $r);
+//        $this->importHandler->process($owner->code, $r);
 //        dd($row, $rowId);
 
         // 1) Ensure we have the row’s id within core
-        $pk = $table->getPkName();
-//        dd($id, $core->getId());
+//        $pk = $table->getPkName();
+//        dd($id, $core->id);
 
         $idWithinCore = $id; // (string)($rowObj->{$pk} ?? $rowObj[$pk] ?? null);
         assert($idWithinCore);
@@ -823,21 +837,23 @@ class PixieImportService
             ignoreKeys: ['updated_at', '_debug', 'taskId'],   // add any ephemeral keys you want to ignore
             unicodeNormalize: true                  // if you ingest mixed Unicode sources
         );
+//        $hash = null; //  hash('xxh3', json_encode($row));
 
 // 3) Look up previous state
         /** @var RowImportState|null $state */
         if (!$state = $this->entityManager->find(RowImportState::class, [
-            'core_id' => $core->getId(),        // Core primary key (string in your schema)
+            'core_id' => $core->id,        // Core primary key (string in your schema)
             'row_id'  => $idWithinCore,         // id within core (not the composite Row::id)
         ])) {
             $state = new RowImportState(
-                $core->getId(),
+                $core->id,
                 $id
             );
             $this->entityManager->persist($state);
         }
 
         $overwrite = false;
+        $overwrite = true;
 // 4) Skip unchanged rows unless overwrite was requested
         if ($state && !$overwrite && $state->contentHash === $hash) {
             $this->logger->warning("Skipping the write");
@@ -1010,18 +1026,14 @@ class PixieImportService
                     // this populate Str for translations.
                     foreach ($trEvent->translationModels as $transModel) {
                         /** @var $tt Str */
-                        if (!$tt = $this->translateTextRepository->find($transModel->getHash())) {
+                        if (!$tt = $this->repo($this->entityManager, Str::class)->find($transModel->getHash())) {
                             $tt = new Str(
-                                $transModel->getText(),
-                                $sourceLocale,
                                 $transModel->getHash(),
+                                original: $transModel->getText(),
+                                srcLocale: $sourceLocale,
                             );
                             $this->entityManager->persist($tt);
                         }
-                        $tt->setExtra([
-                            'core' => $tableName, // for debugging,
-                            'key' => $rowObj[$table->getPkName()],
-                        ]);
                     }
                 }
         }

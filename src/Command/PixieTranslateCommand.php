@@ -1,599 +1,307 @@
 <?php
 
-namespace Survos\PixieBundle\Command;
+namespace App\Command;
 
-//use App\Entity\Instance;
-//use App\Entity\Owner;
-//use App\EventListener\TranslationEventListener;
-//use App\Message\TranslationMessage;
-//use App\Metadata\PixieInterface;
-//use App\Repository\OwnerRepository;
-//use App\Repository\ProjectRepository;
-//use App\Service\AppService;
-//use App\Service\LibreTranslateService;
-//use App\Service\PdoCacheService;
-//use App\Service\PennService;
-//use App\Service\ProjectConfig\PennConfigService;
-//use App\Service\ProjectService;
-use App\Message\TranslationMessage;
+use App\Service\TranslationBatcher;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
-use Survos\CoreBundle\Service\SurvosUtils;
-use Survos\GridGroupBundle\Service\CsvDatabase;
-use Survos\LibreTranslateBundle\Service\TranslationClientService;
-use Survos\PixieBundle\Event\StorageBoxEvent;
-use Survos\PixieBundle\Meta\PixieInterface;
-use Survos\PixieBundle\Model\Config;
-use Survos\PixieBundle\Model\Item;
-use Survos\PixieBundle\Service\LibreTranslateService;
+use Survos\PixieBundle\Entity\Str;
+use Survos\PixieBundle\Entity\StrTranslation;
 use Survos\PixieBundle\Service\PixieService;
-use Survos\PixieBundle\Service\PixieTranslationService;
-use Survos\PixieBundle\StorageBox;
+use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Helper\TableSeparator;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
-use Symfony\Component\PropertyAccess\PropertyAccessor;
-use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
-use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Symfony\Component\Stopwatch\Stopwatch;
-use Zenstruck\Console\Attribute\Argument;
-use Zenstruck\Console\Attribute\Option;
-use Zenstruck\Console\InvokableServiceCommand;
-use Zenstruck\Console\IO;
-use Zenstruck\Console\RunsCommands;
-use Zenstruck\Console\RunsProcesses;
 
-#[AsCommand('oldpixie:translate-old', 'Translate the existing fields to a separate ktv')]
-final class PixieTranslateCommand extends InvokableServiceCommand
+#[AsCommand('pixie:translate',
+    'Create missing StrTranslation rows and optionally dispatch them',
+help:<<<HELP
+Prepare only (create missing StrTranslation rows):
+
+    bin/console pixie:translate WAM --target=es|fr --batch=500
+
+Prepare + dispatch (apply already-available translations; queue the rest):
+    
+    bin/console pixie:translate WAM --target=es|fr --dispatch --transport=async
+
+Only check current status:
+
+    bin/console pixie:translate WAM --status
+HELP
+
+)]
+final class PixieTranslateCommand extends Command
 {
-
-    use RunsCommands, RunsProcesses;
-
-    // we are using the digmus translation dir since most projects are there.
-
     public function __construct(
+        private PixieService $pixieService,
+        private TranslationBatcher $batcher,
         #[Autowire('%kernel.enabled_locales%')] private array $supportedLocales,
-        private MessageBusInterface                           $bus,
-        protected EntityManagerInterface                      $entityManager,
-        private TranslationClientService                      $translationClient,
-        private PixieTranslationService                       $translationService,
-        private PixieService                                  $pixieService,
-        private LibreTranslateService                         $libreTranslateService,
-//        private TranslationEventListener                      $translationEventListener, // @todo: dispatch or inject just the method
-        protected ParameterBagInterface                       $bag,
-        private readonly NormalizerInterface                  $normalizer,
-        private readonly EventDispatcherInterface             $eventDispatcher,
-        private readonly LoggerInterface                      $logger,
-    )
-    {
+    ) {
         parent::__construct();
     }
 
     public function __invoke(
-        IO                                                                                             $io,
-//        ProjectService                                                                                 $ps,
-        EntityManagerInterface                                                                         $entityManager,
-        LoggerInterface                                                                                $logger,
-        ParameterBagInterface                                                                          $bag,
-        PropertyAccessorInterface                                                                      $accessor,
-//        OwnerRepository                                                                                $ownerRepository,
-        PixieService                                                                                   $pixieService,
-        #[Argument(description: 'config code')] ?string                                                $configCode,
+        SymfonyStyle $io,
+        #[Argument('config code')] ?string $configCode,
+        #[Option('target locales like es|fr|pt-BR')] ?string $target = null,
+        #[Option('max Str rows to process')] int $limit = 0,
+        #[Option('Str rows per batch', 'batch')] int $batchSize = 500,
+        #[Option('just show counts, no changes', 'status')] ?bool $statusOnly = null,
+        #[Option('no writes', 'dry')] ?bool $dryRun = null,
 
-        #[Option(description: 'translation engine')] string                                            $engine = 'libre',
-        #[Option('table', description: 'filter by table')] ?string                                     $tableFilter = null,
-        #[Option(description: 'filter by base table marking')] ?string                                 $marking = null,
-        #[Option(description: 'target targetLocale')] ?string                                          $target = null,
-        #[Option(description: 'message bus transport')] ?string                                        $transport = null,
-        #[Option(description: 'limit')] int                                                            $limit = 0,
-        #[Option(name: 'batch', description: 'batch size to flush')] int                                        $batchSize = 100,
-        #[Option(name: 'index', description: 'index after flush')] ?bool                               $indexAfterFlush = false,
-        #[Option(name: 'populate', description: 'populate the source keys in tkv engine table')] ?bool $populateKeys = false,
-        #[Option(name: 'translate', description: 'translate missing keys')] ?bool                      $translate = false,
-        #[Autowire('%env(DEFAULT_TRANSPORT)%')] ?string $defaultTransport=null,
-
-    ): int
-    {
-
+// Dispatch options
+        #[Option('send pending rows now')] ?bool $dispatch = null,
+        #[Option('message bus transport name')] string $transport = 'async',
+        #[Option('force dispatch even if exists', 'force')] ?bool $forceDispatch = null,
+        #[Option('only fetch existing, don’t queue new', 'fetch-only')] ?bool $fetchOnly = null,
+    ): int {
         $configCode ??= getenv('PIXIE_CODE');
-        $transport ??= $defaultTransport;
-
-        $tKv = $this->eventDispatcher->dispatch(new StorageBoxEvent($configCode, isTranslation: true))->getStorageBox();
-//        $tKv = $this->translationService->getTranslationStorageBox($pixieCode);
-//        dd($tKv->getFilename());
-        $config = $this->pixieService->selectConfig($configCode);
-
-        if ($target==='') {
-            $locales = []; // skip translation, just insert into source
-        } else {
-            $locales = $target ? explode('|', $target) : $this->supportedLocales;
-        }
-        // load the source translations into the 'source' table
-        $translatableTables = $this->getTranslatableTables($config, $tableFilter);
-        if ($populateKeys) {
-            // find all the source keys where a target doesn't exist.
-            $counts = $this->populateTranslationKeys($configCode, $marking, $translatableTables, $locales, $tKv);
-            $io->info("keys populated");
-//            dump($counts);
+        if (!$configCode) {
+            $io->error('export PIXIE_CODE or pass one in');
+            return Command::FAILURE;
         }
 
-        if ($translate) {
-            // we could have a workflow, then dispatch, queue, etc.
-            $tKv->select(PixieTranslationService::SOURCE);
+        $ctx    = $this->pixieService->getReference($configCode);
+        $em     = $ctx->em;       /** @var EntityManagerInterface $em */
+        $config = $ctx->config;
 
-            // @todo: sql fragments so we aren't looping over everything!  in source. maybe.
-            // insert into guests values ('bob', json('["apples", "oranges"]'));
-            // select name from guests, json_each(likes) where json_each.value='oranges';
-//        $where['json_each.translated <> :target'] = ['target' => $target];
+        $from = $config->getSource()->locale;
+        $to   = $target ? explode('|', $target) : $this->supportedLocales;
 
-            // get the source string map
-            // could also populate redis or a doctrine kv hash
+        $strRepo = $em->getRepository(Str::class);
+        $total   = method_exists($strRepo, 'totalCount')
+            ? $strRepo->totalCount()
+            : (int)$strRepo->createQueryBuilder('s')->select('COUNT(s)')->getQuery()->getSingleScalarResult();
 
-            // cache the source strings by key so we can dispatch with the original text.
-            $sourceStrings = [];
-            // https://medium.marco.zone/add-the-symfony-stopwatch-to-services-without-changing-them-e52266df0df1
-            $stopwatch = new Stopwatch();
-            $stopwatch->start('eventName');;
-            foreach ($tKv->iterate('source') as $hash => $sourceItem) {
-                $sourceStrings[$hash] = trim((string) $sourceItem->text());
-            }
-            $event = $stopwatch->stop('eventName');
-            foreach ($event->getPeriods() as $period) {
-                $msg = sprintf("%3.1fMBin %3.1f s", $period->getMemory() / (1024 * 1024),
-                    $period->getDuration() / 1000);
-                $io->warning(count($sourceStrings) . ' loaded from source ' . $msg);
-            }
+        $this->renderHeader($io, $configCode, $total, $from, $to);
 
-            $where = ['marking' => PixieTranslationService::NOT_TRANSLATED];
-            if ($target) {
-                $where['target'] = $target;
-            }
-
-            $count = $tKv->count($engine = PixieTranslationService::ENGINE, $where);
-            $io->title("dispatching $count/$limit missing $engine messages to $target");
-
-            $progressBar = new ProgressBar($io, $count);
-            $rows = $tKv->iterate($engine, $where, max: $limit);
-            foreach ($rows as $tItem) {
-                $progressBar->advance();
-                $targetLocale = $tItem->target();
-                $text = $sourceStrings[$tItem->hash()] ?? '';
-                $snippet = substr($text, 0, 30);
-                $this->logger->info("queuing {$tItem->prop()} {$tItem->getKey()} $snippet to $targetLocale");
-                assert($text, "empty text!");
-
-                $stamps = [];
-                if ($transport) {
-                    $stamps[] = new TransportNamesStamp($transport);
-                }
-                $envelope = $this->bus->dispatch(
-                    $msg = new TranslationMessage(
-                        $configCode,
-                        $tItem->getKey(),
-                        $text, // text to be translated
-                        $tItem->hash() // the source key
-                    ), $stamps);
-
-                $envelope = $this->bus->dispatch($msg);
-                assert($envelope);
-            }
-            $progressBar->finish();
-            $this->io()->success("Finished dispatching $count translations");
+        if ($statusOnly) {
+            $io->writeln('<comment>status only</comment>');
+            return Command::SUCCESS;
         }
 
-        // last iteration -- merge all the existing translations
+        $batchSize = max(1, $batchSize);
+        $limit     = max(0, $limit);
 
-        // only tables with translations
-        if ($indexAfterFlush) {
-            $this->populateTranslations($configCode, $tKv, $translatableTables);
-            $io->success("translations imported into $configCode");
-            foreach ($translatableTables as $tableName) {
-                $cli = "pixie:index $configCode --table $tableName --reset --batch=$batchSize";
-                $this->io()->warning('bin/console ' . $cli);
-                $this->runCommand($cli);
-            }
-        }
-        return self::SUCCESS;
+        $progress = new ProgressBar($io, $limit ?: $total);
+        $progress->setFormat("<fg=white;bg=cyan> %status:-45s%</>\n%current%/%max% [%bar%] %percent:3s%%\n🏁  %estimated:-21s% %memory:21s%");
+        $progress->start();
 
-    }
+        $createdTotal          = 0;
+        $createdByLocaleTotals = array_fill_keys($to, 0);
+        $pendingByLocaleTotals = array_fill_keys($to, 0);
+        $translatedTotals      = array_fill_keys($to, 0);
+        $queuedTotals          = array_fill_keys($to, 0);
 
-    private function translateSourceItem(Item $sourceItem, string $locale, StorageBox $tKv): ?Item
-    {
-        if (!$text = $sourceItem->text()) {
-            return null;
-        }
-        if (is_numeric($text)) {
-            return null;
-        }
-        $tKv->select(PixieTranslationService::ENGINE);
-        $sourceHash = $sourceItem->getKey();
-        // hack until we get sql fragments working
-        $targetKey = PixieTranslationService::cacheKey($sourceHash, $locale);
-        if ($tKv->has($targetKey, preloadKeys: true)) { // }, where: ['locale' => $locale])) {
-            dd($tKv->get($targetKey));
-            return $tKv->get($targetKey);
-        }
+        $processed = 0;
+        $batch = [];
 
-        if ($text) {
-            $tKv->beginTransaction();
-            // horrid hack
-            if ($hack = preg_match('/Botella gollete asa (.*)/', $text, $m)) {
-                $text = $m[1];
-            }
-            $response = $this->translationService->translateLine(
-                $text,
-                from: $sourceItem->source(),
-                to: $locale,
-                engine: PixieTranslationService::ENGINE
-            );
-            if (empty($response)) {
-                dump($sourceItem->getData(), $response, $sourceItem->locale(), $locale);
-                return null;
-            }
-            if ($hack) {
-                if ($locale == 'en') {
-                    // in english only!
-                    $response = 'Bottle neck handle ' . $response;
-                }
-            }
-//            $tKv->set($response);
-            $maxLen = 70;
-            $this->io()->writeln(
-                sprintf('<info>%s/%s</info>-><comment>%s/%s</comment>',
-                    $sourceItem->source(), substr($text, 0, $maxLen), $locale, substr($response, 0, $maxLen)));
-//            $tKv->commit();
-        }
-        return $sourceItem; // eh, this is really only if we're tracking translations in source item.
-        dd($response);
-//        return $tKv->get();
+        foreach ($this->iterateAllStr($strRepo, $batchSize) as $str) {
+            if ($limit && $processed >= $limit) break;
 
-    }
+            $batch[] = $str;
 
-    private
-    function OLD()
-    {
+            $needFlush = count($batch) >= $batchSize
+                || ($limit && $processed + count($batch) >= $limit);
 
-        // hackish, not a real project!
-        $digmusTranslationOwner = $this->findOwner(self::MD_METADATA_OWNER, self::MD_METADATA_SOURCE,
-            autoCreate: true, throwErrorIfMissing: false);
-        $digmusTranslationProject = $this->findProject($digmusTranslationOwner, self::MD_METADATA_PROJECT,
-            autoCreate: true, throwErrorIfMissing: false);
-        if ($ownerCode == self::MD_METADATA_OWNER) {
-        }
-
-        // not persisted (yet)
-        $filter = [];
-        if ($ownerCode) {
-            $owner = $this->findOwner($ownerCode, $io);
-            $filter['entity'] = $owner;
-        } elseif ($ownerSource) {
-            $filter['entity'] = $this->entityManager->getRepository(Owner::class)->findBy(['source' => $ownerSource]);
-        }
-        $transCache = [];
-        $lookupCache = [];
-        $seenOwners = [];
-//        foreach ($locales as $targetLocale) {
-//            $transCache[$targetLocale] = $this->libreTranslateService->getTranslationCache($projectLocale, $targetLocale, engine: $engine, sourceDir: $sourceDir);
-//            $lookupCache[$targetLocale] = $this->libreTranslateService->loadCache($transCache[$targetLocale]);
-//        }
-
-        if ($source) {
-            $filter['locale'] = $source;
-        }
-        if ($ownerCode) {
-            $owner = $ownerRepository->findOneBy(['code' => $ownerCode]);
-            assert($owner, "invalid entity : $ownerCode");
-            $filter['entity'] = $owner;
-        }
-        $projects = $this->projectRepository->findBy($filter);
-        // argh
-        $io->title(count($projects) . " $ownerCode  $source Projects");
-        $accessor = new PropertyAccessor();
-        $progressBar = new ProgressBar($io->output(), count($projects));
-        $rows = [];
-        $index = $this->getMeiliClient()->getIndex('Project');
-        $ownerIndex = $this->getMeiliClient()->getIndex('Owner');
-        foreach ($projects as $idx => $project) {
-            $owner = $project->getOwner();
-            if (!in_array($owner->getCode(), $seenOwners)) {
-                $seenOwners[$owner->getCode()] = $owner;
-            }
-
-            $progressBar->advance();
-            foreach ($locales as $targetLocale) {
-                // hack since we're passing project in, but we need the digmus translation table
-                // until everything else is in source control
-//                $digmusTranslationProject->setProjectLocale($project->getProjectLocale());
-                assert(false);
-                dd($targetLocale, $project->getLocale());
-                if ($targetLocale <> $project->getLocale()) {
-                    $logger->info(sprintf("%s (%s->%s) %s/%s", $project->getCode(), $project->getProjectLocale(), $targetLocale,
-                        $project->getName(), $project->getDescription($targetLocale)));
-
-                    // because of pre-loading the cache, we should probably do this in language pairs.  Or at least cache the cache, but that's going to load everything.
-
-//
-//                    // @todo: move to source level?  Easier to store.
-//                    $transCache = $this->libreTranslateService->getTranslationCache($project->getProjectLocale(), $targetLocale, engine: $engine,
-//                        sourceDir: $ps->getTranslationDir($digmusTranslationProject));
-//                    $this->addFileWritten($transCache->getFilename());
-//
-                    $ps->translateProject($project, $this->libreTranslateService, $targetLocale, $engine, $callable);
-//                        dd($project->getDescription(), $project->getCode());
+            if ($needFlush) {
+                if ($limit && $processed + count($batch) > $limit) {
+                    $batch = array_slice($batch, 0, $limit - $processed);
                 }
 
-                $rows[] = $this->getTranslationArray($project, $accessor);
-            }
-            if ($limit && ($idx >= $limit)) {
-                break;
-            }
-            if (($idx % $batchSize) === 0) {
-                $entityManager->flush();
-                $task = $index->updateDocuments($rows);
-//                $this->waitForTask($task);
-                $rows = [];
-            }
+                [$created, $createdByLocale, $pendingByLocale, $translatedByLocale, $queuedByLocale] =
+                    $this->processBatch(
+                        $io, $em, $batch, $from, $to,
+                        $dryRun ?? false,
+                        $dispatch ?? false,
+                        $transport ?? 'async',
+                        $forceDispatch,
+                        $fetchOnly
+                    );
 
-
-        }
-        $task = $index->updateDocuments($rows);
-
-        $ownerRows = [];
-        foreach ($seenOwners as $seenOwner) {
-            $ownerRows[] = $this->getTranslationArray($seenOwner, $accessor);
-        }
-
-//        $this->getIndexEntity('Project', $rows, $io);
-//        $this->getIndexEntity('Owner', $ownerRows, $io);
-
-        $progressBar->finish();
-        $entityManager->flush();
-        $this->showFiles($io);
-
-        return self::SUCCESS;
-    }
-
-    private function getTranslationArray($entity, $accessor)
-    {
-        assert(false, "get these from the pixie, not the old class");
-//        $updatedRow = [Instance::DB_CODE_FIELD => $entity->getCode()];
-//        foreach ($entity->getTranslations() as $translation) {
-//            foreach (Instance::TRANSLATABLE_FIELDS as $fieldName) {
-//                $translatedValue = $accessor->getValue($translation, $fieldName);
-//                $updatedRow['_translations'][$translation->getLocale()][$fieldName] = $translatedValue;
-//            }
-//        }
-
-        return $updatedRow;
-    }
-
-    private
-    function getIndexEntity($indexName, $rows, $io)
-    {
-        $entityIndex = $this->getMeiliClient()->getIndex($indexName);
-        $entityIndex->updateDocuments($rows, Instance::DB_CODE_FIELD);
-        $this->waitUntilFinished($entityIndex, $io);
-    }
-
-    private function populateTranslations(string     $pixieCode,
-                                          StorageBox $tKv,
-                                          array      $translatableTables = []
-
-    ): array
-    {
-        $pixieService = $this->pixieService;
-        // the base pixie (that we're updating)
-        $kv = $pixieService->getStorageBox($pixieCode);
-        $config = $pixieService->selectConfig($pixieCode);
-
-        // the translations.
-        $tKv->select(PixieTranslationService::ENGINE);
-
-        // We could be smarter about this by marking if it's already loaded.
-        $where = [];
-        foreach ($translatableTables as $tableName) {
-            $count = $kv->count($tableName);
-            $this->io()->title("injecting translations back into $count items in $tableName");
-            $progressBar = new ProgressBar($this->io(), $kv->count($tableName));
-            $kv->beginTransaction();
-            $rows = $kv->iterate($tableName, $where);
-            foreach ($rows as $itemKey => $item) {
-                $progressBar->advance();
-                $data = $item->getData(true);
-                SurvosUtils::assertKeyExists(PixieInterface::TRANSLATED_STRINGS, $data);
-//                if (!array_key_exists(PixieInterface::TRANSLATED_STRINGS, $data)) {
-//                    $this->logger->error('missing translation key ' . PixieTranslationService::TRANSLATION_KEY
-//                        . ' ' . $tableName . '.' . $itemKey);
-//                    continue;
-//                }
-                $translations = $data[PixieInterface::TRANSLATED_STRINGS];
-                $sourceLocale = $data['_locale'] ?? $config->getSource()->locale;
-
-                // these are the source strings om the BASE (not translation) pixie.
-                // created during import
-                //  the hash is in the row, too
-                //
-                $sourceFields = $this->getTranslations($data, $sourceLocale);
-
-                foreach ($sourceFields as $translatableField => $sourceTranslation) {
-                    dd($sourceTranslation, $translatableField, $sourceFields);
-                    // we could batch these keys to optimize
-
-                    $sourceKeys = $this->translationService->getLocalizationData($sourceTranslation,
-                        $sourceLocale,
-                        $sourceLocale);
-                    $translationRows = $tKv->iterate('libre', ['hash' => $sourceKeys['hash']]);
-                    foreach ($translationRows as $translation) {
-                        $translations[$translation->target()][$translatableField] = $translation->text();
-                    }
+                $createdTotal += $created;
+                foreach ($to as $loc) {
+                    $createdByLocaleTotals[$loc] += $createdByLocale[$loc] ?? 0;
+                    $pendingByLocaleTotals[$loc] += $pendingByLocale[$loc] ?? 0;
+                    $translatedTotals[$loc]      += $translatedByLocale[$loc] ?? 0;
+                    $queuedTotals[$loc]          += $queuedByLocale[$loc] ?? 0;
                 }
-                // all the translations, by locale
-                $data[PixieInterface::TRANSLATED_STRINGS] = $translations;
-                dd($data);
-                $kv->set($data, $tableName);
+
+                $processed += count($batch);
+                $progress->advance(count($batch));
+                $batch = [];
             }
-            $progressBar->finish();
-            $kv->commit();
         }
 
-        return [];
-    }
-
-    private function getTranslations(array $data, string $sourceLocale): array
-    {
-        return $data[PixieInterface::TRANSLATED_STRINGS][$sourceLocale] ?? [];
-    }
-
-    private function getTranslatableTables(Config $config, ?string $tableFilter = null): array
-    {
-        $translatableTables = [];
-        foreach ($config->getTables() as $tableName => $table) {
-            if ($tableFilter && ($tableName <> $tableFilter)) {
-                continue;
+        // leftovers
+        if (!empty($batch) && (!$limit || $processed < $limit)) {
+            if ($limit && $processed + count($batch) > $limit) {
+                $batch = array_slice($batch, 0, $limit - $processed);
             }
-            if (count($table->getTranslatable()) == 0) {
-                continue;
+            [$created, $createdByLocale, $pendingByLocale, $translatedByLocale, $queuedByLocale] =
+                $this->processBatch(
+                    $io, $em, $batch, $from, $to,
+                    $dryRun ?? false,
+                    $dispatch ?? false,
+                    $transport ?? 'async',
+                    $forceDispatch,
+                    $fetchOnly
+                );
+
+            $createdTotal += $created;
+            foreach ($to as $loc) {
+                $createdByLocaleTotals[$loc] += $createdByLocale[$loc] ?? 0;
+                $pendingByLocaleTotals[$loc] += $pendingByLocale[$loc] ?? 0;
+                $translatedTotals[$loc]      += $translatedByLocale[$loc] ?? 0;
+                $queuedTotals[$loc]          += $queuedByLocale[$loc] ?? 0;
             }
-            $translatableTables[] = $tableName;
+
+            $processed += count($batch);
+            $progress->advance(count($batch));
         }
-        return $translatableTables;
+
+        $progress->finish();
+        $io->newLine(2);
+
+        // Summary table
+        $table = new Table($io);
+        $table->setHeaderTitle("$configCode / $total strings");
+        $table->setHeaders(['locale', 'created', 'pending', 'translated(now)', 'queued']);
+        foreach ($to as $locale) {
+            $table->addRow([
+                $locale,
+                $createdByLocaleTotals[$locale] ?? 0,
+                $pendingByLocaleTotals[$locale] ?? 0,
+                $translatedTotals[$locale] ?? 0,
+                $queuedTotals[$locale] ?? 0,
+            ]);
+        }
+        $table->addRow(new TableSeparator());
+        $table->addRow([
+            'TOTAL',
+            $createdTotal,
+            array_sum($pendingByLocaleTotals),
+            array_sum($translatedTotals),
+            array_sum($queuedTotals),
+        ]);
+        $table->render();
+
+        if ($dryRun) $io->warning('dry-run: no DB changes were committed.');
+        if ($dispatch) $io->note('Dispatched pending rows (existing translations applied, others queued).');
+
+        return Command::SUCCESS;
+    }
+
+    /** @return \Generator<Str> */
+    private function iterateAllStr($strRepo, int $batchSize): \Generator
+    {
+        if (method_exists($strRepo, 'iterateAll')) {
+            yield from $strRepo->iterateAll($batchSize);
+            return;
+        }
+        $q = $strRepo->createQueryBuilder('s')->orderBy('s.code', 'ASC')->getQuery();
+        foreach ($q->toIterable([], \Doctrine\ORM\AbstractQuery::HYDRATE_OBJECT) as $row) {
+            yield $row;
+        }
     }
 
     /**
-     * Go through the _translations keys in the base pixie and add
-     * individual translation records to the ENGINE table if they don't exist.
-     *
-     * Then translate will dispatch messages to translate them.
-     *
-     * @param string $pixieCode
-     * @param string|null $marking
-     * @param string|null $tableFilter
-     * @param array $locales
-     * @param StorageBox $tKv
-     * @param bool $populateKeys
-     * @return array|void
-     * @throws \Exception
+     * @return array{0:int,1:array<string,int>,2:array<string,int>,3:array<string,int>,4:array<string,int>}
      */
-    private function populateTranslationKeys(string     $pixieCode,
-                                             ?string    $marking,
-                                             array      $translatableTables,
-                                             array      $locales,
-                                             StorageBox $tKv,
+    private function processBatch(
+        SymfonyStyle $io,
+        EntityManagerInterface $em,
+        array $batch,
+        string $from,
+        array $toLocales,
+        bool $dryRun,
+        bool $doDispatch,
+        string $transport,
+        ?bool $forceDispatch,
+        ?bool $fetchOnly
+    ): array {
+        $createdByLocale = array_fill_keys($toLocales, 0);
+        $pendingByLocale = array_fill_keys($toLocales, 0);
+        $translatedByLoc = array_fill_keys($toLocales, 0);
+        $queuedByLoc     = array_fill_keys($toLocales, 0);
+        $created = 0;
 
-    )
-    {
-        $tKv->select(PixieTranslationService::ENGINE); // since we're writing
-        $pixieService = $this->pixieService;
-        $kv = $pixieService->getStorageBox($pixieCode);
-        $config = $pixieService->selectConfig($pixieCode);
-
-        $where = [];
-        if ($marking) {
-//            $where = ['marking' => $marking];
-        }
-        $counts = [];
-        foreach ($translatableTables as $tableName) {
-            $tableCount = $kv->count($tableName);
-            $counts[$tableName] = ['new' => 0, 'total' => $tableCount];
-            $this->io()->title("populating  $tableName ($tableCount)");
-
-//            foreach ($table->getTranslatable() as $translatableField) {
-            $tKv->beginTransaction();
-            $rows = $kv->iterate($tableName, $where);
-            $progressBar = new ProgressBar($this->io(), $tableCount);
-            foreach ($rows as $item) {
-
-                $progressBar->advance();
-                $data = $item->getData(true);
-                $sourceLocale = $data['_locale'] ?? $config->getSource()->locale;
-                if (!array_key_exists('_translations', $data)) {
-                    continue;
-                }
-//                assert($data->_translations??null, "no _translations in $tableName");
-//                assert($data->_translations?->{$sourceLocale}, "missing source _translations $sourceLocale");
-
-                // these are the source strings.  the hash is in the row, too
-                // these were created during import
-                $sourceFields = $data['_translations'][$sourceLocale] ?? [];
-                foreach ($sourceFields as $translatableField => $sourceTranslation) {
-                    // if a translation already exists, skip this
-                    // is this still necessary?  Put everything in libre?
-                    $sourceKeys = $this->translationService->getLocalizationData($sourceTranslation,
-                        $sourceLocale,
-                        $sourceLocale);
-
-                    dd($sourceKeys);
-                    if (!$tKv->has($hash = $sourceKeys['hash'])) {
-                        dd("$hash missing from source!  It should happen during import");
-                        $sourceKeys['table_name'] = $tableName;
-                        $sourceKeys['prop'] = $translatableField;
-                        $tKv->set($sourceKeys, PixieTranslationService::SOURCE);
-                    }
-
-                    foreach ($locales as $targetLocale) {
-                        assert(($targetLocale <> $sourceLocale)
-                            || array_key_exists($targetLocale, $data['_translations']),
-                            "the $sourceLocale translations should already be in _translations, during import "
-                        );
-                        if ($targetLocale === $sourceLocale) {
-                            // although redundant, it's complicated to track when a string is source and when it's a translation
-                            continue;
-                        }
-                        $existing = $data['_translations'][$targetLocale] ?? [];
-                        // already translated, could confirm that these keys exist, but they came from there.
-                        if (array_key_exists($translatableField, $existing)) {
-                            continue;
-                        }
-
-                        $sourceKey = $data[$translatableField];
-                        $transKeys = $this->translationService->getLocalizationData($sourceTranslation,
-                            $sourceLocale,
-                            $targetLocale);
-                        assert($sourceTranslation, "empty source translation!");
-//                        dd($sourceKey, $translatableField, $sourceTranslation, $transKeys);
-
-                        if ($sourceKey !== ($calc = $transKeys['hash'])) {
-                            // hack for related tables
-                        }
-//                        dump($transKeys, $data, sourceKey: $sourceKey, sourceTranslation: $sourceTranslation);
-//                        assert($sourceKey == ($calc = $transKeys['hash']), "$sourceKey <> calc $calc for " . $sourceTranslation);
-                        $counts[$tableName]['total']++;
-
-                        if (!$tKv->has($transKeys['key'],
-                            preloadKeys: true, where: $preloadWhere = ['target' => $targetLocale])) {
-                            $counts[$tableName]['new']++;
-                            $transKeys['marking'] = PixieTranslationService::NOT_TRANSLATED;
-                            // testing only, because it's in a slow transaction!
-
-                            $transKeys['table_name'] = $tableName;
-                            $transKeys['prop'] = $translatableField;
-                            $tKv->set($transKeys, where: $preloadWhere);
-                        }
-                    }
-                }
-                if ($limit = $this->io()->input()->getOption('limit')) {
-                    if ($progressBar->getProgress() >= $limit) {
-                        break;
-                    }
-                }
-                $batch = $this->io()->input()->getOption('batch');
-                if ($batch && ($progressBar->getProgress() % $batch) == 0) {
-//                    $this->io()->writeln("commiting to database...");
-                    $tKv->commit();
-                    $tKv->beginTransaction();
-                }
+        // Step 1: create missing StrTranslation (marking=new)
+        $em->beginTransaction();
+        try {
+            $r = $this->batcher->ensureMissingForBatch($em, $batch, $toLocales);
+            $created = $r['created'] ?? 0;
+            foreach (($r['createdByLocale'] ?? []) as $loc => $n) {
+                $createdByLocale[$loc] += $n;
             }
-            $progressBar->finish();
-            $tKv->commit();
-            $counts[$tableName]['db_total'] =
-                $tKv->count(where: ['table_name' => $tableName]);
-            //new keys?
+
+            if ($dryRun) {
+                $em->rollback();
+            } else {
+                $em->flush();
+                $em->commit();
+            }
+        } catch (\Throwable $e) {
+            $em->rollback();
+            throw $e;
+        } finally {
+            $em->clear(StrTranslation::class);
+            $em->clear(Str::class);
         }
 
-        return $counts;
+        // Step 2: gather pending (marking='new')
+        $pending = $this->batcher->findPendingForBatch($em, $batch, $toLocales);
+        foreach ($pending as $tr) {
+            $pendingByLocale[$tr->locale] = ($pendingByLocale[$tr->locale] ?? 0) + 1;
+        }
+
+        // Step 3: optionally dispatch now and apply the ones that already exist
+        if ($doDispatch && !$dryRun && $pending) {
+            $em->beginTransaction();
+            try {
+                $res = $this->batcher->dispatchNow($em, $pending, $from, $transport, $forceDispatch, $fetchOnly);
+                foreach (($res['translatedByLocale'] ?? []) as $loc => $n) {
+                    $translatedByLoc[$loc] += $n;
+                    // translated ones no longer pending
+                    $pendingByLocale[$loc] = max(0, ($pendingByLocale[$loc] ?? 0) - $n);
+                }
+                foreach (($res['queuedByLocale'] ?? []) as $loc => $n) {
+                    $queuedByLoc[$loc] += $n;
+                }
+
+                $em->flush();
+                $em->commit();
+            } catch (\Throwable $e) {
+                $em->rollback();
+                throw $e;
+            } finally {
+                $em->clear(StrTranslation::class);
+                $em->clear(Str::class);
+            }
+        }
+
+        // Per-batch line
+        $fmt = fn(array $m) => implode(', ', array_map(fn($loc) => "$loc:".($m[$loc] ?? 0), $toLocales));
+        $io->writeln(sprintf(
+            'created [%s]  pending [%s]%s',
+            $fmt($createdByLocale),
+            $fmt($pendingByLocale),
+            $doDispatch ? sprintf('  translated(now) [%s]  queued [%s]', $fmt($translatedByLoc), $fmt($queuedByLoc)) : ''
+        ));
+
+        return [$created, $createdByLocale, $pendingByLocale, $translatedByLoc, $queuedByLoc];
+    }
+
+    private function renderHeader(SymfonyStyle $io, string $configCode, int $total, string $from, array $to): void
+    {
+        $io->title("pixie:translate — $configCode");
+        $io->writeln("<info>source:</info> $from");
+        $io->writeln('<info>targets:</info> '.implode(', ', $to));
+        $io->writeln("<info>total source strings:</info> $total");
+        $io->newLine();
     }
 }

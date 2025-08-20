@@ -65,8 +65,12 @@ final class PixiePrepareCommand
         $pixieService = $this->pixieService;
         $pixieConvertService = $this->pixieConvertService;
         $index = is_null($index) ? true : $index;
-        $config = $pixieService->selectConfig($configCode);
-        $sourceDir = $pixieService->getSourceFilesDir($configCode, subCode: $subCode);
+
+        $ctx = $pixieService->getReference($configCode);
+        $config = $ctx->config;
+
+
+        $sourceDir = $pixieService->getSourceFilesDir($configCode, config: $config, subCode: $subCode);
 //        dd($sourceDir);
         $rawDir = $sourceDir . "/raw";
         $jsonDir = $sourceDir . "/json";
@@ -105,9 +109,9 @@ final class PixiePrepareCommand
             $this->total = $limit;
         }
         # eh??
-        if ($config->getSource()->total) {
-            $this->total = $config->getSource()->total;
-        }
+//        if ($config->getSource()->total) {
+//            $this->total = $config->getSource()->total;
+//        }
 
         $explodeRules = [];
         foreach ($config->getTables() as $tableName => $table) {
@@ -122,8 +126,8 @@ final class PixiePrepareCommand
         }
         $limit = $this->pixieService->getLimit($limit);
         $this->progressBar = new ProgressBar($io, $limit);
-        
-        $pixieConvertService->convert($configCode, $subCode, null, limit: $limit, startingAt: $startingAt,
+
+        $pixieConvertService->convert($configCode, $subCode, config: $config, limit: $limit, startingAt: $startingAt,
 //            context: [
 //                'tags' => $tags ? explode(",", $tags) : [],
 //            ],
