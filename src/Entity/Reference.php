@@ -7,6 +7,7 @@ use App\Entity\IdInterface;
 use App\Entity\ProjectCoreInterface;
 use App\Entity\ProjectInterface;
 use App\Repository\ReferenceRepository;
+use Survos\CoreBundle\Entity\RouteParametersTrait;
 use Survos\PixieBundle\Traits\IdTrait;
 use App\Traits\ProjectCoreTrait;
 use App\Traits\ProjectTrait;
@@ -21,11 +22,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 //#[ORM\UniqueConstraint(name: "instance_id", columns: ["instance_id"])]
 //#[ORM\UniqueConstraint(name: "core_instance_code", columns: ["core_id", 'instance_code'])]
 
-class Reference implements IdInterface, ProjectCoreInterface, RouteParametersInterface, ProjectInterface
+class Reference implements
+    RouteParametersInterface
 {
+    use RouteParametersTrait;
     use IdTrait;
-    use ProjectCoreTrait;
-    use ProjectTrait;
 
     public function __construct(
         ?ReferenceField $referenceField = null,

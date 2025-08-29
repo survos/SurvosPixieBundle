@@ -8,11 +8,11 @@ namespace Survos\PixieBundle\Entity\Field;
 // There is also Property...
 // and Attribute
 
-use App\Repository\FieldRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Survos\PixieBundle\Entity\Core;
 use Survos\PixieBundle\Entity\FieldSet;
 use Survos\PixieBundle\Entity\Instance;
+use Survos\PixieBundle\Repository\FieldRepository;
 
 #[ORM\Entity(repositoryClass: FieldRepository::class)]
 //#[ORM\UniqueConstraint(name: 'pc_field_code', columns: ['project_id', 'core_id', 'code'])]

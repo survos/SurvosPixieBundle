@@ -15,7 +15,6 @@ use Survos\PixieBundle\Entity\Field\DatabaseField;
 use Survos\PixieBundle\Entity\Field\MeasurementField;
 use Survos\PixieBundle\Entity\Field\RelationField;
 use Survos\PixieBundle\Entity\Instance;
-use Survos\PixieBundle\Entity\Project;
 use Symfony\Component\Uid\Uuid;
 
 /**

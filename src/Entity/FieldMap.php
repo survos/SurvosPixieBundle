@@ -28,18 +28,22 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Component\Validator\Constraints as Assert;
 
-//use Doctrine\ORM\Mapping as ORM;
+use Doctrine\ORM\Mapping as ORM;
 
 //#[UniqueEntity(['spreadsheet', 'projectCore', 'code'])]
-//#[ORM\Entity(repositoryClass: FieldMapRepository::class)]
+#[ORM\Entity()] # repositoryClass: FieldMapRepository::class)]
 //#[ORM\UniqueConstraint(name: 'fm_spreadsheet_code', columns: ['project_id', 'core_id', 'spreadsheet_id', 'code'])]
-class FieldMap implements RouteParametersInterface, StatsInterface, ProjectCoreInterface, ProjectInterface, \Stringable
+class FieldMap # implements RouteParametersInterface, StatsInterface, ProjectCoreInterface, ProjectInterface, \Stringable
 {
-    use
-        ProjectTrait,
-        StatsTrait,
-        ProjectCoreTrait,
-        AccessTrait; // when an entity has its own ID, use AccessTrait instead of ProjectTrait
+//    use
+//        ProjectTrait,
+//        StatsTrait,
+//        ProzjectCoreTrait,
+//        AccessTrait; // when an entity has its own ID, use AccessTrait instead of ProjectTrait
+
+#[ORM\Column()]
+#[ORM\Id()]
+public int $id;
 
     public const PLACE_NEW = 'new';
     public const TRANSLATION_CODE = 'fieldmap';

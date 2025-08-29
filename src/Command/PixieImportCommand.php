@@ -45,13 +45,12 @@ final class PixieImportCommand extends Command
     private $total = 0; // hack to bypass count for large JSON files, e.g. smk
 
     public function __construct(
-        private LoggerInterface                            $logger,
-        private readonly PixieService                      $pixieService,
-        #[Target('pixieEntityManager')]
-        private EntityManagerInterface                     $pixieEntityManager,
-        private EventDispatcherInterface                   $eventDispatcher,
-        #[Autowire('%env(SITE_BASE_URL)%')] private string $baseUrl,
-        private PixieImportService                         $pixieImportService,
+        private LoggerInterface                                        $logger,
+        private readonly PixieService                                  $pixieService,
+//        #[Target('pixieEntityManager')] private EntityManagerInterface $pixieEntityManager,
+        private EventDispatcherInterface                               $eventDispatcher,
+        #[Autowire('%env(SITE_BASE_URL)%')] private string             $baseUrl,
+        private PixieImportService                                     $pixieImportService,
     )
     {
         parent::__construct();
@@ -95,6 +94,8 @@ EOL
 
     ): int
     {
+        $io->error("You probably want pixie:injest");
+        return Command::FAILURE;
         $this->io = $io;
 
         $this->initialized = true;
@@ -112,8 +113,8 @@ EOL
 
         $pixieService = $this->pixieService;
 
-        $ctx  = $pixieService->getReference($configCode);
-        $em   = $ctx->em;
+        $ctx = $pixieService->getReference($configCode);
+        $em = $ctx->em;
         $core = $pixieService->getCore('row', $configCode);
         $config = $ctx->config;
 //        dd(count($core->rows), $ctx->ownerRef->name, $config);
@@ -124,7 +125,7 @@ EOL
         // make sure the local owner is set.
 
 //        assert($config, "Missing $configCode");
-        $sourceDir = $pixieService->getSourceFilesDir($configCode, subCode: $subCode);
+        $sourceDir = $pixieService->getSourceFilesDir($configCode, subCode: $subCode, config: $config);
         assert(is_dir($sourceDir), "Invalid source dir: $sourceDir");
 
 
@@ -150,7 +151,7 @@ EOL
 
         $pixieDbName = $pixieService->getPixieFilename($configCode, $subCode);
 
-        $config = $this->pixieService->selectConfig($configCode);
+//        $config = $this->pixieService->selectConfig($configCode);
 
 //        if (!file_exists($dirName = pathinfo($pixieDbName, PATHINFO_DIRNAME))) {
 //            mkdir($dirName, 0777, true);

@@ -24,24 +24,21 @@ use Gedmo\Tree\Traits\NestedSetEntity;
 use Survos\CoreBundle\Entity\RouteParametersInterface;
 use Survos\CoreBundle\Entity\RouteParametersTrait;
 use Survos\PixieBundle\Entity\Field\Field;
+use Survos\PixieBundle\Traits\IdTrait;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 // #[ApiResource(denormalizationContext: ['groups' => ['write']], normalizationContext: ['groups' => ['read']])]
 #[ORM\Entity(repositoryClass: CustomFieldRepository::class)]
-#[Gedmo\Tree(type: 'nested')]
+//#[Gedmo\Tree(type: 'nested')]
 #[ApiFilter(filterClass: SearchFilter::class, properties: [
     'project' => 'exact',
 ])]
-class CustomField implements RouteParametersInterface, InstanceInterface
+class CustomField implements RouteParametersInterface
 {
-    use InstanceTrait;
-    use NestedEntityTrait;
+    use IdTrait;
     use RouteParametersTrait;
-    use TranslatableFieldsProxyTrait;
 //    use CollectiveAccessTrait;
-    use ProjectTrait;
-    use NestedSetEntity;
 
     #[ORM\ManyToOne(targetEntity: Core::class, inversedBy: 'customFields', cascade: ['persist'])]
     #[ORM\JoinColumn(nullable: false)]
@@ -61,7 +58,7 @@ class CustomField implements RouteParametersInterface, InstanceInterface
 
     #[Assert\Valid]
     #[Groups(['write'])]
-    #[Gedmo\TreeParent]
+//    #[Gedmo\TreeParent]
     #[ORM\ManyToOne(targetEntity: CustomField::class, inversedBy: 'children')]
     #[ORM\JoinColumn(name: 'ancestor_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private $parent;

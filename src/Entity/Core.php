@@ -42,8 +42,8 @@ class Core
     public ?Owner $owner = null;
 
     /** @var Collection<int, FieldSet> */
-    #[ORM\OneToMany(targetEntity: FieldSet::class, mappedBy: 'core', indexBy: 'code', orphanRemoval: true, cascade: ['persist'])]
-    #[ORM\OrderBy(['orderIdx' => 'ASC'])]
+//    #[ORM\OneToMany(targetEntity: FieldSet::class, mappedBy: 'core', indexBy: 'code', orphanRemoval: true, cascade: ['persist'])]
+//    #[ORM\OrderBy(['orderIdx' => 'ASC'])]
     #[ApiProperty(description: "Field set groupings that belong to this core.")]
     public Collection $fieldSets;
 
@@ -65,8 +65,8 @@ class Core
     public Collection $customFields;
 
     /** @var Collection<int, Field> */
-    #[ORM\OneToMany(targetEntity: Field::class, mappedBy: 'core', indexBy: 'code', orphanRemoval: true, cascade: ['persist'], fetch: 'EAGER')]
-    #[ORM\OrderBy(['orderIdx' => 'ASC'])]
+//    #[ORM\OneToMany(targetEntity: Field::class, mappedBy: 'core', indexBy: 'code', orphanRemoval: true, cascade: ['persist'], fetch: 'EAGER')]
+//    #[ORM\OrderBy(['orderIdx' => 'ASC'])]
     #[ApiProperty(description: "All field definitions (database/category/relation) for this core.")]
     public Collection $fields;
 
@@ -75,9 +75,9 @@ class Core
     #[ApiProperty(description: "Per-core text/label type definitions.")]
     public Collection $instanceTextTypes;
 
-    /** @var Collection<int, FieldMap> */
-    // This was an ArrayCollection in-code; keeping as a collection
-    #[ApiProperty(description: "Field mapping helpers associated with the core (in-memory or persisted class depending on your project).")]
+//    /** @var Collection<int, FieldMap> */
+//    // This was an ArrayCollection in-code; keeping as a collection
+//    #[ApiProperty(description: "Field mapping helpers associated with the core (in-memory or persisted class depending on your project).")]
     public Collection $fieldMaps;
 
     /** @var Collection<int, Reference> */

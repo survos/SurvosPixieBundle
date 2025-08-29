@@ -14,9 +14,9 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 #[ORM\UniqueConstraint(name: 'category_instance', columns: ['category_id', 'instance_id'])]
 #[UniqueEntity(['category', 'instance'])]
 
-class InstanceCategory implements ProjectInterface, IdInterface, \Stringable
+class InstanceCategory implements
+    \Stringable
 {
-    use ProjectTrait;
     use IdTrait;
 
     #[ORM\ManyToOne(inversedBy: 'instanceCategories', cascade: ['persist'])]

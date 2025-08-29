@@ -32,7 +32,8 @@
         "illuminate/collections": "^11.33",
         "alexandre-fernandez/json-translation-bundle": "^1.0",
         "symfony/object-mapper": "^7.3",
-        "symfony/console": "^7.3"
+        "symfony/console": "^7.3",
+        "survos/babel-bundle": "dev-main"
     },
     "require-dev": {
         "phpstan/phpstan": "^2.0",

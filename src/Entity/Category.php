@@ -16,21 +16,8 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
-use App\Entity\AsBarcodeInterface;
-use App\Entity\IdInterface;
-use App\Entity\NestedEntityInterface;
-use App\Entity\ProjectCoreInterface;
-use App\Entity\ProjectInterface;
-use App\Entity\TranslatableFieldsProxyInterface;
-use App\Entity\UuidAttributeInterface;
-use App\Repository\CategoryRepository;
-use App\Service\AppService;
-use App\Traits\{InstanceTrait, ProjectCoreTrait};
-use App\Traits\CollectiveAccessTrait;
 use Survos\PixieBundle\Traits\IdTrait;
 use Survos\PixieBundle\Traits\ImportDataTrait;
-use App\Traits\NestedEntityTrait;
-use App\Traits\UuidAttributeTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ReadableCollection;
@@ -59,34 +46,18 @@ use Symfony\Component\Validator\Constraints as Assert;
         'groups' => ['read', 'tree'],
     ]
 )]
-#[Gedmo\Tree(type: 'nested')]
+//#[Gedmo\Tree(type: 'nested')]
 #[ApiFilter(filterClass: SearchFilter::class, properties: [
     'id' => 'exact',
     'categoryTypeCode' => 'exact',
     'projectCore' => 'exact',
     'project' => 'exact',
 ])]
-class Category implements ProjectInterface,
-    TranslatableFieldsProxyInterface,
-    TranslatableInterface,
-    AsBarcodeInterface,
-    NestedEntityInterface, ProjectCoreInterface,
-    IdInterface,
-    UuidAttributeInterface, RouteParametersInterface,
-    \Stringable,
-    InstanceInterface // are they really instances?  They're not from a core type
+class Category
 {
+    use IdTrait;
     public const PLACE_NEW = 'new';
 
-    use ProjectCoreTrait;
-    use NestedEntityTrait;
-    use CollectiveAccessTrait;
-    use IdTrait;
-    use UuidAttributeTrait;
-    use ImportDataTrait;
-    use InstanceTrait;
-    use NestedSetEntity;
-    use NestedEntityTrait;
 
     // instances? settings? InstanceInterface?  Do the instances need a super-clsss? https://www.doctrine-project.org/projects/doctrine-orm/en/2.13/reference/inheritance-mapping.html
     // or maybe we do this as a query and not a bi-directional relationship.
@@ -105,7 +76,7 @@ class Category implements ProjectInterface,
 
     #[Assert\Valid]
     #[Groups(['write'])]
-    #[Gedmo\TreeParent]
+//    #[Gedmo\TreeParent]
     #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'children')]
     #[ORM\JoinColumn(referencedColumnName: 'id', onDelete: 'CASCADE')]
     private $parent;

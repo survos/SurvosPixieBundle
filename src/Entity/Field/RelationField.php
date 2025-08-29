@@ -8,7 +8,6 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Survos\PixieBundle\Entity\Core;
-use Survos\PixieBundle\Entity\FieldMap;
 use Survos\PixieBundle\Entity\FieldSet;
 use Survos\PixieBundle\Entity\Relation;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -198,11 +197,6 @@ class RelationField extends Field
     public function getLCode(): string
     {
         return sprintf("%s.%s", $this->getLeftCore(), $this->getCode());
-    }
-
-    public function getRCodeSlug(): string
-    {
-        return FieldMap::slugify($this->getRCode());
     }
 
     public function getRevCode(): string

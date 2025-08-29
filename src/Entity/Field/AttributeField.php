@@ -2,11 +2,11 @@
 
 namespace Survos\PixieBundle\Entity\Field;
 
-use App\Model\InstanceData;
-use App\Repository\FieldRepository;
+use Survos\PixieBundle\Model\InstanceData;
 use Doctrine\ORM\Mapping as ORM;
 use Survos\PixieBundle\Entity\Core;
 use Survos\PixieBundle\Entity\FieldSet;
+use Survos\PixieBundle\Repository\FieldRepository;
 use function Symfony\Component\String\u;
 
 #[ORM\Entity(repositoryClass: FieldRepository::class)]

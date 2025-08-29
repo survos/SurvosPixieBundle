@@ -14,7 +14,7 @@ use Gedmo\Timestampable\Traits\TimestampableEntity;
 #[ORM\Index(name: 'IDX_ORIGIMG_ROW', columns: ['row_id'])]
 class OriginalImage
 {
-    use TimestampableEntity;
+//    use TimestampableEntity;
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['row.images'])]
     private ?string $thumbUrl = null;

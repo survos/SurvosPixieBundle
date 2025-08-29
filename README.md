@@ -1,3 +1,28 @@
+# Scan the pixie directory and make sure all the schemas are in sync with the ORM metadata
+bin/console pixie:migrate --all
+
+# Ingest (CSV/JSON) via DTOs
+bin/console pixie:injest <pixie> --file data/<pixie>/raw/objects.csv --dto-auto --core=obj --pk=id
+
+# (Optional) Compile schema + create core views in SQLite for quick SELECTs
+bin/console pixie:schema:sync <pixie>   # also builds per-core SQLite views like "obj"
+
+# Prefill translations for a target locale (uses BabelBundle + LibreTranslate)
+bin/console pixie:translate:missing es --only-from=en --limit=2000
+
+
+# Prefill translations for a target locale (uses BabelBundle + LibreTranslate)
+bin/console babel:translate:missing es --only-from=en --limit=2000
+
+# 4) Browse
+sqlite3 pixie/<pixie>.db "SELECT * FROM obj LIMIT 5"
+
+# 5) Build Meili settings (from DTO metadata) and index docs (blue/green)
+bin/console pixie:meili:settings <pixie> --core=obj --locale=es --apply
+bin/console meili:index:rebuild <pixie>_es -g -s -D var/meili/docs/<pixie>_es.jsonl
+
+
+
 # Entity Bundle
 
 A Symfony bundle that leverages Sqlite to create an indexed structured datastore without an ORM.  In particular, it is a solution for analyzing Excel spreadsheets and nest JSON data.

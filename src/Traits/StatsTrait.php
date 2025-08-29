@@ -2,17 +2,14 @@
 
 namespace Survos\PixieBundle\Traits;
 
-use App\Traits\UuidAttributeTrait;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Survos\PixieBundle\Entity\FieldMap;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Serializer\Annotation\Groups;
-use function App\Traits\gettype;
 
 trait StatsTrait
 {
-    use UuidAttributeTrait;
+//    use UuidAttributeTrait;
 
     // not persisted, used during analysis to count
     private array $columnValues = [];
@@ -170,7 +167,7 @@ trait StatsTrait
         // hackish,
         $codedValueCounts = [];
         foreach ($this->getValueCounts() as $value => $count) {
-            $codedValueCounts[FieldMap::slugify($value)] = $count;
+//            $codedValueCounts[FieldMap::slugify($value)] = $count;
         }
         return $codedValueCounts;
 

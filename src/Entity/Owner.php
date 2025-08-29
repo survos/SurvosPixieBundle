@@ -3,6 +3,7 @@
 namespace Survos\PixieBundle\Entity;
 
 use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -13,6 +14,10 @@ use Survos\PixieBundle\Entity\Field\Field;
 #[ORM\Entity(repositoryClass: OwnerRepository::class)]
 #[ORM\Table(name: 'owner')]
 #[ORM\UniqueConstraint(name: 'owner_code', columns: ['code'])]
+#[ApiResource(
+    normalizationContext: ['groups' => ['owner.read']],
+    denormalizationContext: ['groups' => ['owner.write']],
+)]
 class Owner implements \Stringable
 {
     #[ORM\Id]
@@ -93,8 +98,8 @@ class Owner implements \Stringable
     public ?string $locale = null;
 
     /** @var Collection<int, Field> */
-    #[ORM\OneToMany(targetEntity: Field::class, mappedBy: 'owner', orphanRemoval: true)]
-    #[ORM\OrderBy(['orderIdx' => 'ASC'])]
+//    #[ORM\OneToMany(targetEntity: Field::class, mappedBy: 'owner', orphanRemoval: true)]
+//    #[ORM\OrderBy(['orderIdx' => 'ASC'])]
     #[ApiProperty(description: "All field definitions owned by this owner, indexed per table/usage.")]
     public Collection $fields;
 

@@ -15,7 +15,7 @@ class EventRoleDefinition
         #[ORM\Id]
         #[ORM\GeneratedValue]
         #[ORM\Column]
-        private(set) ?int $id = null,
+        private(set) ?int $id,
 
         #[ORM\ManyToOne(targetEntity: EventDefinition::class)]
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE', name: 'event_definition_id')]

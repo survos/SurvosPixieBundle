@@ -12,6 +12,7 @@ use App\Traits\ProjectTrait;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Survos\CoreBundle\Entity\RouteParametersInterface;
+use Survos\CoreBundle\Entity\RouteParametersTrait;
 use Survos\PixieBundle\Entity\Field\RelationField;
 use Survos\PixieBundle\Traits\IdTrait;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -21,11 +22,11 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 #[UniqueEntity(['core','code'])]
 //#[ORM\Index('relation_core', columns: ['core_id'])]
 
-class Relation implements ProjectInterface, ProjectCoreInterface, IdInterface, AsBarcodeInterface, RouteParametersInterface, \Stringable
+class Relation implements
+    RouteParametersInterface, \Stringable
 {
-    use ProjectTrait;
+    use RouteParametersTrait;
     use IdTrait;
-    use ProjectCoreTrait;
 
     #[ORM\Column(type: Types::STRING)]
     private $leftInstanceId;

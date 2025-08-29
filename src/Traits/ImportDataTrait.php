@@ -2,7 +2,7 @@
 
 namespace Survos\PixieBundle\Traits;
 
-use App\Model\InstanceData;
+use Survos\PixieBundle\Model\InstanceData;
 use Survos\PixieBundle\Entity\KeyValue;
 
 trait ImportDataTrait

@@ -38,7 +38,7 @@ final class PixieItemMenu implements KnpMenuHelperInterface
         if (!$pixieCode = $event->getOption('pixieCode')) {
             return;
         }
-//        return;
+        return;
         $kv = $this->pixieService->getStorageBox($pixieCode);
 
         $this->addHeading($menu, $itemKey,

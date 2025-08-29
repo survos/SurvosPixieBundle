@@ -19,7 +19,7 @@ class Table
     public function __construct(
         #[ORM\ManyToOne(inversedBy: 'tables')]
         #[ORM\JoinColumn(nullable: false)]
-        private ?Owner $owner = null,
+        public ?Owner $owner = null,
 
 
         #[ORM\Column(length: 255)]

@@ -18,23 +18,25 @@ use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\Tree\Traits\NestedSetEntity;
 use Survos\CoreBundle\Entity\RouteParametersInterface;
 use Survos\CoreBundle\Entity\RouteParametersTrait;
+use Survos\PixieBundle\Traits\IdTrait;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 // #[ApiResource(denormalizationContext: ['groups' => ['write']], normalizationContext: ['groups' => ['read']])]
 #[ORM\Entity(repositoryClass: CustomFieldTypeRepository::class)]
-#[Gedmo\Tree(type: 'nested')]
+//#[Gedmo\Tree(type: 'nested')]
 #[ApiFilter(filterClass: SearchFilter::class, properties: [
     'project' => 'exact',
 ])]
-class CustomFieldType implements InstanceInterface, ListItemInterface, NestedEntityInterface, RouteParametersInterface, \Stringable
+class CustomFieldType #@ implements RouteParametersInterface, \Stringable
 {
-    use InstanceTrait;
-    use NestedEntityTrait;
-    use NestedSetEntity;
+    use IdTrait;
+//    use InstanceTrait;
+//    use NestedEntityTrait;
+//    use NestedSetEntity;
     use RouteParametersTrait;
     //    use ProjectTrait;
-    use CollectiveAccessTrait;
+//    use CollectiveAccessTrait;
 
     #[Groups(['spreadsheet'])]
     #[ORM\Column(type: 'string', length: 64)]
@@ -64,7 +66,7 @@ class CustomFieldType implements InstanceInterface, ListItemInterface, NestedEnt
 
     #[Assert\Valid]
     #[Groups(['write'])]
-    #[Gedmo\TreeParent]
+//    #[Gedmo\TreeParent]
     #[ORM\ManyToOne(targetEntity: CustomFieldType::class, inversedBy: 'children')]
     #[ORM\JoinColumn(name: 'ancestor_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private $parent;

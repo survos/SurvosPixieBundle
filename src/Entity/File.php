@@ -12,13 +12,11 @@ use Survos\CoreBundle\Entity\RouteParametersTrait;
 use Survos\Tree\Traits\TreeTrait;
 use Survos\Tree\TreeInterface;
 
-#[Gedmo\Tree(type: "nested")]
+//#[Gedmo\Tree(type: "nested")]
 #[ORM\Entity(repositoryClass: FileRepository::class)]
-class File implements ProjectInterface, RouteParametersInterface, TreeInterface
+class File implements RouteParametersInterface
 {
     use RouteParametersTrait;
-    use ProjectTrait;
-    use TreeTrait;
 
 //    #[ORM\ManyToOne(inversedBy: 'files')]
 //    #[ORM\JoinColumn(nullable: false)]

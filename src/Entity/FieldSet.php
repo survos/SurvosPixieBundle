@@ -7,6 +7,7 @@ use ApiPlatform\Metadata\ApiFilter;
 use App\Entity\TranslatableFieldsProxyInterface;
 use App\Entity\UuidAttributeInterface;
 use App\Repository\FieldSetRepository;
+use Survos\CoreBundle\Entity\RouteParametersTrait;
 use Survos\PixieBundle\Traits\IdTrait;
 use App\Traits\ProjectCoreTrait;
 use App\Traits\TranslatableFieldsProxyTrait;
@@ -25,34 +26,28 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Uid\Uuid;
 
 // #[ApiResource(operations: [new Get(), new Put(), new Delete(), new Patch(), new Post(), new GetCollection()], shortName: 'field_sets', denormalizationContext: ['groups' => ['write']], normalizationContext: ['groups' => ['read', 'tree']])]
-#[Gedmo\Tree(type: 'nested')]
+//#[Gedmo\Tree(type: 'nested')]
 #[ORM\Entity(repositoryClass: FieldSetRepository::class)]
 #[ApiFilter(filterClass: SearchFilter::class, properties: [
     'id' => 'exact',
     'core' => 'exact',
 ])]
-class FieldSet implements RouteParametersInterface, \Stringable,
-
-    UuidAttributeInterface,
-    TranslatableInterface,
-    TranslatableFieldsProxyInterface,
-    TreeInterface
+class FieldSet implements RouteParametersInterface, \Stringable
 {
-    use ProjectCoreTrait;
-    use UuidAttributeTrait;
     use IdTrait;
-//    use NestedEntityTrait;
-    use TranslatableFieldsProxyTrait;
-    use TreeTrait;
+    use RouteParametersTrait;
+
+//    TreeInterface
+//    use TreeTrait;
 
     #[ORM\ManyToOne(Core::class, inversedBy: 'fieldSets')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     protected Core $core;
 
-    #[ORM\OneToMany(targetEntity: Field::class, indexBy: 'code', mappedBy: 'fieldSet', orphanRemoval: true, cascade: ['persist'])]
-    #[ORM\OrderBy([
-        'orderIdx' => 'asc',
-    ])]
+//    #[ORM\OneToMany(targetEntity: Field::class, indexBy: 'code', mappedBy: 'fieldSet', orphanRemoval: true, cascade: ['persist'])]
+//    #[ORM\OrderBy([
+//        'orderIdx' => 'asc',
+//    ])]
     protected Collection $fields;
 
     #[ORM\OneToMany(targetEntity: FieldSet::class, mappedBy: 'parent')]

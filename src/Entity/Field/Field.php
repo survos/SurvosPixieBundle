@@ -8,18 +8,6 @@ namespace Survos\PixieBundle\Entity\Field;
 // There is also Property...
 // and Attribute
 
-use App\Entity\AccessInterface;
-use App\Entity\IdInterface;
-use App\Entity\StatsInterface;
-use App\Entity\TranslatableFieldsProxyInterface;
-use App\Entity\UuidAttributeInterface;
-use App\Model\InstanceData;
-use App\Repository\FieldRepository;
-use App\Service\AppService;
-use App\Traits\AccessTrait;
-use App\Traits\ImportKeyTrait;
-use App\Traits\TranslatableFieldsProxyTrait;
-use App\Traits\UuidAttributeTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -36,6 +24,8 @@ use Survos\PixieBundle\Entity\FieldSet;
 use Survos\PixieBundle\Entity\ImportKeyInterface;
 use Survos\PixieBundle\Entity\Instance;
 use Survos\PixieBundle\Entity\Owner;
+use Survos\PixieBundle\Model\InstanceData;
+use Survos\PixieBundle\Repository\FieldRepository;
 use Survos\PixieBundle\Traits\CoreIdTrait;
 use Survos\PixieBundle\Traits\IdTrait;
 use Survos\PixieBundle\Traits\StatsTrait;
@@ -60,16 +50,16 @@ use function Symfony\Component\String\u;
 #[UniqueEntity('id')]
 //#[Assert\EnableAutoMapping()]
 class Field implements
-    AccessInterface,
+//    AccessInterface,
     RouteParametersInterface,
     FieldInterface,
-    IdInterface,
-    StatsInterface,
+//    IdInterface,
+//    StatsInterface,
 //    ProjectInterface,
 //    ImportKeyInterface,
-    UuidAttributeInterface,
-    TranslatableInterface,
-    TranslatableFieldsProxyInterface,
+//    UuidAttributeInterface,
+//    TranslatableInterface,
+//    TranslatableFieldsProxyInterface,
     CoreInterface,
     \Stringable
 {
@@ -78,10 +68,10 @@ class Field implements
     use CoreIdTrait;
 //    use ProjectTrait;
     use StatsTrait;
-    use UuidAttributeTrait;
-    use TranslatableFieldsProxyTrait;
-    use ImportKeyTrait;
-    use AccessTrait;
+//    use UuidAttributeTrait;
+//    use TranslatableFieldsProxyTrait;
+//    use ImportKeyTrait;
+//    use AccessTrait;
 //    use RouteParametersTrait;
 
     public const TRANSLATION_CODE = 'field';
@@ -237,7 +227,7 @@ class Field implements
 
     #[ORM\ManyToOne(inversedBy: 'fields')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Owner $owner = null;
+    public ?Owner $owner = null;
 
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $tableNames = null;

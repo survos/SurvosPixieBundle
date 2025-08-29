@@ -2,7 +2,7 @@
 
 namespace Survos\PixieBundle\Entity\Field;
 
-use App\Model\InstanceData;
+use Survos\PixieBundle\Model\InstanceData;
 use App\Repository\FieldRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Survos\PixieBundle\Entity\Core;

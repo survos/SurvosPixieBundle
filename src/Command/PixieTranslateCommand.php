@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Command;
+namespace Survos\PixieBundle\Command;
 
-use App\Service\TranslationBatcher;
+use Survos\PixieBundle\TranslationBatcher;
 use Doctrine\ORM\EntityManagerInterface;
 use Survos\PixieBundle\Entity\Str;
 use Survos\PixieBundle\Entity\StrTranslation;
@@ -38,7 +38,7 @@ final class PixieTranslateCommand extends Command
 {
     public function __construct(
         private PixieService $pixieService,
-        private TranslationBatcher $batcher,
+//        private TranslationBatcher $batcher,
         #[Autowire('%kernel.enabled_locales%')] private array $supportedLocales,
     ) {
         parent::__construct();
@@ -72,7 +72,7 @@ final class PixieTranslateCommand extends Command
         $from = $config->getSource()->locale;
         $to   = $target ? explode('|', $target) : $this->supportedLocales;
 
-        $strRepo = $em->getRepository(Str::class);
+        $strRepo = $ctx->repo(Str::class);
         $total   = method_exists($strRepo, 'totalCount')
             ? $strRepo->totalCount()
             : (int)$strRepo->createQueryBuilder('s')->select('COUNT(s)')->getQuery()->getSingleScalarResult();

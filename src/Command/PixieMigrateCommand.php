@@ -1,8 +1,11 @@
-<?php // switch → ensureSchema → migrateDatabase → getReference (safe now)
+<?php
 
 namespace Survos\PixieBundle\Command;
 
+use Psr\Log\LoggerInterface;
+use Survos\PixieBundle\Entity\Core;
 use Survos\PixieBundle\Entity\Owner;
+use Survos\PixieBundle\Entity\Table;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\SqlViewService;
 use Symfony\Component\Console\Attribute\Argument;
@@ -14,10 +17,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 #[AsCommand('pixie:migrate', 'migrate the pixie databases')]
 final class PixieMigrateCommand extends Command
 {
-//    use ProjectCommandTrait;
-
     public function __construct(
         protected PixieService $pixieService,
+        private LoggerInterface $logger,
         private SqlViewService $sqlViewService,
         ?string $name = null
     ) {
@@ -65,8 +67,8 @@ final class PixieMigrateCommand extends Command
 
             // 4) Now it's safe to read/write data (owner/core/etc.)
             $ctx = $this->pixieService->getReference($pixieCode);
-            $em  = $ctx->em;
 
+            // IMPORTANT: Start transaction AFTER all database switching is complete
             $em->beginTransaction();
             try {
                 // Ensure Owner row exists
@@ -88,25 +90,36 @@ final class PixieMigrateCommand extends Command
                 // Ensure tables/cores exist for this config
                 $tableRepo = $em->getRepository(\Survos\PixieBundle\Entity\Table::class);
 
-                foreach ($rawConfig->getTables() as $t) {   // ✅ use YAML here
-                    $name = $t->getName();
+                foreach ($rawConfig->getTables() as $t) {   // ✅ use YAML here?
+
+                    // hack! Something's specific to mus v pixie (app)
+                    $name = is_object($t) ? $t->getName(): $t['name'];
 
                     $tbl = $tableRepo->find($name);
                     if (!$tbl) {
-                        $tbl = new \Survos\PixieBundle\Entity\Table($owner, $name, 'list');
+                        $tbl = new Table($owner, $name, 'list');
                         $em->persist($tbl);
                     }
 
                     // Create/fix Core (ownerRef is set above)
-                    $this->pixieService->getCoreInContext($ctx, $name, autoCreate: true);
+                    $core = $this->pixieService->getCoreInContext($ctx, $name, autoCreate: true);
+
+                    assert( $ctx->em->contains($core), "core not in em");
                 }
 
                 $em->flush();
                 $em->commit();
+                assert($owner->cores->count() === ($repoCount = $em->getRepository(Core::class)->count()),
+                    sprintf("core count mismatch %d <> %d", $owner->cores->count(), $repoCount));
 
                 $io->success(sprintf('%s created/updated with %d cores', (string) $owner, count($owner->cores ?? [])));
+
             } catch (\Throwable $e) {
-                $em->rollback();
+                // Check if transaction is still active before attempting rollback
+                if ($em->getConnection()->isTransactionActive()) {
+                    $em->rollback();
+                }
+                $io->error(sprintf('Failed to migrate %s: %s', $pixieCode, $e->getMessage()));
                 throw $e;
             }
         }

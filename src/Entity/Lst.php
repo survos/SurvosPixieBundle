@@ -45,17 +45,19 @@ use Symfony\Component\Validator\Constraints as Assert;
     'id' => 'exact',
     'project' => 'exact',
 ])]
-class Lst extends CoreEntity implements IdInterface, ProjectInterface, ListItemInterface, ImportDataInterface, InstanceInterface, UuidAttributeInterface
+class Lst
+//    implements
+//    IdInterface, ProjectInterface, ListItemInterface, ImportDataInterface, InstanceInterface, UuidAttributeInterface
 {
-    use IdTrait;
-    use UuidAttributeTrait;
-    use CollectiveAccessTrait;
-    use NestedEntityTrait;
-    use ProjectCoreTrait;
-    use ImportDataTrait;
-    use ProjectTrait;
-    use InstanceTrait;
-    use NestedSetEntity;
+//    use IdTrait;
+//    use UuidAttributeTrait;
+//    use CollectiveAccessTrait;
+//    use NestedEntityTrait;
+//    use ProjectCoreTrait;
+//    use ImportDataTrait;
+//    use ProjectTrait;
+//    use InstanceTrait;
+//    use NestedSetEntity;
 
     final public const API_SHORTNAME = 'lsts';
 
@@ -70,7 +72,7 @@ class Lst extends CoreEntity implements IdInterface, ProjectInterface, ListItemI
 
     public function __construct()
     {
-        parent::__construct();
+//        parent::__construct();
         $this->children = new ArrayCollection();
         $this->importDataWrapper = null;
         //  = new KeyValue(); ?

@@ -39,7 +39,7 @@ final class PixieInjestCommand
         #[Option(name: 'pk',           description: 'Primary key in the source record')] string $pk = 'id',
         #[Option(name: 'label-field',  description: 'Fallback label field in the raw source')] ?string $labelField = null,
         #[Option(name: 'dto',          description: 'DTO FQCN to normalize rows (overrides auto)')] ?string $dto = null,
-        #[Option(name: 'dto-auto',     description: 'Auto-select DTO from registry (Mapper priority/when/except)')] ?bool $dtoAuto = null,
+        #[Option(name: 'dto-auto',     description: 'Auto-select DTO from registry (Mapper priority/when/except)')] bool $dtoAuto = true,
         #[Option(name: 'batch',        description: 'Flush batch size')] int $batch = 1000,
         #[Option(name: 'limit',        description: 'Max records per file (0 = all)')] int $limit = 0,
         #[Option(name: 'debug',        description: 'Print a before/after sample row for mapping')] bool $debug = false,
@@ -106,6 +106,17 @@ final class PixieInjestCommand
             };
             if (!$iter) { $io->warning("Skipping unsupported file: $path"); continue; }
 
+            $io->section(\basename($path));
+
+            $meta = $this->readCountsMetadataFor($path);
+            $target = $this->guessTargetCount($path, $meta);
+
+            $pb = $io->createProgressBar($target ?: 0);
+            $pb->setFormat(' %current%/%max% [%bar%] %percent:3s%%  %message%');
+            $pb->setMessage(\basename($path));
+            $pb->start();
+
+            $i = 0;
             foreach ($iter as $record) {
                 if (!\is_array($record)) continue;
 
@@ -214,7 +225,14 @@ final class PixieInjestCommand
 
                 }
                 if ($limit && $i >= $limit) break;
+                $pb->advance();
+
             }
+
+            $pb->finish();
+            $io->newLine(2);
+
+
 
             $em->flush();
             $total += $i;
@@ -236,4 +254,28 @@ final class PixieInjestCommand
         }
         return $this->csv;
     }
+
+    // inside class PixieInjestCommand { ... }
+
+    /** Read counts from _files.json in the directory containing $file */
+    private function readCountsMetadataFor(string $file): array
+    {
+        $dir = \dirname($file);
+        $metaFile = $dir.'/_files.json';
+        if (!is_file($metaFile)) return [];
+        try {
+            $json = json_decode((string) file_get_contents($metaFile), true, 512, JSON_THROW_ON_ERROR);
+            return is_array($json) ? $json : [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /** Try to get a target row-count for a specific file from its _files.json */
+    private function guessTargetCount(string $file, array $meta): int
+    {
+        $base = \basename($file);
+        return (int)($meta[$base] ?? 0);
+    }
+
 }

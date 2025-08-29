@@ -90,9 +90,9 @@ use Gedmo\Mapping\Annotation as Gedmo;
 //])]
 //#[Gedmo\Tree(type: 'nested')]
 class Instance implements
-    IdInterface,
-    TranslatableInterface,
-    TranslatableFieldsProxyInterface,
+//    IdInterface,
+//    TranslatableInterface,
+//    TranslatableFieldsProxyInterface,
     CoreInterface, // constants
 
 //    AsBarcodeInterface,
@@ -106,9 +106,9 @@ class Instance implements
 //    use UuidAttributeTrait;
 //    use CollectiveAccessTrait;
 //    use ImportDataTrait;
-    use InstanceTrait;
-    use TranslatableTrait;
-    use TranslatableFieldsProxyTrait;
+//    use InstanceTrait;
+//    use TranslatableTrait;
+//    use TranslatableFieldsProxyTrait;
     use CoreIdTrait;
 
 //    use NestedEntityTrait;
