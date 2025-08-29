@@ -6,6 +6,19 @@
 {#{% block xbody %}#}
     <h1>{{ pixieCode }}</h1>
 
+    {% set columns = [
+        'code', 'data'
+    ] %}
+    {{ dump(tables) }}
+    <tiwg:twig:simple_datatables
+            :data="tables"
+            :columns="columns"
+    >
+        <twig:block name="data">
+            {{ dump(data) }}
+        </twig:block>
+
+    </tiwg:twig:simple_datatables>
     {% for core in cores %}
         <li>
             <h3>

@@ -15,8 +15,6 @@ use Survos\PixieBundle\Entity\Row;
 
 //use Survos\PixieBundle\Entity\Str;
 use Survos\PixieBundle\Entity\Str;
-use App\Event\FetchTranslationObjectEvent;
-use App\Metadata\ITableAndKeys;
 use Survos\PixieBundle\Repository\RowRepository;
 use Survos\PixieBundle\Repository\StrRepository;
 use Survos\PixieBundle\Repository\CoreRepository;
@@ -59,8 +57,8 @@ class PixieImportService
         private readonly PixieService             $pixieService,
         private readonly LoggerInterface          $logger,
         private readonly EventDispatcherInterface $eventDispatcher,
-        #[Target('pixieEntityManager')]
-        private EntityManagerInterface            $entityManager,
+//        #[Target('pixieEntityManager')]
+//        private EntityManagerInterface            $entityManager,
         private RowIngestor $rowIngestor,
 //private PixieEntityManagerProvider $provider,
 //        private PropertyAccessorInterface         $propertyAccessor,
@@ -117,7 +115,7 @@ class PixieImportService
 
         $fileMap = $this->getFileMap($files, $config);
         // still using ->map, need to move to config service
-        $kv = $this->createKv($fileMap, $config, $pixieCode, $subCode);
+//        $kv = $this->createKv($fileMap, $config, $pixieCode, $subCode);
 
         $validTableNames = $config->getTables();
         // so that they're ordered as they are in the config, and coll and loc are loaded before obj
@@ -166,12 +164,12 @@ class PixieImportService
                 assert($table instanceof Table, "Invalid table type");
                 $rules = $config->getTableRules($tableName);
                 // todo: handle rules in config!
-                $kv->map($rules, [$tableName]);
-                $kv->select($tableName);
+//                $kv->map($rules, [$tableName]);
+//                $kv->select($tableName);
 
                 [$ext, $iterator, $headers] =
-                    $this->setupHeader($config, $tableName, $kv, $fn);
-                assert(count($kv->getTables()), "no tables in $pixieCode");
+                    $this->setupHeader($config, $tableName, $fn);
+//                assert(count($kv->getTables()), "no tables in $pixieCode");
 
                 // takes a function that will iterate through an object
 //            $kv->addFormatter(function());
@@ -242,7 +240,7 @@ class PixieImportService
                     assert($rowObj);
 
                     // just check the first rowObj for a pk in rowObj
-                    $this->justCheckTheFirstRowObj($idx, $table, $tableName, $rowObj, $pk);
+//                    $this->justCheckTheFirstRowObj($idx, $table, $tableName, $rowObj, $pk);
                     $id = $rowObj->{$pkName} ?? null;
                     assert($id, "no primary key in $tableName rowObj " . json_encode($rowObj, JSON_PRETTY_PRINT));
                     if (!$id) {
@@ -417,7 +415,7 @@ class PixieImportService
      * @throws \League\Csv\SyntaxError
      * @throws \League\Csv\UnavailableStream
      */
-    public function setupHeader(Config $config, string $tableName, StorageBox $kv, int|string $fn): array
+    public function setupHeader(Config $config, string $tableName, int|string $fn): array
     {
         $ext = pathinfo($fn, PATHINFO_EXTENSION);
         if ($ext === 'json') {
@@ -441,9 +439,11 @@ class PixieImportService
 
         $rules = $config->getTableRules($tableName);
         $table = $config->getTable($tableName);
-        $mappedHeader = $kv->mapHeader($headers,
-            $config->getSource()->propertyCodeRule,
-            regexRules: $rules);
+        $mappedHeader = $headers;
+        // this has been moved to the DTO's!
+//        $mappedHeader = $kv->mapHeader($headers,
+//            $config->getSource()->propertyCodeRule,
+//            regexRules: $rules);
 //        ($tableName == 'obj') && dd($tableName, $mappedHeader);
         // keep for replacing the key names later
 //                dd($headers, mapped: $mappedHeader, rules: $rules);

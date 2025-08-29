@@ -49,7 +49,7 @@ use Symfony\Component\Yaml\Yaml;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 
-//#[Route('/pixie')]
+#[Route('/legacy-pixie')]
 class PixieController extends AbstractController
 {
     const TRANSITION_RESET='_reset';
@@ -58,9 +58,10 @@ class PixieController extends AbstractController
         private readonly ParameterBagInterface  $bag,
         private readonly PixieService           $pixieService,
         private EventDispatcherInterface        $eventDispatcher,
-        #[Target('pixieEntityManager')]
-        private EntityManagerInterface          $pixieEntityManager,
-        private PixieTranslationService         $translationService,
+//        #[Target('pixieEntityManager')]
+//        private EntityManagerInterface          $pixieEntityManager,
+
+//        private PixieTranslationService         $translationService,
         private readonly RequestStack           $requestStack,
         private readonly CoreService $coreService,
         private readonly ?UrlGeneratorInterface $urlGenerator=null,
@@ -449,6 +450,7 @@ class PixieController extends AbstractController
         #[MapQueryParameter] string $pixieCode = ''
     ): array|Response
     {
+        return [];
         $configs = $this->pixieService->getConfigFiles($q, limit: $limit, pixieCode: $pixieCode);
         // cache candidate!
         $tables = [];
@@ -501,8 +503,6 @@ class PixieController extends AbstractController
         $ctx = $this->pixieService->getReference($pixieCode);
         $em = $ctx->em;
         $tables = $em->getRepository(Table::class)->findAll();
-        assert($pixieCode);
-
         $stringCount = $em->getRepository(Str::class)->count();
         $imageCount = $em->getRepository(OriginalImage::class)->count();
 //        dd($stringCount, $imageCount);
@@ -710,6 +710,8 @@ class PixieController extends AbstractController
         #[MapQueryParameter] int $limit = 25
     ): array
     {
+        $ctx = $this->pixieService->getReference($pixieCode);
+        dd($ctx->config->getTable($tableName));
         $this->pixieService->selectConfig($pixieCode);
 //        $core = $this->coreRepository->find($tableName);
         $core = $this->coreService->getCore($tableName);

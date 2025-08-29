@@ -1,0 +1,134 @@
+{% extends '@SurvosPixie/tabler/base.html.twig' %}
+
+{% block title %}Meili Settings — {{ pixieCode }} / {{ core }}{% endblock %}
+
+{% block body %}
+<div class="page-header d-print-none">
+  <div class="container-xl d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="page-title">Meili Settings for <code>{{ pixieCode }}</code></h2>
+      <div class="text-muted">
+        core=<code>{{ core }}</code> • locale=<code>{{ locale }}</code>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{{ path('pixie_dashboard', {pixieCode: pixieCode}) }}">Back</a>
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+  <div class="container-xl">
+    <div class="row row-cards">
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-status-top bg-blue"></div>
+          <div class="card-header">
+            <h3 class="card-title">Summary</h3>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled">
+              <li><strong>Pixie:</strong> {{ conf.source.label ?? conf.code }}</li>
+              <li><strong>Locale:</strong> {{ locale }}</li>
+              <li><strong>Core:</strong> <code>{{ core }}</code></li>
+            </ul>
+            <p class="text-muted">{{ conf.source.description ?? '—' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-status-top bg-green"></div>
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Calculated Settings</h3>
+            <div class="btn-list">
+              <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                View JSON
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <h4 class="subheader">Filterable (facets)</h4>
+                <ul class="list-unstyled">
+                  {% for f in settings.filterableAttributes %}
+                    <li><span class="badge bg-blue-lt">{{ f }}</span></li>
+                  {% else %}
+                    <li class="text-muted">—</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div class="col-md-6">
+                <h4 class="subheader">Sortable</h4>
+                <ul class="list-unstyled">
+                  {% for f in settings.sortableAttributes %}
+                    <li><span class="badge bg-green-lt">{{ f }}</span></li>
+                  {% else %}
+                    <li class="text-muted">—</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div class="col-md-12">
+                <h4 class="subheader">Searchable</h4>
+                <div class="d-flex flex-wrap gap-2">
+                  {% for f in settings.searchableAttributes %}
+                    <span class="badge bg-purple-lt">{{ f }}</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="col-md-12">
+                <h4 class="subheader">Displayed</h4>
+                <div class="d-flex flex-wrap gap-2">
+                  {% for f in settings.displayedAttributes %}
+                    <span class="badge bg-gray-lt">{{ f }}</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div> <!-- /row -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Modal with JSON viewer (CDN fallback to https://github.com/andypf/json-viewer) #}
+<div class="modal modal-blur fade" id="settingsModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Meili Settings JSON</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close'|trans }}"></button>
+      </div>
+      <div class="modal-body">
+        <div id="json-viewer" style="font-size: .9rem;"></div>
+        <noscript>
+          <pre class="mt-3"><code>{{ settings|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE')) }}</code></pre>
+        </noscript>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary ms-auto" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# JSON Viewer (CDN) #}
+<link rel="stylesheet" href="https://unpkg.com/json-viewer-js@2.2.0/dist/json-viewer.css">
+<script src="https://unpkg.com/json-viewer-js@2.2.0/dist/json-viewer.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const el = document.getElementById('json-viewer');
+  if (!el || !window.JSONViewer) return;
+  const viewer = new JSONViewer();
+  el.appendChild(viewer.getContainer());
+  viewer.show(JSON.parse('{{ settings|json_encode|e('js') }}'));
+});
+</script>
+{% endblock %}

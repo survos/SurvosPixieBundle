@@ -21,7 +21,7 @@ final class MeiliIndexer
     private Client $client;
 
     public function __construct(
-        #[Autowire(env: 'MEILI_URL')]
+        #[Autowire(env: 'MEILI_SERVER')]
         string $url,
         #[Autowire(env: 'MEILI_MASTER_KEY')]
         ?string $key = null,

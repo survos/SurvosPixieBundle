@@ -11,7 +11,7 @@ use App\Entity\ProjectCoreInterface;
 use App\Entity\ProjectInterface;
 use App\Entity\Spreadsheet;
 use App\Entity\User;
-use App\Model\ImportSettings;
+use Survos\PixieBundle\Model\ImportSettings;
 use App\Repository\InstanceCategoryRepository;
 use App\Service\AppService;
 use App\Service\LibreTranslateService;
@@ -34,7 +34,6 @@ use Survos\PixieBundle\Entity\Instance;
 use Survos\PixieBundle\Entity\InstanceCategory;
 use Survos\PixieBundle\Entity\InstanceInterface;
 use Survos\PixieBundle\Entity\Owner;
-use Survos\PixieBundle\Entity\Project;
 use Survos\PixieBundle\Repository\CoreRepository;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
@@ -52,15 +51,7 @@ class CoreService
         private readonly EntityManagerInterface $entityManager,
         private readonly LoggerInterface $logger,
         private readonly RelationService $relationService,
-        private readonly ValidatorInterface $validator,
-        private readonly CacheInterface $cache,
-        private TranslatorInterface  $translation,
-        private readonly InstanceCategoryRepository $instanceCategoryRepository,
-        private LibreTranslateService $libreTranslateService,
-        private TranslationService $translationService,
-        private readonly AppService $appService,
 //        private ProjectConfigFactoryService $projectConfigFactory,
-        private EntityManagerInterface $pixieEntityManager,
         private FormFactoryInterface                          $formFactory,
 //        private readonly CoreRepository $coreRepository,
         private array                             $cores = []
@@ -68,31 +59,7 @@ class CoreService
     ) {
     }
 
-    private Project $project;
-
     private ImportSettings $importSettings;
-
-    public function getCoreByCode(string $coreCode): OldCore
-    {
-        return $this->appService->getCore($coreCode);
-    }
-
-    public function setProject(Project $project)
-    {
-        $this->project = $project;
-    }
-
-    public function setImportSettings(ImportSettings $importSettings, Project $project)
-    {
-        $this->importSettings = $importSettings;
-        $this->setProject($project);
-    }
-
-    private function getProject(): Project
-    {
-        return $this->project;
-    }
-
 
 //    public function updateCounts(Core $projectCore)
 //    {

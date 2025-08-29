@@ -24,6 +24,8 @@ final class PixieDocumentProjector
         ];
 
         if (property_exists($row, 'data')) {
+
+            dd($row->data, $row);
             foreach (['materials','location','artist','date_created','insurance_value'] as $k) {
                 if (array_key_exists($k, $row->data ?? [])) {
                     $doc[$k] = $row->data[$k];
@@ -31,11 +33,11 @@ final class PixieDocumentProjector
             }
         }
 
-        $creators = $this->events->creatorsOf($ctx, $row);
-        $doc['created_by'] = array_values(array_filter(array_map(
-            fn(Row $r) => property_exists($r, 'label') ? $r->label : null,
-            $creators
-        )));
+//        $creators = $this->events->creatorsOf($ctx, $row);
+//        $doc['created_by'] = array_values(array_filter(array_map(
+//            fn(Row $r) => property_exists($r, 'label') ? $r->label : null,
+//            $creators
+//        )));
 
         $years = $this->events->createdYears($ctx, $row);
         $doc['created_at']      = $years ? min($years) : null;

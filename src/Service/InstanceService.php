@@ -6,7 +6,6 @@ namespace Survos\PixieBundle\Service;
 
 use App\Entity\ListItem;
 use Survos\PixieBundle\Entity\Instance;
-use Survos\PixieBundle\Entity\Project;
 
 class InstanceService
 {

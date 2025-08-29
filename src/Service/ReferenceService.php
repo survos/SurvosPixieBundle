@@ -16,12 +16,9 @@ use Symfony\Component\HttpFoundation\File\File;
 class ReferenceService
 {
     public function __construct(
-        private SpreadsheetService $spreadsheetService, // for the path
-        private UploaderHelper $uploaderHelper,
         protected LoggerInterface             $logger,
-
-        private CacheManager $cacheManager,
         private ParameterBagInterface $bag,
+        private ?SpreadsheetService $spreadsheetService=null, // for the path
 
     )
     {
