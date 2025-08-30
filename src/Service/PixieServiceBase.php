@@ -562,7 +562,7 @@ class PixieServiceBase
                                       ?string $subCode = null
     ): ?string
     {
-        assert(!$autoCreate);
+//        assert(!$autoCreate);
         if (!$config) {
             if (!$config = $this->getReference($pixieCode)->config) {
                 return null;

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Survos\PixieBundle\Service;
 
+use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\PixieBundle\Entity\Row;
 use Survos\PixieBundle\Model\PixieContext;
 
@@ -13,6 +14,7 @@ final class PixieDocumentProjector
     /** @return array<string,mixed> */
     public function project(PixieContext $ctx, Row $row, ?string $locale = null): array
     {
+
         $within = property_exists($row, 'idWithinCore') ? $row->idWithinCore
                  : (property_exists($row, 'isWithinCore') ? $row->isWithinCore : null);
         $label  = property_exists($row, 'label') ? $row->label : null;
@@ -20,18 +22,12 @@ final class PixieDocumentProjector
         $doc = [
             'id'          => $within,
             'label'       => $label,
-            'description' => property_exists($row, 'data') ? ($row->data['description'] ?? null) : null,
+//            'description' => property_exists($row, 'data') ? ($row->data['description'] ?? null) : null,
         ];
+        $doc = array_merge($doc, $row->data ?? []);
+        // for debugging
+//        $doc['raw'] = $row['raw'];
 
-        if (property_exists($row, 'data')) {
-
-            dd($row->data, $row);
-            foreach (['materials','location','artist','date_created','insurance_value'] as $k) {
-                if (array_key_exists($k, $row->data ?? [])) {
-                    $doc[$k] = $row->data[$k];
-                }
-            }
-        }
 
 //        $creators = $this->events->creatorsOf($ctx, $row);
 //        $doc['created_by'] = array_values(array_filter(array_map(
@@ -39,9 +35,10 @@ final class PixieDocumentProjector
 //            $creators
 //        )));
 
-        $years = $this->events->createdYears($ctx, $row);
-        $doc['created_at']      = $years ? min($years) : null;
-        $doc['created_on_date'] = $this->events->firstCreatedDate($ctx, $row);
+//        $years = $this->events->createdYears($ctx, $row);
+//        $doc['created_at']      = $years ? min($years) : null;
+//        $doc['created_on_date'] = $this->events->firstCreatedDate($ctx, $row);
+        $doc = SurvosUtils::removeNullsAndEmptyArrays($doc);
 
         return $doc;
     }

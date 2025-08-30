@@ -1,6 +1,12 @@
 {% extends '@SurvosPixie/pixie/layout.html.twig' %}
 
 {% block body %}
+
+    Labels!
+
+    <a href="{{ path('pixie_printer_labels', {pixieCode: pixieCode}) }}">
+        Labels
+    </a>
     {{ dump(cores) }}
 {#{% endblock %}#}
 {#{% block xbody %}#}
@@ -9,7 +15,6 @@
     {% set columns = [
         'code', 'data'
     ] %}
-    {{ dump(tables) }}
     <tiwg:twig:simple_datatables
             :data="tables"
             :columns="columns"

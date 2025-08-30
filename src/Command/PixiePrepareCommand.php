@@ -2,7 +2,6 @@
 
 namespace Survos\PixieBundle\Command;
 
-use App\Event\RowEvent;
 use JsonMachine\Items;
 use Psr\Log\LoggerInterface;
 use Survos\PixieBundle\Event\ImportFileEvent;
@@ -19,7 +18,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 
-#[AsCommand('pixie:prepare', 'process /raw to /json via the rules key')]
+#[AsCommand('pixie:legacy-prepare', 'process /raw to /json via the rules key')]
 final class PixiePrepareCommand
 {
 

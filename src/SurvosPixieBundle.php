@@ -15,6 +15,7 @@ use Survos\PixieBundle\Command\PixieMediaCommand;
 use Survos\PixieBundle\Command\PixieMeiliSettingsCommand;
 use Survos\PixieBundle\Command\PixieMigrateCommand;
 use Survos\PixieBundle\Command\PixiePrepareCommand;
+use Survos\PixieBundle\Command\PixiePrepareSimpleCommand;
 use Survos\PixieBundle\Command\PixieSchemaDumpCommand;
 use Survos\PixieBundle\Command\PixieSchemaSyncCommand;
 use Survos\PixieBundle\Command\PixieStatsShowCommand;
@@ -24,6 +25,7 @@ use Survos\PixieBundle\Components\DatabaseComponent;
 use Survos\PixieBundle\Components\RowComponent;
 use Survos\PixieBundle\Controller\PixieController;
 use Survos\PixieBundle\Controller\PixieDashboardController;
+use Survos\PixieBundle\Controller\PixiePrinterController;
 use Survos\PixieBundle\Controller\SearchController;
 use Survos\PixieBundle\DataCollector\PixieDataCollector;
 use Survos\PixieBundle\Debug\TraceableStorageBox;
@@ -213,7 +215,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                 ->setPublic(false);
         }
 
-        foreach ([PixieController::class, PixieDashboardController::class] as $controllerClass) {
+        foreach ([PixieController::class, PixiePrinterController::class, PixieDashboardController::class] as $controllerClass) {
             // Controllers
             $builder->autowire($controllerClass)
                 ->addTag('controller.service_arguments')
@@ -259,7 +261,8 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                      PixieMigrateCommand::class,
                      PixieMediaCommand::class,
                      PixieTranslateCommand::class,
-                     PixiePrepareCommand::class,
+                     PixiePrepareSimpleCommand::class,
+//                     PixiePrepareCommand::class,
                      PixieImportCommand::class,
                      PixieExportCommand::class,
                      PixieInjestCommand::class,

@@ -12,41 +12,75 @@ use Survos\PixieBundle\Service\DtoMapper;
 use Survos\PixieBundle\Service\DtoRegistry;
 use Survos\PixieBundle\Service\PixieService;
 use Survos\PixieBundle\Service\StatsCollector;
+
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 #[AsCommand('pixie:injest', 'Import JSON/NDJSON/CSV into Rows (file or directory).')]
 final class PixieInjestCommand
 {
     public function __construct(
         private readonly PixieService $pixie,
-        private readonly JsonIngestor $json,
+        private readonly JsonIngestor $json,            // ADDED: Missing dependency
         private readonly ?CsvIngestor $csv,
-        private readonly DtoMapper $dtoMapper,           // REQUIRED now
+        private readonly DtoMapper $dtoMapper,
         private readonly ?DtoRegistry $dtoRegistry,
         private readonly StatsCollector $statsCollector,
+        #[Autowire('%kernel.environment%')] private readonly string $env,
     ) {}
 
     public function __invoke(
         SymfonyStyle $io,
-        #[Argument(description: 'Pixie code (e.g., larco, immigration)')]
-        string $pixieCode,
-        #[Option(name: 'file',         description: 'Path to a JSON/JSONL/CSV file')] ?string $file = null,
-        #[Option(name: 'dir',          description: 'Directory with *.json, *.jsonl, *.csv')] ?string $dir = null,
-        #[Option(name: 'core',         description: 'Core code to import into')] string $core = 'obj',
-        #[Option(name: 'pk',           description: 'Primary key in the source record')] string $pk = 'id',
-        #[Option(name: 'label-field',  description: 'Fallback label field in the raw source')] ?string $labelField = null,
-        #[Option(name: 'dto',          description: 'DTO FQCN to normalize rows (overrides auto)')] ?string $dto = null,
-        #[Option(name: 'dto-auto',     description: 'Auto-select DTO from registry (Mapper priority/when/except)')] bool $dtoAuto = true,
-        #[Option(name: 'batch',        description: 'Flush batch size')] int $batch = 1000,
-        #[Option(name: 'limit',        description: 'Max records per file (0 = all)')] int $limit = 0,
-        #[Option(name: 'debug',        description: 'Print a before/after sample row for mapping')] bool $debug = false,
-        // Back-compat alias:
-        #[Option(name: 'dto-class',    description: 'Alias of --dto (back-compat)')] ?string $dtoClass = null,
+        #[Argument('Pixie code (e.g., larco, immigration)')]
+        ?string $pixieCode=null,
+        #[Option('Path to a JSON/JSONL/CSV file')]
+        ?string $file = null,
+        #[Option('Directory with *.json, *.jsonl, *.csv')]
+        ?string $dir = null,
+        #[Option('Core code to import into')]
+        string $core = 'obj',
+        #[Option('Primary key in the source record')]
+        string $pk = 'id',
+        #[Option(name: 'label-field', description: 'Fallback label field in the raw source')]
+        ?string $labelField = null,
+        #[Option('DTO FQCN to normalize rows (overrides auto)')]
+        ?string $dto = null,
+        #[Option(name: 'dto-auto', description: 'Auto-select DTO from registry')]
+        bool $dtoAuto = true,
+        #[Option('Flush batch size')]
+        int $batch = 1000,
+        #[Option('Max records per file (0 = all)')]
+        ?int $limit = null,
+        #[Option('Print a before/after sample row for mapping')]
+        ?bool $dump = null,
+        #[Option(name: 'dto-class', description: 'Alias of --dto (back-compat)')]
+        ?string $dtoClass = null,
     ): int {
+
+        $pixieCode ??= getenv('PIXIE_CODE');
+        if (!$pixieCode) {
+            $io->error("Pass in pixieCode or set PIXIE_CODE env var");
+            return Command::FAILURE;
+        }
+
+        $isDev = $this->env === 'dev';
+        $limit ??= $isDev ? 50 : 0;
         $dto = $dto ?? $dtoClass;
+
+        // Get pixie context and config first
+        $ctx = $this->pixie->getReference($pixieCode);
+        $config = $ctx->config;
+
+        // Auto-detect primary key from config rules
+        $actualPk = $this->determinePrimaryKey($config, $core, $pk);
+        if ($actualPk !== $pk) {
+            $io->writeln("Primary key detected from config: '$pk' -> '$actualPk'");
+            $pk = $actualPk;
+        }
 
         // default to auto if neither provided
         if ($dto === null && $dtoAuto === null) {
@@ -58,9 +92,8 @@ final class PixieInjestCommand
             return 1;
         }
 
-        $ctx = $this->pixie->getReference($pixieCode);
         $ownerRef = $ctx->ownerRef ?? $ctx->em->getReference(Owner::class, $pixieCode);
-        $em  = $ctx->em;
+        $em = $ctx->em;
 
         // resolve sources
         $files = [];
@@ -83,13 +116,16 @@ final class PixieInjestCommand
             }
         }
 
+        // Filter out metadata files
+        $files = array_filter($files, fn($f) => basename($f) !== '_files.json');
+
         $io->title(sprintf('Injest %s core=%s pk=%s dto=%s auto=%s',
             $pixieCode, $core, $pk, $dto ?? 'none', $dtoAuto ? 'yes' : 'no'
         ));
 
         // ensure Core exists and capture ids to reattach after clear()
         $coreEntity = $this->pixie->getCore($core, $ownerRef);
-        $coreId  = $coreEntity->id ?? $coreEntity->getId();
+        $coreId = $coreEntity->id ?? $coreEntity->getId();
         $ownerId = $pixieCode;
 
         $seen = []; $total = 0; $unchanged = 0; $printedDebug = false;
@@ -99,14 +135,52 @@ final class PixieInjestCommand
             $ext = strtolower(pathinfo($path, \PATHINFO_EXTENSION));
             $io->section(basename($path));
 
-            $iter = match ($ext) {
-                'json','jsonl' => $this->json->iterate($path),
-                'csv' => $this->requireCsv()->iterate($path, null),
-                default => null
-            };
-            if (!$iter) { $io->warning("Skipping unsupported file: $path"); continue; }
+            // Debug: Check if file is readable and valid
+            if (!is_readable($path)) {
+                $io->error("File not readable: $path");
+                continue;
+            }
 
-            $io->section(\basename($path));
+            $fileSize = filesize($path);
+            $io->writeln("File size: " . number_format($fileSize) . " bytes");
+
+            if ($fileSize === 0) {
+                $io->warning("Empty file, skipping: $path");
+                continue;
+            }
+
+            // Check JSON validity for JSON files
+            if ($ext === 'json') {
+                $content = file_get_contents($path);
+                if (empty(trim($content))) {
+                    $io->warning("Empty JSON file, skipping: $path");
+                    continue;
+                }
+
+                // Check if it starts with valid JSON
+                $firstChar = trim($content)[0] ?? '';
+                if ($firstChar !== '[' && $firstChar !== '{') {
+                    $io->error("Invalid JSON file (doesn't start with [ or {): $path");
+                    $io->writeln("First 100 chars: " . substr($content, 0, 100));
+                    continue;
+                }
+            }
+
+            try {
+                $iter = match ($ext) {
+                    'json','jsonl' => $this->json->iterate($path),
+                    'csv' => $this->requireCsv()->iterate($path, null),
+                    default => null
+                };
+
+                if (!$iter) {
+                    $io->warning("Skipping unsupported file: $path");
+                    continue;
+                }
+            } catch (\Throwable $e) {
+                $io->error("Failed to create iterator for $path: " . $e->getMessage());
+                continue;
+            }
 
             $meta = $this->readCountsMetadataFor($path);
             $target = $this->guessTargetCount($path, $meta);
@@ -116,12 +190,35 @@ final class PixieInjestCommand
             $pb->setMessage(\basename($path));
             $pb->start();
 
-            $i = 0;
+            $recordCount = 0;
+            $skippedCount = 0;
+
             foreach ($iter as $record) {
-                if (!\is_array($record)) continue;
+                $recordCount++;
+
+                if (!\is_array($record)) {
+                    $skippedCount++;
+                    if ($recordCount <= 5) {
+                        $io->writeln("\nSkipping non-array record #$recordCount: " . gettype($record));
+                    }
+                    continue;
+                }
 
                 $idWithinCore = (string)($record[$pk] ?? '');
-                if ($idWithinCore === '' || isset($seen[$idWithinCore])) continue;
+                if ($idWithinCore === '') {
+                    $skippedCount++;
+                    if ($recordCount <= 5) {
+                        $io->writeln("\nSkipping record #$recordCount - missing pk '$pk'");
+                        $io->writeln("Available keys: " . implode(', ', array_keys($record)));
+                    }
+                    continue;
+                }
+
+                if (isset($seen[$idWithinCore])) {
+                    $skippedCount++;
+                    continue;
+                }
+
                 $seen[$idWithinCore] = true;
 
                 // choose DTO
@@ -131,26 +228,29 @@ final class PixieInjestCommand
                     $chosen = $sel['class'] ?? null;
                 }
 
-                // map
-                // choose DTO(s)
+                // Apply DTO mapping
                 $normalized = $record;
 
                 if ($dto) {
                     // explicit single DTO
-                    $dtoObj     = $this->dtoMapper->mapRecord($record, $dto, ['pixie'=>$pixieCode,'core'=>$core]);
-                    $normalized = $this->dtoMapper->toArray($dtoObj);
+                    try {
+                        $dtoObj = $this->dtoMapper->mapRecord($record, $dto, ['pixie'=>$pixieCode,'core'=>$core]);
+                        $normalized = $this->dtoMapper->toArray($dtoObj);
+                    } catch (\Throwable $e) {
+                        $io->writeln("\nDTO mapping failed for explicit DTO: " . $e->getMessage());
+                    }
                 } elseif ($dtoAuto && $this->dtoRegistry) {
                     // merge from best → fallback
                     $ranked = $this->dtoRegistry->rank($pixieCode, $core, $record);
-                    if ($debug && $ranked) {
-//                        $io->writeln('DTO order: ' . implode(' > ', array_map(fn($r) => $r['class'].'('.$r['score'].')', $ranked)));
+                    if ($dump && $ranked && $i < 3) {
+                        $io->writeln('\nDTO order: ' . implode(' > ', array_map(fn($r) => $r['class'].'('.$r['score'].')', $ranked)));
                     }
 
                     $normalized = []; // start empty for a clean merge
                     foreach ($ranked as $r) {
                         try {
                             $dtoObj = $this->dtoMapper->mapRecord($record, $r['class'], ['pixie'=>$pixieCode,'core'=>$core]);
-                            $arr    = $this->dtoMapper->toArray($dtoObj);
+                            $arr = $this->dtoMapper->toArray($dtoObj);
                             // merge: only fill missing/null keys
                             foreach ($arr as $k => $v) {
                                 if ($v === null) continue;
@@ -168,11 +268,9 @@ final class PixieInjestCommand
                     }
                 }
 
-
-//                dd($chosen, $this->dtoRegistry, $dtoAuto);
                 if ($chosen) {
                     try {
-                        $dtoObj    = $this->dtoMapper->mapRecord($record, $chosen, ['pixie'=>$pixieCode,'core'=>$core]);
+                        $dtoObj = $this->dtoMapper->mapRecord($record, $chosen, ['pixie'=>$pixieCode,'core'=>$core]);
                         $normalized = $this->dtoMapper->toArray($dtoObj);
                         $this->statsCollector->accumulate($pixieCode, $core, $normalized, $chosen);
                     } catch (\Throwable $e) {
@@ -182,13 +280,13 @@ final class PixieInjestCommand
 
                 if ($normalized === $record) {
                     $unchanged++;
-                    if ($debug && !$printedDebug) {
+                    if ($dump && !$printedDebug) {
                         $io->note("Mapping produced no changes for id=$idWithinCore (DTO=".($chosen ?? 'none').")");
                         $io->writeln('RAW:  '.json_encode($record, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
                         $io->writeln('NORM: '.json_encode($normalized, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
                         $printedDebug = true;
                     }
-                } elseif ($debug && !$printedDebug) {
+                } elseif ($dump && !$printedDebug) {
                     $io->success("Mapped id=$idWithinCore with DTO ".($chosen ?? 'none'));
                     $io->writeln('RAW:  '.json_encode($record, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
                     $io->writeln('NORM: '.json_encode($normalized, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
@@ -218,25 +316,21 @@ final class PixieInjestCommand
                     $em->flush();
                     $em->clear(); // ORM 3: full clear; reattach
                     // reattach managed refs
-                    $ownerRef   = $em->getReference(Owner::class, $ownerId);
-                    $coreEntity = $em->getReference(Core::class,  $coreId);
+                    $ownerRef = $em->getReference(Owner::class, $ownerId);
+                    $coreEntity = $em->getReference(Core::class, $coreId);
                     $ctx->ownerRef = $ownerRef;
                     $this->statsCollector->flush($em);
-
                 }
                 if ($limit && $i >= $limit) break;
                 $pb->advance();
-
             }
 
             $pb->finish();
             $io->newLine(2);
 
-
-
             $em->flush();
             $total += $i;
-            $io->writeln("Imported $i from " . basename($path));
+            $io->writeln("Processed $recordCount records, imported $i, skipped $skippedCount from " . basename($path));
         }
 
         if ($unchanged > 0) {
@@ -254,8 +348,6 @@ final class PixieInjestCommand
         }
         return $this->csv;
     }
-
-    // inside class PixieInjestCommand { ... }
 
     /** Read counts from _files.json in the directory containing $file */
     private function readCountsMetadataFor(string $file): array
@@ -278,4 +370,55 @@ final class PixieInjestCommand
         return (int)($meta[$base] ?? 0);
     }
 
+    /**
+     * Determine the actual primary key field from the pixie configuration rules.
+     * Looks for a rule that maps some source field to 'id'.
+     */
+    private function determinePrimaryKey($config, string $core, string $fallbackPk): string
+    {
+        try {
+            if (!method_exists($config, 'getTables')) {
+                return $fallbackPk;
+            }
+
+            $tables = $config->getTables();
+            if (!isset($tables[$core])) {
+                return $fallbackPk;
+            }
+
+            $table = $tables[$core];
+
+            // Get rules - this might be a method call or property access
+            $rules = null;
+            if (method_exists($table, 'getRules')) {
+                $rules = $table->getRules();
+            } elseif (property_exists($table, 'rules')) {
+                $rules = $table->rules;
+            } elseif (is_array($table) && isset($table['rules'])) {
+                $rules = $table['rules'];
+            }
+
+            if (!$rules) {
+                return $fallbackPk;
+            }
+
+            // Look through rules to find what maps to 'id'
+            foreach ($rules as $sourceField => $targetField) {
+                // Handle different rule formats:
+                // '/url_id/: id' becomes 'url_id' -> 'id'
+                $cleanSourceField = trim($sourceField, '/');
+                $cleanTargetField = trim($targetField);
+
+                if ($cleanTargetField === 'id') {
+                    return $cleanSourceField;
+                }
+            }
+
+            return $fallbackPk;
+
+        } catch (\Throwable $e) {
+            // If anything goes wrong, just return the fallback
+            return $fallbackPk;
+        }
+    }
 }

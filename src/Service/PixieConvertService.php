@@ -155,7 +155,8 @@ class PixieConvertService
 //            $tableData = (array)$table; // $tables[$tableName];
                 $tables = $config->getTables(); // with the rules and such
                 $table = $tables[$tableName];
-                $pkName = $table->getPkName();
+                $pkName = $table->getPkName()??'id'; // hack!!
+
                 assert($pkName, "$tableName does not have a pk");
                 assert($table instanceof Table, "Invalid table type");
                 $rules = $config->getTableRules($tableName);
@@ -206,7 +207,13 @@ class PixieConvertService
                     context: $context));
 
                 // a bit hackish
-                $pk = $table->getProperties()[0]->getCode();
+// Fix around line 210 in PixieConvertService.php
+
+                // Instead of:
+                // $pk = $table->getProperties()[0]->getCode();
+
+                // Use this more robust approach:
+                $pk = $this->determinePrimaryKey($table, $tableName);
 
                 // this is the json/csv iterator
                 foreach ($iterator as $idx => $row) {
@@ -590,5 +597,39 @@ class PixieConvertService
         }
         return $row;
     }
+
+    private function determinePrimaryKey(Table $table, string $tableName): string
+    {
+        // Try to get from rules first (most reliable)
+        $rules = $table->getRules() ?? [];
+        foreach ($rules as $sourceField => $targetField) {
+            $cleanSourceField = trim($sourceField, '/');
+            $cleanTargetField = trim($targetField);
+
+            if ($cleanTargetField === 'id') {
+                return $cleanSourceField;
+            }
+        }
+
+        // Fallback: try to get first property
+        $properties = $table->getProperties();
+        if (!empty($properties)) {
+            $firstProperty = $properties[0];
+
+            // Handle different property formats
+            if (is_object($firstProperty) && method_exists($firstProperty, 'getCode')) {
+                return $firstProperty->getCode();
+            } elseif (is_string($firstProperty)) {
+                // Extract property name from "id:text" format
+                return explode(':', $firstProperty)[0];
+            } elseif (is_array($firstProperty) && isset($firstProperty['code'])) {
+                return $firstProperty['code'];
+            }
+        }
+
+        // Final fallback
+        return 'id';
+    }
+
 
 }

@@ -14,7 +14,9 @@ use Survos\PixieBundle\Service\PixieService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\Option;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 #[AsCommand('pixie:index', 'Project Rows and index to Meili (prints settings first)')]
 final class PixieIndexCommand
@@ -27,17 +29,24 @@ final class PixieIndexCommand
         private readonly SettingsService $settingsService, // from our meili-bundle, for creating/updating settings
         private readonly MeiliIndexer $indexer,
         private readonly LocaleContext $locale,
+        #[Autowire('%kernel.environment%')] private readonly string $env,
     ) {}
 
     public function __invoke(
         SymfonyStyle $io,
-        #[Argument('pixieCode')] string $pixieCode,
+        #[Argument('pixieCode')] ?string $pixieCode=null,
         #[Option('core')] string $core = 'obj',
         #[Option('locale')] string $loc = 'es',
         #[Option('batch')] int $batch = 500,
-        #[Option('limit')] int $limit = 0,
+        #[Option('limit')] ?int $limit = null,
         #[Option('offset')] int $offset = 0,
+        #[Option('dump the raw and normalized record')] ?bool $dump = null,
     ): int {
+        $pixieCode ??= getenv('PIXIE_CODE');
+        if (!$pixieCode) {
+            $io->error("Pass in pixieCode or set PIXIE_CODE env var");
+            return Command::FAILURE;
+        }
         $this->locale->set($loc);
 
         $ctx   = $this->pixie->getReference($pixieCode);
@@ -45,6 +54,7 @@ final class PixieIndexCommand
         $coreE = $this->pixie->getCore($core, $owner);
 
         $index = IndexNameResolver::name($pixieCode, $core, $loc);
+        $limit ??= ($this->env==='dev') ? 10 : 0;
 
         $io->title("Meili index: $index");
         $settings = $this->meiliIndexer->getSettings($index);
@@ -60,7 +70,9 @@ final class PixieIndexCommand
         $docs = [];
         $i = 0;
         foreach ($rows as $row) {
-            $docs[] = $this->projector->project($ctx, $row, $loc);
+            $dump && dump($row);
+            $docs[] = ($projectedRow = $this->projector->project($ctx, $row, $loc));
+            $dump && dump($projectedRow);
             if ((++$i % $batch) === 0) {
                 $this->indexer->indexDocs($index, $docs);
                 $docs = [];
