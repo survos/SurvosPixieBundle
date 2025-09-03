@@ -22,8 +22,6 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Tree\Traits\NestedSetEntity;
-use Knp\DoctrineBehaviors\Contract\Entity\TranslatableInterface;
-use Knp\DoctrineBehaviors\Model\Translatable\TranslatableTrait;
 use Survos\CoreBundle\Entity\RouteParametersInterface;
 use Survos\PixieBundle\Entity\Field\CategoryField;
 use Survos\PixieBundle\Entity\Field\Field;
@@ -107,7 +105,6 @@ class Instance implements
 //    use CollectiveAccessTrait;
 //    use ImportDataTrait;
 //    use InstanceTrait;
-//    use TranslatableTrait;
 //    use TranslatableFieldsProxyTrait;
     use CoreIdTrait;
 

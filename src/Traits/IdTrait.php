@@ -33,7 +33,7 @@ trait IdTrait
 //    #[Groups(['spreadsheet', 'tree', 'read', 'write', 'preview', 'instance.read'])]
     #[ORM\Column(type: Types::STRING, length: 255, nullable: false)]
     #[Assert\Length(max: 255, maxMessage: 'The code cannot be longer than {{ limit }} characters')]
-    protected string $code;
+    protected(set) string $code;
 
     public function getCode(): string
     {

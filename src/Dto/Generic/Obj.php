@@ -22,7 +22,7 @@ class Obj extends BaseObj
     #[Map(source: 'description', searchable: true, translatable: true)]
     public ?string $description = null;
 
-    #[Map(source: 'image')]
+    #[Map(source: 'image', regex: '/image/')]
     public ?string $imageUrl = null;
 
     #[Map(source: 'nombre',  searchable: true, translatable: true)]

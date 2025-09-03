@@ -116,6 +116,7 @@ class PixieServiceBase
 
     public static function getMeiliIndexName(string $pixieCode, ?string $subCode, ?string $tableName)
     {
+        assert(false);
         return 'px_' . $pixieCode . ($subCode ? ('_' . $subCode) : '') . '_' . $tableName;
 
     }
@@ -1043,7 +1044,7 @@ class PixieServiceBase
         $metadataFactory = $em->getMetadataFactory();
 
         // Try getAllMetadata first, but it often returns empty after switching databases
-        $allMeta = $metadataFactory->getAllMetadata();
+        $allMeta = []; //  $metadataFactory->getAllMetadata();
         $this->logger?->debug("getAllMetadata() returned " . count($allMeta) . " metadata objects");
 
         // If empty, manually load metadata for PixieBundle entities

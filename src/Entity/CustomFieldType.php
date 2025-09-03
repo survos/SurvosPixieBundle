@@ -32,7 +32,7 @@ class CustomFieldType #@ implements RouteParametersInterface, \Stringable
 {
     use IdTrait;
 //    use InstanceTrait;
-//    use NestedEntityTrait;
+    use NestedEntityTrait;
 //    use NestedSetEntity;
     use RouteParametersTrait;
     //    use ProjectTrait;

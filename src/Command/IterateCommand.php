@@ -35,7 +35,6 @@ final class IterateCommand extends Command
         private LocaleContext             $localeContext,
         private ?WorkflowHelperService    $workflowHelperService = null,
         private ?EventDispatcherInterface $eventDispatcher = null,
-        private PixieImportService        $pixieImportService,
     )
     {
 

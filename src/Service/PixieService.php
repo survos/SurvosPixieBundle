@@ -98,8 +98,8 @@ class PixieService extends PixieServiceBase {
             // Test new database after switch
             try {
                 $newTables = $conn->executeQuery("SELECT name FROM sqlite_master WHERE type='table'")->fetchFirstColumn();
-                $this->logger?->info("New database tables AFTER switch: " . implode(', ', $newTables));
-                $this->logger?->warning("Owner table present: " . (in_array('owner', $newTables) ? 'YES' : 'NO'));
+//                $this->logger?->info("New database tables AFTER switch: " . implode(', ', $newTables));
+//                $this->logger?->warning("Owner table present: " . (in_array('owner', $newTables) ? 'YES' : 'NO'));
             } catch (\Exception $e) {
                 $this->logger?->error("Could not query new database after switch: " . $e->getMessage());
             }
@@ -112,8 +112,8 @@ class PixieService extends PixieServiceBase {
             if ($conn->isConnected()) {
                 try {
                     $tables = $conn->executeQuery("SELECT name FROM sqlite_master WHERE type='table'")->fetchFirstColumn();
-                    $this->logger?->info("Current database tables (no switch): " . implode(', ', $tables));
-                    $this->logger?->warning("Owner table present: " . (in_array('owner', $tables) ? 'YES' : 'NO'));
+//                    $this->logger?->info("Current database tables (no switch): " . implode(', ', $tables));
+//                    $this->logger?->warning("Owner table present: " . (in_array('owner', $tables) ? 'YES' : 'NO'));
                 } catch (\Exception $e) {
                     $this->logger?->info("Could not query current database: " . $e->getMessage());
                 }
@@ -121,7 +121,7 @@ class PixieService extends PixieServiceBase {
         }
 
         $this->currentPixieCode = $pixieCode;
-        $this->logger?->info("=== switchToPixieDatabase END ===");
+//        $this->logger?->info("=== switchToPixieDatabase END ===");
         return $em;
     }
 
@@ -132,9 +132,9 @@ class PixieService extends PixieServiceBase {
     public function ensureSchema(EntityManagerInterface $em): void
     {
         $currentDbPath = $em->getConnection()->getParams()['path'] ?? 'UNKNOWN';
-        $this->logger?->warning("=== ENSURE SCHEMA START ===");
-        $this->logger?->warning("Database path: {$currentDbPath}");
-        $this->logger?->warning("Current pixie code: " . ($this->currentPixieCode ?? 'NULL'));
+//        $this->logger?->warning("=== ENSURE SCHEMA START ===");
+//        $this->logger?->warning("Database path: {$currentDbPath}");
+//        $this->logger?->warning("Current pixie code: " . ($this->currentPixieCode ?? 'NULL'));
 
         // Check if Owner entity file exists first
         $this->checkOwnerEntityFile();
@@ -144,24 +144,24 @@ class PixieService extends PixieServiceBase {
         // Check what tables currently exist
         try {
             $existingTables = $sm->listTableNames();
-            $this->logger?->info("Existing tables before schema check: " . implode(', ', $existingTables));
-            $this->logger?->warning("OWNER table exists before schema: " . (in_array('owner', $existingTables) ? 'YES' : 'NO'));
+//            $this->logger?->info("Existing tables before schema check: " . implode(', ', $existingTables));
+//            $this->logger?->warning("OWNER table exists before schema: " . (in_array('owner', $existingTables) ? 'YES' : 'NO'));
         } catch (\Exception $e) {
             $this->logger?->error("Could not list existing tables: " . $e->getMessage());
         }
 
         // Bootstrap check on a canonical table
         if ($sm->tablesExist(['owner'])) {
-            $this->logger?->warning("Owner table already exists - schema ensurance complete");
-            $this->logger?->warning("=== ENSURE SCHEMA END (EARLY RETURN) ===");
+//            $this->logger?->warning("Owner table already exists - schema ensurance complete");
+//            $this->logger?->warning("=== ENSURE SCHEMA END (EARLY RETURN) ===");
             return;
         }
 
-        $this->logger?->warning("Owner table does not exist - proceeding with schema creation");
+//        $this->logger?->warning("Owner table does not exist - proceeding with schema creation");
 
         // Get all metadata and specifically check for Owner
         $metadataFactory = $em->getMetadataFactory();
-        $allMetadata = $metadataFactory->getAllMetadata();
+        $allMetadata = []; // $metadataFactory->getAllMetadata();
 
         $this->logger?->info("Total metadata objects found: " . count($allMetadata));
 
@@ -178,10 +178,10 @@ class PixieService extends PixieServiceBase {
 
                 if ($className === Owner::class) {
                     $ownerMetadata = $meta;
-                    $this->logger?->warning("=== FOUND OWNER METADATA ===");
-                    $this->logger?->warning("Owner class name: {$className}");
-                    $this->logger?->warning("Owner table name: " . $meta->getTableName());
-                    $this->logger?->warning("Owner identifier: " . implode(', ', $meta->getIdentifierFieldNames()));
+//                    $this->logger?->warning("=== FOUND OWNER METADATA ===");
+//                    $this->logger?->warning("Owner class name: {$className}");
+//                    $this->logger?->warning("Owner table name: " . $meta->getTableName());
+//                    $this->logger?->warning("Owner identifier: " . implode(', ', $meta->getIdentifierFieldNames()));
                 }
             }
         }
@@ -204,17 +204,17 @@ class PixieService extends PixieServiceBase {
                     if ($metadata) {
                         $pixieClasses[] = $metadata;
                         $loadedCount++;
-                        $this->logger?->info("✓ Successfully loaded metadata for: {$entityClass} -> " . $metadata->getTableName());
+//                        $this->logger?->info("✓ Successfully loaded metadata for: {$entityClass} -> " . $metadata->getTableName());
 
                         if ($entityClass === Owner::class) {
                             $ownerMetadata = $metadata;
-                            $this->logger?->warning("=== FOUND OWNER METADATA (MANUAL) ===");
-                            $this->logger?->warning("Owner table name: " . $metadata->getTableName());
-                            $this->logger?->warning("Owner identifier fields: " . implode(', ', $metadata->getIdentifierFieldNames()));
+//                            $this->logger?->warning("=== FOUND OWNER METADATA (MANUAL) ===");
+//                            $this->logger?->warning("Owner table name: " . $metadata->getTableName());
+//                            $this->logger?->warning("Owner identifier fields: " . implode(', ', $metadata->getIdentifierFieldNames()));
                         }
                     } else {
                         $failedCount++;
-                        $this->logger?->error("✗ getMetadataFor() returned null for: {$entityClass}");
+//                        $this->logger?->error("✗ getMetadataFor() returned null for: {$entityClass}");
                     }
                 } catch (\Exception $e) {
                     $failedCount++;
@@ -293,42 +293,42 @@ class PixieService extends PixieServiceBase {
      */
     private function checkOwnerEntityFile(): void
     {
-        $this->logger?->warning("=== CHECKING OWNER ENTITY FILE ===");
+//        $this->logger?->warning("=== CHECKING OWNER ENTITY FILE ===");
 
         // Check if Owner class exists
         if (class_exists(Owner::class)) {
-            $this->logger?->warning("Owner class exists and is autoloadable");
+//            $this->logger?->warning("Owner class exists and is autoloadable");
 
             try {
                 $reflection = new \ReflectionClass(Owner::class);
                 $ownerFile = $reflection->getFileName();
-                $this->logger?->warning("Owner file location: {$ownerFile}");
-                $this->logger?->warning("Owner file exists: " . (file_exists($ownerFile) ? 'YES' : 'NO'));
-                $this->logger?->warning("Owner file readable: " . (is_readable($ownerFile) ? 'YES' : 'NO'));
+//                $this->logger?->warning("Owner file location: {$ownerFile}");
+//                $this->logger?->warning("Owner file exists: " . (file_exists($ownerFile) ? 'YES' : 'NO'));
+//                $this->logger?->warning("Owner file readable: " . (is_readable($ownerFile) ? 'YES' : 'NO'));
 
                 // Check for Doctrine annotations/attributes
                 $attributes = $reflection->getAttributes(\Doctrine\ORM\Mapping\Entity::class);
-                $this->logger?->warning("Owner has Entity attribute: " . (count($attributes) > 0 ? 'YES' : 'NO'));
+//                $this->logger?->warning("Owner has Entity attribute: " . (count($attributes) > 0 ? 'YES' : 'NO'));
 
                 if (count($attributes) > 0) {
                     $entityAttr = $attributes[0]->newInstance();
-                    $this->logger?->warning("Owner Entity repositoryClass: " . ($entityAttr->repositoryClass ?? 'null'));
+//                    $this->logger?->warning("Owner Entity repositoryClass: " . ($entityAttr->repositoryClass ?? 'null'));
                 }
 
                 // Check for Table attribute
-                $tableAttributes = $reflection->getAttributes(\Doctrine\ORM\Mapping\Table::class);
-                if (count($tableAttributes) > 0) {
-                    $tableAttr = $tableAttributes[0]->newInstance();
-                    $this->logger?->warning("Owner Table name: " . ($tableAttr->name ?? 'default'));
-                } else {
-                    $this->logger?->warning("Owner has no explicit Table attribute - will use class name");
-                }
+//                $tableAttributes = $reflection->getAttributes(\Doctrine\ORM\Mapping\Table::class);
+//                if (count($tableAttributes) > 0) {
+//                    $tableAttr = $tableAttributes[0]->newInstance();
+//                    $this->logger?->warning("Owner Table name: " . ($tableAttr->name ?? 'default'));
+//                } else {
+//                    $this->logger?->warning("Owner has no explicit Table attribute - will use class name");
+//                }
 
             } catch (\ReflectionException $e) {
                 $this->logger?->error("Could not reflect Owner class: " . $e->getMessage());
             }
         } else {
-            $this->logger?->error("Owner class does NOT exist or is not autoloadable!");
+//            $this->logger?->error("Owner class does NOT exist or is not autoloadable!");
 
             // Try to find the file manually
             $possiblePaths = [
@@ -337,13 +337,13 @@ class PixieService extends PixieServiceBase {
                 dirname(__DIR__) . '/Entity/Owner.php',
             ];
 
-            foreach ($possiblePaths as $path) {
-                $this->logger?->warning("Checking path: {$path}");
-                $this->logger?->warning("Path exists: " . (file_exists($path) ? 'YES' : 'NO'));
-            }
+//            foreach ($possiblePaths as $path) {
+//                $this->logger?->warning("Checking path: {$path}");
+//                $this->logger?->warning("Path exists: " . (file_exists($path) ? 'YES' : 'NO'));
+//            }
         }
 
-        $this->logger?->warning("=== OWNER ENTITY FILE CHECK END ===");
+//        $this->logger?->warning("=== OWNER ENTITY FILE CHECK END ===");
     }
 
     /**
@@ -480,53 +480,53 @@ class PixieService extends PixieServiceBase {
         $ownerRef = null;
         $conn = $em->getConnection();
 
-        $this->logger?->warning("=== OWNER CHECK START ===");
+//        $this->logger?->info("=== OWNER CHECK START ===");
 
         try {
             // First verify we can access the database
             $currentPath = $conn->getParams()['path'] ?? 'UNKNOWN';
-            $this->logger?->warning("About to check owner in database: {$currentPath}");
-            $this->logger?->warning("Connection is connected: " . ($conn->isConnected() ? 'YES' : 'NO'));
+//            $this->logger?->info("About to check owner in database: {$currentPath}");
+//            $this->logger?->info("Connection is connected: " . ($conn->isConnected() ? 'YES' : 'NO'));
 
             // List all tables first
             $allTables = $conn->executeQuery("SELECT name FROM sqlite_master WHERE type='table'")->fetchFirstColumn();
-            $this->logger?->warning("All tables in database: " . implode(', ', $allTables));
+//            $this->logger?->warning("All tables in database: " . implode(', ', $allTables));
 
             // Check if owner table exists
             $tableExists = $conn->executeQuery(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='owner'"
             )->fetchOne();
 
-            $this->logger?->warning("Owner table query result: " . ($tableExists ?: 'NULL'));
+//            $this->logger?->warning("Owner table query result: " . ($tableExists ?: 'NULL'));
 
             if (!$tableExists) {
                 $this->logger?->error("OWNER TABLE DOES NOT EXIST in {$currentPath}");
                 $this->logger?->error("Available tables: " . implode(', ', $allTables));
                 $this->logger?->error("This will cause the 'no such table: owner' error");
             } else {
-                $this->logger?->warning("Owner table EXISTS - checking for record...");
+//                $this->logger?->warning("Owner table EXISTS - checking for record...");
 
                 // Check if specific owner record exists
                 $ownerExists = (bool)$conn->fetchOne('SELECT 1 FROM owner WHERE id = ?', [$pixieCode]);
-                $this->logger?->warning("Owner record with id '{$pixieCode}' exists: " . ($ownerExists ? 'YES' : 'NO'));
+//                $this->logger?->warning("Owner record with id '{$pixieCode}' exists: " . ($ownerExists ? 'YES' : 'NO'));
 
                 if ($ownerExists) {
-                    $this->logger?->warning("Creating owner reference...");
+//                    $this->logger?->warning("Creating owner reference...");
                     $ownerRef = $em->getReference(Owner::class, $pixieCode);
-                    $this->logger?->warning("Owner reference created");
+//                    $this->logger?->warning("Owner reference created");
                 } else {
                     $this->logger?->warning("Owner record does not exist - will need to be created");
                 }
             }
         } catch (\Exception $e) {
-            $this->logger?->error("EXCEPTION during owner check: " . $e->getMessage());
-            $this->logger?->error("Exception class: " . get_class($e));
-            $this->logger?->error("Exception trace: " . $e->getTraceAsString());
+//            $this->logger?->error("EXCEPTION during owner check: " . $e->getMessage());
+//            $this->logger?->error("Exception class: " . get_class($e));
+//            $this->logger?->error("Exception trace: " . $e->getTraceAsString());
             // Don't throw here - let the context be created without ownerRef
             // The calling code can handle creating the owner if needed
         }
 
-        $this->logger?->warning("=== OWNER CHECK END ===");
+//        $this->logger?->warning("=== OWNER CHECK END ===");
         $this->currentPixieCode = $pixieCode;
         $this->logger?->info("Creating PixieContext with ownerRef: " . ($ownerRef ? 'SET' : 'NULL'));
         $context = new PixieContext($pixieCode, $config, $em, $ownerRef);

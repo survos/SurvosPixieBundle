@@ -20,14 +20,14 @@ class EventParticipant
 
         #[ORM\ManyToOne(targetEntity: Event::class)]
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-        public Event $event,
+        public ?Event $event=null,
 
         #[ORM\Column(length: 80, name: 'role_code')]
-        public string $roleCode,
+        public ?string $roleCode=null,
 
         #[ORM\ManyToOne(targetEntity: Row::class)]
         #[ORM\JoinColumn(name: 'actor_row_id', nullable: false, onDelete: 'CASCADE')]
-        public Row $actor,
+        public ?Row $actor=null,
 
         #[ORM\Column(type: 'boolean', options: ['default' => true])]
         public bool $certain = true,

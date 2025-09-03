@@ -5,6 +5,7 @@
 namespace Survos\PixieBundle;
 
 use Survos\CoreBundle\Traits\HasAssetMapperTrait;
+use Survos\MeiliBundle\Service\MeiliService;
 use Survos\PixieBundle\Command\IterateCommand;
 use Survos\PixieBundle\Command\PixieExportCommand;
 use Survos\PixieBundle\Command\PixieImportCommand;
@@ -20,6 +21,7 @@ use Survos\PixieBundle\Command\PixieSchemaDumpCommand;
 use Survos\PixieBundle\Command\PixieSchemaSyncCommand;
 use Survos\PixieBundle\Command\PixieStatsShowCommand;
 use Survos\PixieBundle\Command\PixieSyncCommand;
+use Survos\PixieBundle\Command\PixieSyncIndexesCommand;
 use Survos\PixieBundle\Command\PixieTranslateCommand;
 use Survos\PixieBundle\Components\DatabaseComponent;
 use Survos\PixieBundle\Components\RowComponent;
@@ -72,6 +74,7 @@ use Survos\PixieBundle\Service\StatsCollector;
 use Survos\PixieBundle\Service\TranslationResolver;
 use Survos\PixieBundle\StorageBox;
 use Survos\PixieBundle\Twig\TwigExtension;
+use Survos\PixieBundle\Util\IndexNameResolver;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -153,6 +156,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                      StatsCollector::class,
                      PixieService::class,
                      PixieImportService::class,
+                     IndexNameResolver::class,
                      PixieEntityManagerProvider::class,
                      CoreService::class,
                      LocaleContext::class,
@@ -182,7 +186,6 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
                 ->setAutoconfigured(true)
                 ->setPublic(true);
         }
-
         // PixieService args
         $builder->getDefinition(PixieImportService::class)
             ->setArgument('$logger', new Reference('logger'))
@@ -256,6 +259,7 @@ class SurvosPixieBundle extends AbstractBundle implements CompilerPassInterface
 
         // Commands
         foreach ([
+                     PixieSyncIndexesCommand::class,
                      PixieStatsShowCommand::class,
                      PixieMeiliSettingsCommand::class,
                      PixieMigrateCommand::class,

@@ -17,7 +17,16 @@ class OriginalImage
 //    use TimestampableEntity;
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['row.images'])]
-    private ?string $thumbUrl = null;
+    public ?string $thumbUrl = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['row.images', 'row.read'])]
+    public ?int $size = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['row.images', 'row.read'])]
+    public ?array $resized = null;
+
 
 //    #[ORM\Column]
 //    #[Gedmo\Timestampable(on:"create")]
@@ -59,11 +68,10 @@ class OriginalImage
 //            assert()
         }
 //        $this->createdAt = new \DateTimeImmutable();
-        $this->createdAt = new \DateTime();
+//        $this->createdAt = new \DateTime();
     }
 
-    public
-    function getId(): ?int
+    public function getId(): ?int
     {
         return $this->id;
     }

@@ -45,9 +45,9 @@ class StorageBoxEvent extends Event
         return $this->tags;
     }
 
-    public function getStorageBox(): StorageBox
+    public function getStorageBox(): ?StorageBox
     {
-        return $this->storageBox;
+        return null; // $this->storageBox;
     }
 
     public function setStorageBox(StorageBox $storageBox): StorageBoxEvent

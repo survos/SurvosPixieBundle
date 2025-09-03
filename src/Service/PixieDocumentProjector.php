@@ -6,10 +6,14 @@ namespace Survos\PixieBundle\Service;
 use Survos\CoreBundle\Service\SurvosUtils;
 use Survos\PixieBundle\Entity\Row;
 use Survos\PixieBundle\Model\PixieContext;
+use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
+use Symfony\Component\Serializer\SerializerInterface;
 
 final class PixieDocumentProjector
 {
-    public function __construct(private readonly EventQueryService $events) {}
+    public function __construct(private readonly EventQueryService $events,
+                                private readonly NormalizerInterface $normalizer,
+                                private readonly SerializerInterface $serializer) {}
 
     /** @return array<string,mixed> */
     public function project(PixieContext $ctx, Row $row, ?string $locale = null): array
@@ -24,7 +28,10 @@ final class PixieDocumentProjector
             'label'       => $label,
 //            'description' => property_exists($row, 'data') ? ($row->data['description'] ?? null) : null,
         ];
-        $doc = array_merge($doc, $row->data ?? []);
+        $normalized = $this->normalizer->normalize($row, 'array', ['groups' => ['row.read', 'row.images']]);
+        $doc = array_merge($doc, $row->data, $normalized);
+        $doc['data'] = []; // will be removed
+        unset($doc['data']);
         // for debugging
 //        $doc['raw'] = $row['raw'];
 

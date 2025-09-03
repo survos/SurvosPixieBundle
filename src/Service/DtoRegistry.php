@@ -5,6 +5,7 @@ namespace Survos\PixieBundle\Service;
 
 use Survos\PixieBundle\Dto\Attributes\Mapper as MapperAttr;
 use Survos\PixieBundle\Dto\Attributes\Map as MapAttr;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 use ReflectionClass;
 use ReflectionProperty;
@@ -22,7 +23,7 @@ final class DtoRegistry
      * @param iterable<object> $dtos DTO services, tagged with pixie.dto
      */
     public function __construct(
-        #[TaggedIterator('pixie.dto', defaultPriorityMethod: null)]
+        #[AutowireIterator('pixie.dto', defaultPriorityMethod: null)]
         iterable $dtos
     ) {
         // Note: TaggedIterator preserves priority ordering automatically

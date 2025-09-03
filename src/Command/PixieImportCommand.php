@@ -388,7 +388,7 @@ EOL
 //        $this->initialized && $event->isRowLoad() && $this->progressBar->advance();
     }
 
-    public function runIndex(string $pixieCode, ?string $subCode = null, $output): void
+    public function runIndex(string $pixieCode, ?string $subCode = null, ?SymfonyStyle $output=null): void
     {
 
         $greetInput = new ArrayInput([

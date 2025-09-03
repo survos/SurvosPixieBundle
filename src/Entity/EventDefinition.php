@@ -15,7 +15,7 @@ class EventDefinition
         #[ORM\Id]
         #[ORM\GeneratedValue]
         #[ORM\Column]
-        private(set) ?int $id = null,
+        private(set) int $id,
 
         #[ORM\Column(length: 64, name: 'owner_code')]
         public string $ownerCode,

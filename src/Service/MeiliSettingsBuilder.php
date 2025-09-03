@@ -72,7 +72,7 @@ final class MeiliSettingsBuilder
             'filterableAttributes' => $filterable,
             'sortableAttributes'   => $sortable,
             'searchableAttributes' => $searchable,
-            'displayedAttributes'  => $displayed,
+            'displayedAttributes'  => ['*'], // $displayed,
         ];
     }
 }

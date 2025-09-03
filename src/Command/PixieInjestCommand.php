@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Survos\PixieBundle\Command;
 
 use Survos\PixieBundle\Entity\Core;
+use Survos\PixieBundle\Entity\OriginalImage;
 use Survos\PixieBundle\Entity\Owner;
 use Survos\PixieBundle\Entity\Row;
 use Survos\PixieBundle\Import\Ingest\JsonIngestor;
@@ -311,6 +312,17 @@ final class PixieInjestCommand
                 // store raw + normalized
                 $row->raw = $record;
                 $row->setData($normalized);
+
+                // handle images.  @todo: multiple images
+                // @todo: move to dedicated service
+                $imageRepo = $ctx->repo(OriginalImage::class);
+                if ($imageUrl = $normalized['imageUrl']??false) {
+                    if (!$orig = $imageRepo->findByUrl($imageUrl, $pixieCode)) {
+                        $orig = new OriginalImage($imageUrl, root: $pixieCode);
+                        $ctx->em->persist($orig);
+                        $row->addImage($orig);
+                    }
+                }
 
                 if ((++$i % $batch) === 0) {
                     $em->flush();

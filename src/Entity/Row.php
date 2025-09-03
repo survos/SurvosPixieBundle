@@ -8,7 +8,6 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Survos\PixieBundle\Contract\TranslatableByCodeInterface;
-use Survos\PixieBundle\Entity\Traits\TranslatableFieldsByCode;
 use Survos\PixieBundle\Repository\RowRepository;
 use Survos\WorkflowBundle\Traits\MarkingInterface;
 use Survos\WorkflowBundle\Traits\MarkingTrait;
@@ -22,10 +21,12 @@ use Symfony\Component\Serializer\Attribute\Groups;
 //#[ORM\Index(name: 'row_core_code', columns: ['core_id','id'])]
 #[ORM\Index(name: 'row_core_marking', columns: ['core_id','marking'])] // optional but handy for workflows
 #[Groups(['row.read'])]
-class Row implements TranslatableByCodeInterface, MarkingInterface, \Stringable
+class Row implements
+//    TranslatableByCodeInterface, // this should be handled in babel-bundle now!
+    MarkingInterface, \Stringable
 {
     use MarkingTrait;
-    use TranslatableFieldsByCode;
+//    use TranslatableFieldsByCode;
 
 
 // NOT mapped: transient resolved strings for this request/run, resolved in PixiePostLoadListener::class
@@ -96,7 +97,7 @@ class Row implements TranslatableByCodeInterface, MarkingInterface, \Stringable
      */
     #[ORM\OneToMany(targetEntity: OriginalImage::class, mappedBy: 'row', orphanRemoval: true)]
     #[Groups(['row.images'])]
-    private Collection $images;
+    public Collection $images;
 
     #[ORM\Column(nullable: true)]
     #[ApiProperty(description: 'The original json data, before any normalization or cleanup.  Debug only, should not be read in production')]

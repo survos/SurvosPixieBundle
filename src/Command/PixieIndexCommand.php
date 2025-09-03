@@ -8,9 +8,9 @@ use Survos\MeiliBundle\Service\SettingsService;
 use Survos\PixieBundle\Entity\Row;
 use Survos\PixieBundle\Service\LocaleContext;
 use Survos\PixieBundle\Service\MeiliIndexer;
-use Survos\PixieBundle\Util\IndexNameResolver;
 use Survos\PixieBundle\Service\PixieDocumentProjector;
 use Survos\PixieBundle\Service\PixieService;
+use Survos\PixieBundle\Util\IndexNameResolver;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\Option;
@@ -41,20 +41,27 @@ final class PixieIndexCommand
         #[Option('limit')] ?int $limit = null,
         #[Option('offset')] int $offset = 0,
         #[Option('dump the raw and normalized record')] ?bool $dump = null,
+        #[Option('purge the meili index first')] ?bool $reset = null,
     ): int {
         $pixieCode ??= getenv('PIXIE_CODE');
         if (!$pixieCode) {
             $io->error("Pass in pixieCode or set PIXIE_CODE env var");
             return Command::FAILURE;
         }
+
         $this->locale->set($loc);
 
         $ctx   = $this->pixie->getReference($pixieCode);
         $owner = $ctx->ownerRef;
         $coreE = $this->pixie->getCore($core, $owner);
 
-        $index = IndexNameResolver::name($pixieCode, $core, $loc);
+        $index = $this->meiliIndexer->resolveIndexName($pixieCode, $loc);
         $limit ??= ($this->env==='dev') ? 10 : 0;
+
+        if ($reset) {
+            $this->meili->reset($index);
+//            $settings = $this->settingsService->getSettingsFromAttributes();
+        }
 
         $io->title("Meili index: $index");
         $settings = $this->meiliIndexer->getSettings($index);

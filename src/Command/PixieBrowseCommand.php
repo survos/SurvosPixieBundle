@@ -33,7 +33,7 @@ final class PixieBrowseCommand
         #[Option('limit')] int $limit = 25,
         #[Option('offset')] int $offset = 0,
         #[Option('pretty')] bool $pretty = true,
-        #[Option('ids', description: 'Comma-separated list of within-core IDs to fetch')] ?string $ids = null,
+        #[Option('Comma-separated list of within-core IDs to fetch')] ?string $ids = null,
     ): int {
         // Switch translation locale so post-load hooks resolve translated strings
         $this->localeContext->set($locale);

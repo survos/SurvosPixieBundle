@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Survos\PixieBundle\Service;
 
 use Meilisearch\Client;
+use Survos\MeiliBundle\Service\MeiliService;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
@@ -21,6 +22,7 @@ final class MeiliIndexer
     private Client $client;
 
     public function __construct(
+        private MeiliService $meiliService,
         #[Autowire(env: 'MEILI_SERVER')]
         string $url,
         #[Autowire(env: 'MEILI_MASTER_KEY')]
@@ -28,6 +30,15 @@ final class MeiliIndexer
     ) {
         $this->client = new Client($url, $key);
     }
+
+    public function resolveIndexName(string $pixieCode, string $locale): string
+    {
+        if (!$this->meiliService) {
+            throw new \Exception('Meili service is not installed');
+        }
+        return strtolower(sprintf('%spx_%s_%s', $this->meiliService->getPrefix(), $pixieCode, $locale));
+    }
+
 
     public function client(): Client
     {
@@ -57,6 +68,7 @@ final class MeiliIndexer
         if (!$docs) {
             return;
         }
-        $this->client->index($indexName)->updateDocuments($docs, $primaryKey);
+        $task = $this->client->index($indexName)->updateDocuments($docs, $primaryKey);
+        $wait = $this->client->waitForTask($task['taskUid']);
     }
 }
