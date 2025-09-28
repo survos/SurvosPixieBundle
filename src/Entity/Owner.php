@@ -14,10 +14,10 @@ use Survos\PixieBundle\Entity\Field\Field;
 #[ORM\Entity(repositoryClass: OwnerRepository::class)]
 #[ORM\Table(name: 'owner')]
 #[ORM\UniqueConstraint(name: 'owner_code', columns: ['code'])]
-#[ApiResource(
-    normalizationContext: ['groups' => ['owner.read']],
-    denormalizationContext: ['groups' => ['owner.write']],
-)]
+//#[ApiResource(
+//    normalizationContext: ['groups' => ['owner.read']],
+//    denormalizationContext: ['groups' => ['owner.write']],
+//)]
 class Owner implements \Stringable
 {
     #[ORM\Id]

@@ -11,7 +11,6 @@ namespace Survos\PixieBundle\Entity\Field;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Knp\DoctrineBehaviors\Contract\Entity\TranslatableInterface;
 use Survos\CoreBundle\Entity\RouteParametersInterface;
 use Survos\CoreBundle\Entity\RouteParametersTrait;
 use Survos\GridGroupBundle\CsvSchema\Parser;
@@ -58,7 +57,6 @@ class Field implements
 //    ProjectInterface,
 //    ImportKeyInterface,
 //    UuidAttributeInterface,
-//    TranslatableInterface,
 //    TranslatableFieldsProxyInterface,
     CoreInterface,
     \Stringable

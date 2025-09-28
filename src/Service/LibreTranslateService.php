@@ -10,7 +10,6 @@ use App\Entity\ProjectInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Flintstone\Flintstone;
 use Flintstone\Formatter\JsonFormatter;
-use Knp\DoctrineBehaviors\Contract\Entity\TranslatableInterface;
 use Psr\Cache\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Survos\GridGroupBundle\Model\Schema;

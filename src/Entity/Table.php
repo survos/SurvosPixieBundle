@@ -7,8 +7,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Survos\PixieBundle\Repository\TableRepository;
 
 #[ORM\Entity(repositoryClass: TableRepository::class)]
-#[ORM\Table(name: 'tables')]
-#[ApiResource]
+//#[ORM\Table(name: 'tables')]
+//#[ApiResource]
 class Table
 {
 

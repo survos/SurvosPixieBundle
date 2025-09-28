@@ -89,7 +89,6 @@ use Gedmo\Mapping\Annotation as Gedmo;
 //#[Gedmo\Tree(type: 'nested')]
 class Instance implements
 //    IdInterface,
-//    TranslatableInterface,
 //    TranslatableFieldsProxyInterface,
     CoreInterface, // constants
 

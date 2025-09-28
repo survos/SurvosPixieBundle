@@ -25,7 +25,6 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\Tree\Traits\NestedSetEntity;
-use Knp\DoctrineBehaviors\Contract\Entity\TranslatableInterface;
 use Survos\CoreBundle\Entity\RouteParametersInterface;
 use Survos\PixieBundle\Entity\Field\CategoryField;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -36,16 +35,16 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\UniqueConstraint(name: 'pc_category_code', columns: ['core_id', 'category_field_id', 'code'])]
 #[UniqueEntity(['code', 'categoryField', 'projectCore'])]
-#[ApiResource(
-    operations: [new Get(), new Put(), new Delete(), new Patch(), new Post(), new GetCollection()],
-    shortName: 'categories',
-    denormalizationContext: [
-        'groups' => ['write', 'tree'],
-    ],
-    normalizationContext: [
-        'groups' => ['read', 'tree'],
-    ]
-)]
+//#[ApiResource(
+//    operations: [new Get(), new Put(), new Delete(), new Patch(), new Post(), new GetCollection()],
+//    shortName: 'categories',
+//    denormalizationContext: [
+//        'groups' => ['write', 'tree'],
+//    ],
+//    normalizationContext: [
+//        'groups' => ['read', 'tree'],
+//    ]
+//)]
 //#[Gedmo\Tree(type: 'nested')]
 #[ApiFilter(filterClass: SearchFilter::class, properties: [
     'id' => 'exact',
