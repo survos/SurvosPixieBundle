@@ -9,8 +9,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Survos\PixieBundle\Contract\TranslatableByCodeInterface;
 use Survos\PixieBundle\Repository\RowRepository;
-use Survos\WorkflowBundle\Traits\MarkingInterface;
-use Survos\WorkflowBundle\Traits\MarkingTrait;
+use Survos\StateBundle\Traits\MarkingInterface;
+use Survos\StateBundle\Traits\MarkingTrait;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: RowRepository::class)]

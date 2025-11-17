@@ -8,7 +8,7 @@ use Survos\PixieBundle\Message\PixieTransitionMessage;
 use Survos\PixieBundle\Service\LocaleContext;
 use Survos\PixieBundle\Service\PixieImportService;
 use Survos\PixieBundle\Service\PixieService;
-use Survos\WorkflowBundle\Service\WorkflowHelperService;
+use Survos\StateBundle\Service\WorkflowHelperService;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Attribute\Option;

@@ -28,7 +28,7 @@ use Survos\PixieBundle\Service\PixieTranslationService;
 use Survos\PixieBundle\Service\SchemaViewService;
 use Survos\PixieBundle\StorageBox;
 use Survos\PixieBundle\SurvosPixieBundle;
-use Survos\WorkflowBundle\Service\WorkflowHelperService;
+use Survos\StateBundle\Service\WorkflowHelperService;
 use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;

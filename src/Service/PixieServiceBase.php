@@ -37,7 +37,7 @@ use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Yaml\Yaml;
-use Survos\WorkflowBundle\Service\WorkflowHelperService;
+use Survos\StateBundle\Service\WorkflowHelperService;
 use Survos\PixieBundle\Entity\CoreDefinition;
 use Survos\PixieBundle\Entity\FieldDefinition;
 
