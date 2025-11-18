@@ -39,8 +39,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: LstRepository::class)]
 #[ORM\Table]
 #[ORM\Index(name: 'lst_parent', fields: ['parent'])]
-#[ORM\UniqueConstraint(name: 'lsts_project_plus_code', columns: ['code'])]
-#[UniqueEntity(fields: ['project', 'code'])]
+//#[ORM\UniqueConstraint(name: 'lsts_project_plus_code', columns: ['code'])]
+//#[UniqueEntity(fields: ['project', 'code'])]
 #[ApiFilter(filterClass: SearchFilter::class, properties: [
     'id' => 'exact',
     'project' => 'exact',
@@ -58,6 +58,11 @@ class Lst
 //    use ProjectTrait;
 //    use InstanceTrait;
 //    use NestedSetEntity;
+
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private int $id;
 
     final public const API_SHORTNAME = 'lsts';
 

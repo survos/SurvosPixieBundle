@@ -18,6 +18,11 @@ class File implements RouteParametersInterface
 {
     use RouteParametersTrait;
 
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private int $id;
+
 //    #[ORM\ManyToOne(inversedBy: 'files')]
 //    #[ORM\JoinColumn(nullable: false)]
     protected Project $project;
