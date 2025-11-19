@@ -32,6 +32,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\PropertyInfo\PropertyInfoExtractorInterface;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -52,6 +53,7 @@ class PixieServiceBase
 //        #[Autowire('%kernel.debug%')] private readonly bool                                        $isDebug,
 
         protected EntityManagerInterface              $pixieEntityManager,
+        protected readonly PropertyInfoExtractorInterface $propertyInfo,
         protected readonly bool                       $isDebug = false,
         protected array                               $data = [],
         protected readonly string                     $extension = "db",
@@ -268,6 +270,9 @@ class PixieServiceBase
             foreach ($pixie['tables'] as $tableName => $tableData) {
                 $pixie['tables'][$tableName]['name'] = $tableName;
             }
+
+            $type = $this->propertyInfo->getType(Config::class, 'tables');
+
             $config = $this->serializer->denormalize($pixie, Config::class);
             $config->setPixieFilename($this->getPixieFilename($code));
             $config->code = $code;

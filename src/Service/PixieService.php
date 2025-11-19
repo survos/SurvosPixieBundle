@@ -580,6 +580,7 @@ class PixieService extends PixieServiceBase {
                 // keep the YAML table object but replace pk/properties
                 $t = $cfg->getTable($tName);
                 if ($t) {
+//                    dd($t, $pk, $props);
                     $t->setPkName($pk);
                     $t->setProperties($props);
                     $tables[$tName] = $t;

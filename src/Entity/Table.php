@@ -7,11 +7,12 @@ use Doctrine\ORM\Mapping as ORM;
 use Survos\PixieBundle\Repository\TableRepository;
 
 #[ORM\Entity(repositoryClass: TableRepository::class)]
-//#[ORM\Table(name: 'tables')]
+#[ORM\Table(name: 'tables')] // not table!  conflicts with reserved word
 //#[ApiResource]
 class Table
 {
 
+    public string $pk;
 
     /**
      * @param string|null $name

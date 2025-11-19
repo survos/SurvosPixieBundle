@@ -3,6 +3,7 @@
 namespace Survos\PixieBundle\Model;
 
 use Survos\PixieBundle\Entity\Owner;
+use Survos\PixieBundle\Model\Table;
 use Symfony\Component\Yaml\Yaml;
 
 class Config
@@ -13,6 +14,10 @@ class Config
     const string VISIBILITY_PRIVATE = 'private';
     const string VISIBILITY_UNLISTED = 'unlisted';
     const string TYPE_AGGREGATOR = 'agg';
+
+    /**
+     * @param array<string, Table> $tables
+     */
     public function __construct(
         private readonly string|float|null $version=null,
         public ?string $code=null,
@@ -20,8 +25,8 @@ class Config
         private array $files=[],
         /**
          * @var array<string,Table>
-//         * @ var Table[]
          */
+        #[Type('array<string,' . Table::class . '>')]
         public array $tables=[],
         public array $templates=[],
         private ?string $configFilename=null,
