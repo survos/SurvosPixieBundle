@@ -4,32 +4,31 @@ namespace Survos\PixieBundle\Model;
 
 class Table
 {
+    /**
+     * @param array<Column> $columns
+     * @param array<Property|string> $properties
+     * @param array<string> $extras
+     * @param array<string> $uses
+     * @param array<string> $translatable
+     */
     public function __construct(
-        private ?string $name=null,
+        public ?string $name = null,
         // keyed by regex
-        private array $rules=[],
-        /**
-         * @var array<Column>
-         */
-        private array $columns=[],
-        /**
-         * @var array<Property|string>
-         */
-        private array   $properties=[],
-        private readonly array   $patches=[],
-        /** @var array<string> */ private readonly array   $extras=[],
-        /** @var array<string> */ private readonly array   $uses=[],
-        /** @var array<string> */  private readonly array   $translatable =[],
-        private ?string $indexes=null, // the super-succint dexie-style index defintion, e.g. "id|int,department"
-        private ?string $pkName=null,
-        private readonly ?string $extends=null,
-        private ?string $workflow=null,
-        private ?bool   $has_images=null,
-        private ?int    $total=null, // if known, speeds up count, especially JSON
-        private readonly ?string $parent=null, // one ManyToOne, e.g. Artwork or Objekt in the 'image' table
-    )
-    {
-    }
+        public array $rules = [],
+        /** @var array<Column> */ public array $columns = [],
+        /** @var array<Property|string> */ public array $properties = [],
+        public readonly array $patches = [],
+        /** @var array<string> */ public readonly array $extras = [],
+        /** @var array<string> */ public readonly array $uses = [],
+        /** @var array<string> */ public readonly array $translatable = [],
+        public ?string $indexes = null,     // dexie-style: "id|int,department"
+        public ?string $pkName = null,
+        public readonly ?string $extends = null,
+        public ?string $workflow = null,
+        public ?bool $has_images = null,
+        public ?int $total = null,
+        public readonly ?string $parent = null,
+    ) {}
 
     public function getExtras(): array
     {

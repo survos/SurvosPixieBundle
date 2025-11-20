@@ -23,11 +23,7 @@ class Config
         public ?string $code=null,
         public ?Source $source=null,
         private array $files=[],
-        /**
-         * @var array<string,Table>
-         */
-        #[Type('array<string,' . Table::class . '>')]
-        public array $tables=[],
+        /** @var array<string,Table> */ public array $tables = [],
         public array $templates=[],
         private ?string $configFilename=null,
         private readonly string $type=self::TYPE_MUSEUM,
